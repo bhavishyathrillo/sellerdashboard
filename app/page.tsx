@@ -1,44 +1,52 @@
-import { supabase } from '@/lib/supabase'
+'use client'
 
-export default async function Home() {
-  const { data: sellers, error } = await supabase
-    .from('test_sellers')
-    .select('*')
+import { useState } from 'react'
+import IntroScreen from '@/components/ui/IntroScreen'
+import LoginForm from '@/components/auth/LoginForm'
 
-  if (error) {
-    return <div>Error: {error.message}</div>
+type AppState = 'intro' | 'login' | 'dashboard'
+
+export default function Home() {
+  const [state, setState] = useState<AppState>('intro')
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  const handleIntroComplete = () => setState('login')
+
+  const handleLogin = (email: string) => {
+    setUserEmail(email)
+    setState('dashboard')
   }
 
   return (
-    <main style={{ padding: '40px', fontFamily: 'sans-serif' }}>
-      <h1>Seller Dashboard — Test</h1>
-      <p>{sellers?.length} sellers found</p>
-      <table border={1} cellPadding={10} style={{ borderCollapse: 'collapse', marginTop: '20px' }}>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Region</th>
-            <th>Haul</th>
-            <th>Goal</th>
-            <th>Achieved</th>
-            <th>% Done</th>
-            <th>Flag</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sellers?.map((seller) => (
-            <tr key={seller.id}>
-              <td>{seller.seller_name}</td>
-              <td>{seller.region}</td>
-              <td>{seller.haul}</td>
-              <td>₹{seller.goal?.toLocaleString()}</td>
-              <td>₹{seller.achieved?.toLocaleString()}</td>
-              <td>{seller.pct_achieved}%</td>
-              <td>{seller.seller_flag}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </main>
+    <>
+      {state === 'intro' && (
+        <IntroScreen onComplete={handleIntroComplete} />
+      )}
+
+      {state === 'login' && (
+        <LoginForm onLogin={handleLogin} />
+      )}
+
+      {state === 'dashboard' && (
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: '12px',
+          background: '#080808',
+          fontFamily: 'Inter, sans-serif'
+        }}>
+          <p style={{ color: '#5A5650', fontSize: '0.8rem', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+            Signed in as
+          </p>
+          <p style={{ color: '#F4631E', fontSize: '1rem' }}>{userEmail}</p>
+          <p style={{ color: '#3A3632', fontSize: '0.75rem', marginTop: '8px' }}>
+            Dashboard coming next
+          </p>
+        </div>
+      )}
+    </>
   )
 }
