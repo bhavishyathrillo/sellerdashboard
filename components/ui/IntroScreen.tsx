@@ -1,24 +1,37 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import styles from './IntroScreen.module.css'
 
 interface IntroScreenProps {
   onComplete: () => void
 }
 
+type Phase = 'black' | 'ring' | 'logo' | 'title' | 'tagline' | 'hold' | 'fade'
+
 export default function IntroScreen({ onComplete }: IntroScreenProps) {
-  const [phase, setPhase] = useState<'logo' | 'tagline' | 'fade'>('logo')
+  const [phase, setPhase] = useState<Phase>('black')
   const [skipped, setSkipped] = useState(false)
 
   useEffect(() => {
     if (skipped) return
 
-    const t1 = setTimeout(() => setPhase('tagline'), 1200)
-    const t2 = setTimeout(() => setPhase('fade'), 3000)
-    const t3 = setTimeout(() => onComplete(), 3600)
+    const timings: [Phase, number][] = [
+      ['ring',    400],
+      ['logo',    1000],
+      ['title',   1800],
+      ['tagline', 2600],
+      ['hold',    3400],
+      ['fade',    4800],
+    ]
 
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+    const timers = timings.map(([p, delay]) =>
+      setTimeout(() => setPhase(p), delay)
+    )
+    const done = setTimeout(() => onComplete(), 5600)
+
+    return () => { timers.forEach(clearTimeout); clearTimeout(done) }
   }, [skipped, onComplete])
 
   const handleSkip = () => {
@@ -26,43 +39,90 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
     onComplete()
   }
 
+  const is = (...phases: Phase[]) => phases.includes(phase)
+
   return (
     <div className={`${styles.intro} ${phase === 'fade' ? styles.fadeOut : ''}`}>
 
-      <div className={styles.grid} aria-hidden="true" />
+      {/* Noise texture overlay */}
+      <div className={styles.noise} aria-hidden="true" />
 
+      {/* Ambient radial glow — appears with logo */}
+      <div className={`${styles.glow} ${is('logo','title','tagline','hold','fade') ? styles.glowVisible : ''}`} aria-hidden="true" />
+
+      {/* Horizontal scan line */}
+      <div className={`${styles.scanline} ${is('ring','logo','title','tagline','hold') ? styles.scanlineActive : ''}`} aria-hidden="true" />
+
+      {/* Center stage */}
       <div className={styles.center}>
 
-        <div className={`${styles.logoMark} ${styles.appear}`}>
-          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-            <rect width="48" height="48" rx="14" fill="#F4631E" />
+        {/* SVG orbit ring — draws itself */}
+        <div className={`${styles.ringWrap} ${is('ring','logo','title','tagline','hold','fade') ? styles.ringVisible : ''}`}>
+          <svg className={styles.ringSvg} viewBox="0 0 200 200" fill="none" aria-hidden="true">
+            {/* Outer orbit ellipse */}
+            <ellipse
+              cx="100" cy="100" rx="90" ry="38"
+              stroke="rgba(244,99,30,0.35)"
+              strokeWidth="1"
+              className={styles.orbitOuter}
+            />
+            {/* Inner orbit ellipse */}
+            <ellipse
+              cx="100" cy="100" rx="90" ry="38"
+              stroke="rgba(244,99,30,0.7)"
+              strokeWidth="1.5"
+              className={`${styles.orbitInner} ${is('logo','title','tagline','hold','fade') ? styles.orbitBright : ''}`}
+            />
+            {/* Swoosh accent */}
             <path
-              d="M14 16h20M24 16v16M18 28l6 4 6-4"
-              stroke="#fff"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              d="M 20 100 Q 100 60 180 100"
+              stroke="rgba(244,99,30,0.4)"
+              strokeWidth="1"
+              fill="none"
+              className={styles.swoosh}
             />
           </svg>
+
+          {/* Logo inside ring */}
+          <div className={`${styles.logoWrap} ${is('logo','title','tagline','hold','fade') ? styles.logoVisible : ''}`}>
+            <Image
+              src="/thrillo-logo.png"
+              alt="Thrillophilia"
+              width={88}
+              height={88}
+              priority
+              className={styles.logoImg}
+            />
+            {/* Light sweep */}
+            <div className={`${styles.sweep} ${is('logo','title','tagline','hold','fade') ? styles.sweepActive : ''}`} aria-hidden="true" />
+          </div>
         </div>
 
-        <h1 className={`${styles.brand} ${styles.appear}`}>
-          Thrillophilia
-        </h1>
+        {/* Brand name — letters stagger in */}
+        <div className={`${styles.titleWrap} ${is('title','tagline','hold','fade') ? styles.titleVisible : ''}`}>
+          {'THRILLOPHILIA'.split('').map((char, i) => (
+            <span
+              key={i}
+              className={styles.titleChar}
+              style={{ animationDelay: `${i * 45}ms` }}
+            >
+              {char}
+            </span>
+          ))}
+        </div>
 
-        <p className={`${styles.tagline} ${phase === 'tagline' || phase === 'fade' ? styles.taglineVisible : ''}`}>
-          Sales Intelligence Platform
+        {/* Tagline */}
+        <p className={`${styles.tagline} ${is('tagline','hold','fade') ? styles.taglineVisible : ''}`}>
+          Every journey begins here
         </p>
 
-        <div className={`${styles.line} ${phase === 'tagline' || phase === 'fade' ? styles.lineVisible : ''}`} aria-hidden="true" />
+        {/* Bottom rule line */}
+        <div className={`${styles.rule} ${is('tagline','hold','fade') ? styles.ruleVisible : ''}`} aria-hidden="true" />
 
       </div>
 
-      <button
-        className={styles.skip}
-        onClick={handleSkip}
-        aria-label="Skip intro"
-      >
+      {/* Skip */}
+      <button className={styles.skip} onClick={handleSkip} aria-label="Skip intro">
         Skip
       </button>
 
