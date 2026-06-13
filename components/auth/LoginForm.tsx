@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import styles from './LoginForm.module.css'
 
 interface LoginFormProps {
@@ -23,7 +24,6 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     const trimmed = email.trim().toLowerCase()
     const err = validate(trimmed)
     if (err) { setError(err); return }
-
     setLoading(true)
     setError('')
     await new Promise(r => setTimeout(r, 800))
@@ -34,17 +34,33 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   return (
     <div className={styles.wrapper}>
 
-      <div className={styles.grid} aria-hidden="true" />
 
+ <div className={styles.videoBg} aria-hidden="false">
+  <video
+    className={styles.videoBgPlayer}
+    src="/videos/login-bg.mp4"
+    autoPlay
+    loop
+    playsInline
+  />
+</div>
+
+      {/* Ambient glow */}
+      <div className={styles.ambientGlow} aria-hidden="true"/>
+
+      {/* Login card */}
       <div className={styles.card}>
 
+        {/* Logo */}
         <div className={styles.logoRow}>
-          <div className={styles.logoMark} aria-hidden="true">
-            <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
-              <rect width="48" height="48" rx="14" fill="#F4631E" />
-              <path d="M14 16h20M24 16v16M18 28l6 4 6-4" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
+          <Image
+            src="/thrillo-logo.svg"
+            alt="Thrillophilia"
+            width={52}
+            height={52}
+            className={styles.logoImg}
+            priority
+          />
         </div>
 
         <h1 className={styles.heading}>Welcome back</h1>
@@ -52,9 +68,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
 
         <form onSubmit={handleSubmit} noValidate className={styles.form}>
           <div className={styles.field}>
-            <label htmlFor="email" className={styles.label}>
-              Work email
-            </label>
+            <label htmlFor="email" className={styles.label}>Work email</label>
             <input
               id="email"
               type="email"
@@ -66,29 +80,19 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
               disabled={loading}
               autoFocus
             />
-            {error && (
-              <p className={styles.errorMsg} role="alert">
-                {error}
-              </p>
-            )}
+            {error && <p className={styles.errorMsg} role="alert">{error}</p>}
           </div>
 
-          <button
-            type="submit"
-            className={styles.btn}
-            disabled={loading}
-          >
+          <button type="submit" className={styles.btn} disabled={loading}>
             {loading ? (
-              <span className={styles.spinner} aria-hidden="true" />
+              <span className={styles.spinner} aria-hidden="true"/>
             ) : (
               <>Sign in <span className={styles.arrow}>→</span></>
             )}
           </button>
         </form>
 
-        <p className={styles.hint}>
-          Access restricted to Thrillophilia employees
-        </p>
+        <p className={styles.hint}>Access restricted to Thrillophilia employees</p>
 
       </div>
     </div>
