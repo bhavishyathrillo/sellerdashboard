@@ -5,7 +5,7 @@ import Image from 'next/image'
 import styles from './LoginForm.module.css'
 
 interface LoginFormProps {
-  onLogin: (email: string, role: string) => void
+  onLogin: (email: string, name: string, role: string) => void
 }
 
 export default function LoginForm({ onLogin }: LoginFormProps) {
@@ -41,7 +41,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         return
       }
 
-      onLogin(data.email, data.role)
+      onLogin(data.email, data.name, data.role)
     } catch {
       setError('Something went wrong. Try again.')
     }
