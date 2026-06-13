@@ -38,13 +38,14 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
  <div className={styles.videoBg} aria-hidden="false">
   <video
     className={styles.videoBgPlayer}
-    src="/videos/login-bg.mp4"
+    src="https://ltiglt8xyyg9iroo.public.blob.vercel-storage.com/login-bg.mp4"
     autoPlay
     loop
     playsInline
   />
 </div>
-
+{/* Fade overlay */}
+<div className={styles.videoOverlay} aria-hidden="true" />
       {/* Ambient glow */}
       <div className={styles.ambientGlow} aria-hidden="true"/>
 
