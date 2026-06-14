@@ -1,11 +1,12 @@
 'use client'
-
+import PipelinePage from '@/components/pages/PipelinePage'
 import { useState, useEffect } from 'react'
 import IntroScreen from '@/components/ui/IntroScreen'
 import LoginForm from '@/components/auth/LoginForm'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { getSession, saveSession, clearSession, UserSession } from '@/lib/session'
 import HomePage from '@/components/pages/HomePage'
+import MHLPage from '@/components/pages/MHLPage'
 type AppState = 'intro' | 'login' | 'dashboard'
 
 export default function Home() {
@@ -68,12 +69,14 @@ export default function Home() {
     activePage={activePage}
     onNavigate={setActivePage}
   >
-    {activePage === 'home' && <HomePage session={session} />}
-    {activePage !== 'home' && (
-      <div style={{ color: '#4A4642', fontSize: '0.8rem' }}>
-        {activePage} — coming next
-      </div>
-    )}
+   {activePage === 'home' && <HomePage session={session} />}
+   {activePage === 'pipeline' && <PipelinePage session={session} />}
+{activePage === 'mhl' && <MHLPage session={session} />}
+{activePage !== 'home' && activePage !== 'mhl' && (
+  <div style={{ color: '#4A4642', fontSize: '0.8rem' }}>
+    {activePage} — coming next
+  </div>
+)}
   </DashboardLayout>
 )}
     </>

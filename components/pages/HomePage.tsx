@@ -179,17 +179,17 @@ export default function HomePage({ session }: HomePageProps) {
   <div className={styles.statCard}>
     <p className={styles.statLabel}>Required Daily</p>
     <p className={styles.statValue}>{fmt(data.required_daily_monthly)}</p>
-    {(() => {
-      const req = data.required_daily_monthly
-      const daily = data.bottomline_goal_monthly / 22
-      const ratio = req / daily
-      let label = '', cls = ''
-      if (req <= 0) { label = '✓ Target achieved'; cls = styles.hintGreen }
-      else if (ratio > 1.5) { label = '⚠ High pressure'; cls = styles.hintRed }
-      else if (ratio > 1) { label = '↑ Above daily avg'; cls = styles.hintYellow }
-      else { label = '✓ On track'; cls = styles.hintGreen }
-      return <p className={styles.statHint}><span className={cls}>{label}</span></p>
-    })()}
+{(() => {
+  const req = data.required_daily_monthly
+  const daily = data.bottomline_goal_monthly / 22
+  const ratio = req / daily
+  let label = '', cls = ''
+  if (req <= 0) { label = '✓ Target achieved'; cls = styles.hintGreen }
+  else if (ratio > 1.5) { label = `↑ Current pace: ${fmt(req)}/day`; cls = styles.hintRed }
+  else if (ratio > 1) { label = `↑ Current pace: ${fmt(req)}/day`; cls = styles.hintYellow }
+  else { label = `✓ Current pace: ${fmt(req)}/day`; cls = styles.hintGreen }
+  return <p className={styles.statHint}><span className={cls}>{label}</span></p>
+})()}
   </div>
 
   {/* Should Have Been */}
@@ -216,23 +216,20 @@ export default function HomePage({ session }: HomePageProps) {
     <div className={styles.progressBar}>
       <div className={styles.progressFill} style={{ width: `${Math.min(pct, 100)}%` }} />
     </div>
-    {(() => {
-      // Expected pace based on current day of month
-      const today = new Date()
-      const dayOfMonth = today.getDate()
-      const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
-      const expectedPct = (dayOfMonth / daysInMonth) * 100
-      const diff = pct - expectedPct
-      const above = diff >= 0
-      return (
-        <p className={styles.statHint}>
-          <span className={above ? styles.hintGreen : styles.hintRed}>
-            {above ? '↑' : '↓'} {Math.abs(diff).toFixed(1)}% {above ? 'ahead of' : 'behind'} pace
-            <span className={styles.hintPct}> (exp. {expectedPct.toFixed(0)}%)</span>
-          </span>
-        </p>
-      )
-    })()}
+   {(() => {
+  const sbhPct = data.should_have_been_monthly > 0
+    ? (data.actual_achieved_monthly / data.should_have_been_monthly) * 100
+    : 0
+  const diff = sbhPct - 100
+  const above = diff >= 0
+  return (
+    <p className={styles.statHint}>
+      <span className={above ? styles.hintGreen : styles.hintRed}>
+        {above ? '↑' : '↓'} {Math.abs(diff).toFixed(1)}% {above ? 'ahead of SHB pace' : 'behind SHB pace'}
+      </span>
+    </p>
+  )
+})()}
   </div>
 
 </div>
