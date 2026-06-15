@@ -145,15 +145,5 @@ const { data: srsData } = await supabase
     created_at: new Date().toISOString()
   })
 
-return NextResponse.json({
-  today: todayStatus,
-  history: history || [],
-  monthly: {
-    goal: srsData?.bottomline_goal_monthly || 0,
-    shb: srsData?.should_have_been_monthly || 0,
-    achieved: srsData?.actual_achieved_monthly || 0,
-    required_daily: srsData?.required_daily_monthly || 0,
-    pct: srsData?.goal_achieved_percent || 0
-  }
-})
+return NextResponse.json({ success: true, status, required })
 }
