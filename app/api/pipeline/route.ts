@@ -17,11 +17,11 @@ export async function GET(req: Request) {
   const today = new Date().toISOString().split('T')[0]
 
   // Get seller's required daily from srs_raw
-  const { data: srsData } = await supabase
-    .from('srs_raw')
-    .select('required_daily_monthly')
-    .eq('seller_email', email.toLowerCase())
-    .single()
+const { data: srsData } = await supabase
+  .from('srs_raw')
+  .select('required_daily_monthly, bottomline_goal_monthly, should_have_been_monthly, actual_achieved_monthly, goal_achieved_percent')
+  .eq('seller_email', email.toLowerCase())
+  .maybeSingle()
 
   const required = srsData?.required_daily_monthly || 0
 
@@ -38,12 +38,12 @@ export async function GET(req: Request) {
   const past_deadline = now.getHours() > dh || (now.getHours() === dh && now.getMinutes() >= dm)
 
   // Check today's submission
-  const { data: todayRow } = await supabase
-    .from('pipeline_submissions')
-    .select('*')
-    .eq('seller_email', email.toLowerCase())
-    .eq('date', today)
-    .single()
+const { data: todayRow } = await supabase
+  .from('pipeline_submissions')
+  .select('*')
+  .eq('seller_email', email.toLowerCase())
+  .eq('date', today)
+  .maybeSingle()
 
   const todayStatus = {
     submitted: !!todayRow,
@@ -112,11 +112,11 @@ export async function POST(req: Request) {
   }
 
   // Get required daily
-  const { data: srsData } = await supabase
-    .from('srs_raw')
-    .select('required_daily_monthly')
-    .eq('seller_email', email.toLowerCase())
-    .single()
+const { data: srsData } = await supabase
+  .from('srs_raw')
+  .select('required_daily_monthly, bottomline_goal_monthly, should_have_been_monthly, actual_achieved_monthly, goal_achieved_percent')
+  .eq('seller_email', email.toLowerCase())
+  .single()
 
   const required = srsData?.required_daily_monthly || 0
   const status = pipeline_value >= required ? 'GREEN' : 'RED'
@@ -145,5 +145,15 @@ export async function POST(req: Request) {
     created_at: new Date().toISOString()
   })
 
-  return NextResponse.json({ success: true, status, required })
+return NextResponse.json({
+  today: todayStatus,
+  history: history || [],
+  monthly: {
+    goal: srsData?.bottomline_goal_monthly || 0,
+    shb: srsData?.should_have_been_monthly || 0,
+    achieved: srsData?.actual_achieved_monthly || 0,
+    required_daily: srsData?.required_daily_monthly || 0,
+    pct: srsData?.goal_achieved_percent || 0
+  }
+})
 }
