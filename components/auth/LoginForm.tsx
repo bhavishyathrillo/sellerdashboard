@@ -60,6 +60,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           autoPlay
           loop
           playsInline
+          muted
         />
       </div>
 
