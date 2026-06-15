@@ -1,5 +1,4 @@
 'use client'
-
 import { useEffect, useState } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './RoadmapPage.module.css'
@@ -17,6 +16,19 @@ interface Props { session: UserSession }
 function fmt(n: number) { if (!n && n !== 0) return '—'; if (n >= 1000) return `₹${(n/1000).toFixed(1)}K`; return `₹${n.toFixed(0)}` }
 function initials(n: string) { if (!n) return '?'; return n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() }
 
+function Particles() {
+  return (
+    <div style={{position:'fixed',inset:0,pointerEvents:'none',zIndex:0,overflow:'hidden'}}>
+      {[...Array(10)].map((_,i)=>(
+        <div key={i} style={{position:'absolute',top:'110%',left:`${Math.random()*100}%`,color:'#C9A84C',fontSize:`${0.5+Math.random()*0.7}rem`,opacity:0.12+Math.random()*0.15,animation:`rise ${5+Math.random()*6}s linear infinite`,animationDelay:`${Math.random()*6}s`}}>
+          {['✦','◈','◇','◆'][Math.floor(Math.random()*4)]}
+        </div>
+      ))}
+      <style>{`@keyframes rise{0%{transform:translateY(0) rotate(0);opacity:0}10%{opacity:1}90%{opacity:0.4}100%{transform:translateY(-110vh) rotate(360deg);opacity:0}}`}</style>
+    </div>
+  )
+}
+
 export default function RoadmapPage({ session }: Props) {
   const [data, setData] = useState<RoadmapData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -33,133 +45,68 @@ export default function RoadmapPage({ session }: Props) {
     load()
   }, [session.email])
 
-  if (loading) return (
-    <div className={styles.loadingWrap}><div className={styles.loadingRing} /><p>Loading your roadmap...</p></div>
-  )
-  if (!data) return (
-    <div className={styles.emptyWrap}><span className={styles.emptyIcon}>🗺</span><h2>No roadmap data</h2><p>Your roadmap is not available yet.</p></div>
-  )
+  if (loading) return <div className={styles.loading}><div className={styles.spinner}/><p>Loading roadmap...</p></div>
+  if (!data) return <div className={styles.empty}><span>🗺️</span><h2>No roadmap data</h2><p>Your growth journey will appear here.</p></div>
 
   const hikeVal = data.current_eligible_hike_percent
-  const hasArps = data.last_3_months_arps || data.last_6_months_arps || data.last_12_months_arps
   const arpsData = [
-    { label: '3 Months', value: data.last_3_months_arps },
-    { label: '6 Months', value: data.last_6_months_arps },
-    { label: '12 Months', value: data.last_12_months_arps },
+    { label: '3M', value: data.last_3_months_arps },
+    { label: '6M', value: data.last_6_months_arps },
+    { label: '12M', value: data.last_12_months_arps },
   ]
   const maxArps = Math.max(...arpsData.map(a => a.value || 0), 1)
 
   return (
     <div className={styles.page}>
-      {/* Floating particles */}
-      <div className={styles.particles}>
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className={styles.particle} style={{left:`${Math.random()*100}%`,animationDelay:`${Math.random()*5}s`,animationDuration:`${3+Math.random()*5}s`}}>✦</div>
-        ))}
-      </div>
+      <Particles />
 
-      {/* Hero */}
       <div className={styles.hero}>
-        <div className={styles.heroGlow} />
-        <span className={styles.heroEmoji}>🗺</span>
-        <h1 className={styles.heroTitle}>My Roadmap</h1>
-        <p className={styles.heroSub}>Your growth journey at Thrillophilia</p>
+        <h1>Your Growth Journey</h1>
+        <p>Track your career progression at Thrillophilia</p>
       </div>
 
-      {/* Profile Card */}
       <div className={styles.profileCard}>
-        <div className={styles.profileTop}>
-          <div className={styles.avatar}>
-            {initials(data.seller_name)}
-            <div className={styles.avatarRing} />
-          </div>
-          <div className={styles.profileInfo}>
-            <h2 className={styles.profileName}>{data.seller_name}</h2>
-            <p className={styles.profileMeta}>{data.region} · {data.duration_in_org}</p>
-            <span className={`${styles.statusBadge} ${data.status==='Active'?styles.statusActive:''}`}>{data.status||'Active'}</span>
+        <div className={styles.avatarRow}>
+          <div className={styles.avatar}>{initials(data.seller_name)}</div>
+          <div>
+            <h2 className={styles.name}>{data.seller_name}</h2>
+            <p className={styles.meta}>{data.region} · {data.duration_in_org}</p>
+            <span className={`${styles.badge} ${data.status==='Active'?styles.badgeActive:''}`}>{data.status||'Active'}</span>
           </div>
         </div>
-
-        <div className={styles.profileGrid}>
-          <div className={styles.profileItem}>
-            <span className={styles.profileIcon}>📅</span>
-            <span className={styles.profileLabel}>Date of Joining</span>
-            <span className={styles.profileVal}>{data.date_of_joining||'—'}</span>
-          </div>
-          <div className={styles.profileItem}>
-            <span className={styles.profileIcon}>⏱️</span>
-            <span className={styles.profileLabel}>Duration</span>
-            <span className={styles.profileVal}>{data.duration_in_org||'—'}</span>
-          </div>
-          <div className={styles.profileItem}>
-            <span className={styles.profileIcon}>📈</span>
-            <span className={styles.profileLabel}>Last Hike</span>
-            <span className={styles.profileVal}>{data.last_hike_month||'—'}</span>
-          </div>
-          <div className={styles.profileItem}>
-            <span className={styles.profileIcon}>🎯</span>
-            <span className={styles.profileLabel}>Next Hike</span>
-            <span className={styles.profileVal}>{data.next_hike_month||'—'}</span>
-          </div>
+        <div className={styles.infoGrid}>
+          <div className={styles.infoItem}><span>📅 DOJ</span><strong>{data.date_of_joining||'—'}</strong></div>
+          <div className={styles.infoItem}><span>⏳ Duration</span><strong>{data.duration_in_org||'—'}</strong></div>
+          <div className={styles.infoItem}><span>📈 Last Hike</span><strong>{data.last_hike_month||'—'}</strong></div>
+          <div className={styles.infoItem}><span>🎯 Next Hike</span><strong>{data.next_hike_month||'—'}</strong></div>
         </div>
       </div>
 
-      {/* Hike % Card */}
-      <div className={`${styles.hikeCard} ${hikeVal ? styles.hikeAvailable : ''}`}>
-        <div className={styles.hikeGlow} />
-        <span className={styles.hikeIcon}>{hikeVal ? '🏆' : '🔒'}</span>
+      <div className={`${styles.hikeCard} ${hikeVal?styles.hikeGlow:''}`}>
+        <span className={styles.hikeEmoji}>{hikeVal?'🌟':'🔒'}</span>
         <div>
-          <span className={styles.hikeLabel}>Current Eligible Hike</span>
-          <span className={styles.hikeValue}>{hikeVal ? `${hikeVal}%` : 'Not Available'}</span>
-          {hikeVal && <span className={styles.hikeSub}>Based on your ARPS performance</span>}
+          <span className={styles.hikeLabel}>Eligible Hike</span>
+          <span className={styles.hikeValue}>{hikeVal?`${hikeVal}%`:'Not Available'}</span>
+          {hikeVal&&<span className={styles.hikeSub}>Based on ARPS performance</span>}
         </div>
       </div>
 
-      {/* ARPS Section */}
-      {hasArps ? (
-        <div className={styles.arpsSection}>
-          <h3 className={styles.sectionTitle}>📊 ARPS Performance</h3>
-          <div className={styles.arpsCards}>
-            {arpsData.map(a => (
-              <div key={a.label} className={styles.arpsCard}>
-                <span className={styles.arpsPeriod}>{a.label}</span>
-                <span className={styles.arpsVal}>{a.value ? fmt(a.value) : '—'}</span>
-              </div>
-            ))}
-          </div>
-          {/* ARPS Bar Chart */}
-          <div className={styles.arpsChart}>
-            {arpsData.map(a => {
-              const h = a.value ? (a.value/maxArps)*80 : 4
-              return (
-                <div key={a.label} className={styles.arpsBarCol}>
-                  <span className={styles.arpsBarVal}>{a.value ? fmt(a.value) : '—'}</span>
-                  <div className={styles.arpsBarWrap}>
-                    <div className={styles.arpsBar} style={{height:`${h}px`, background: a.label==='3 Months'?'#F4631E':a.label==='6 Months'?'#C9A84C':'#22C55E'}} />
-                  </div>
-                  <span className={styles.arpsBarLabel}>{a.label}</span>
-                </div>
-              )
-            })}
-          </div>
+      <div className={styles.arpsSection}>
+        <h3>ARPS Performance</h3>
+        <div className={styles.arpsCards}>
+          {arpsData.map(a=><div key={a.label} className={styles.arpsCard}><span>{a.label}</span><strong>{a.value?fmt(a.value):'—'}</strong></div>)}
         </div>
-      ) : (
-        <div className={styles.noArps}>
-          <span>📋</span>
-          <p>ARPS data not available yet</p>
+        <div className={styles.chart}>
+          {arpsData.map(a=>{
+            const h=a.value?(a.value/maxArps)*70:4
+            return <div key={a.label} className={styles.barCol}><span className={styles.barVal}>{a.value?fmt(a.value):'—'}</span><div className={styles.barWrap}><div className={styles.bar} style={{height:`${h}px`,background:a.label==='3M'?'#F4631E':a.label==='6M'?'#C9A84C':'#22C55E'}}/></div><span className={styles.barLabel}>{a.label}</span></div>
+          })}
         </div>
-      )}
+      </div>
 
-      {/* Manager Info */}
-      <div className={styles.managerRow}>
-        <div className={styles.managerCard}>
-          <span className={styles.managerLabel}>L2 Manager</span>
-          <span className={styles.managerName}>{data.l2_name||'—'}</span>
-        </div>
-        <div className={styles.managerCard}>
-          <span className={styles.managerLabel}>L1 Manager</span>
-          <span className={styles.managerName}>{data.l1_name||'—'}</span>
-        </div>
+      <div className={styles.managers}>
+        <div className={styles.mgrCard}><span>L2</span><strong>{data.l2_name||'—'}</strong></div>
+        <div className={styles.mgrCard}><span>L1</span><strong>{data.l1_name||'—'}</strong></div>
       </div>
     </div>
   )

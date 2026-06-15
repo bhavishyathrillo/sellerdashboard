@@ -66,7 +66,12 @@ export default function DashboardLayout({
             {!collapsed && (
               <div className={styles.userInfo}>
                 <p className={styles.userName}>{session.name}</p>
-                <p className={styles.userRole}>{session.role}</p>
+                <p className={styles.userRole}>
+                  {session.role === 'L2' ? 'L2 Manager' : 
+                   session.role === 'L1' ? 'L1 Manager' : 
+                   session.role === 'ADMIN' ? 'Admin' : 
+                   session.role === 'MODERATOR' ? 'Moderator' : 'Seller'}
+                </p>
               </div>
             )}
           </div>

@@ -1,15 +1,18 @@
-.page { padding: 20px; max-width: 1000px; margin: 0 auto; color: #F0EDE8; }
+.page { padding: 20px; max-width: 1000px; margin: 0 auto; color: #F0EDE8; position: relative; animation: pageIn 0.5s ease; }
+@keyframes pageIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 
 .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
 .title { font-size: 1.4rem; font-weight: 700; color: #C9A84C; }
 
 .viewToggle { display: flex; gap: 4px; background: #141414; border-radius: 10px; padding: 3px; }
 .toggleBtn { padding: 7px 16px; border: none; background: transparent; color: #8A8278; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.2s; }
+.toggleBtn:hover { color: #F0EDE8; }
 .toggleActive { background: #F4631E; color: #fff; }
 
 .statsWrap {  }
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
-.stat { background: #141414; border: 1px solid #232323; border-radius: 12px; padding: 14px; text-align: center; }
+.stat { background: #141414; border: 1px solid #232323; border-radius: 12px; padding: 14px; text-align: center; transition: transform 0.2s, box-shadow 0.2s; }
+.stat:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.25); }
 .stat span { display: block; font-size: 0.6rem; color: #8A8278; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
 .stat strong { display: block; font-size: 1.4rem; font-weight: 700; }
 .hint { display: block; font-size: 0.55rem; margin-top: 4px; }
@@ -19,10 +22,29 @@
 .pctFill { height: 100%; background: linear-gradient(90deg, #6B1E3A, #F4631E, #C9A84C); border-radius: 3px; }
 .pctText { font-size: 0.8rem; color: #C9A84C; text-align: right; }
 
+.trendChart { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.05); }
+.chartHeader { display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 14px; }
+.chartHeaderIcon { font-size: 1rem; }
+.chartHeader span:nth-child(2) { font-size: 0.72rem; font-weight: 700; color: #C9A84C; }
+.chartHeaderSub { font-size: 0.55rem; color: #8A8278; }
+.weekBarChart { display: flex; gap: 8px; }
+.weekBarChart .chartYAxis { display: flex; flex-direction: column; justify-content: space-between; font-size: 0.55rem; color: #8A8278; padding: 0 4px; height: 85px; min-width: 30px; }
+.chartBars { display: flex; align-items: flex-end; gap: 12px; flex: 1; height: 85px; }
+.weekBarGroup { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.weekBars { display: flex; gap: 3px; align-items: flex-end; height: 80px; }
+.barGreen { width: 16px; background: linear-gradient(180deg, #22C55E, #166534); border-radius: 3px 3px 0 0; min-height: 3px; transition: height 0.5s ease; position: relative; cursor: pointer; }
+.barRed { width: 16px; background: linear-gradient(180deg, #EF4444, #991B1B); border-radius: 3px 3px 0 0; min-height: 3px; transition: height 0.5s ease; position: relative; cursor: pointer; }
+.barGreen:hover::after, .barRed:hover::after { content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #1a1a1a; border: 1px solid #F4631E; color: #F0EDE8; padding: 3px 8px; border-radius: 4px; font-size: 0.6rem; white-space: nowrap; z-index: 10; margin-bottom: 4px; pointer-events: none; }
+.barLabel { font-size: 0.5rem; color: #8A8278; }
+.trendLegend { display: flex; justify-content: center; gap: 16px; margin-top: 6px; font-size: 0.58rem; color: #8A8278; }
+.trendLegend span { display: flex; align-items: center; gap: 4px; }
+.legendDot { width: 8px; height: 3px; border-radius: 2px; display: inline-block; }
+
 .weeks {  }
 .weeks h2 { font-size: 0.85rem; font-weight: 700; color: #C9A84C; margin-bottom: 10px; }
 .weekGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.weekCard { background: #141414; border: 1px solid #232323; border-radius: 10px; padding: 12px; }
+.weekCard { background: #141414; border: 1px solid #232323; border-radius: 10px; padding: 12px; transition: transform 0.2s; }
+.weekCard:hover { transform: translateY(-2px); }
 .weekHeader { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 700; }
 .weekPct { color: #C9A84C; font-size: 0.8rem; }
 .weekRow { display: flex; justify-content: space-between; font-size: 0.7rem; padding: 3px 0; }
@@ -31,7 +53,8 @@
 .weekBarFill { height: 100%; background: linear-gradient(90deg, #F4631E, #C9A84C); border-radius: 2px; }
 
 .teamSection {  }
-.teamKpiWrap { background: #141414; border: 1px solid rgba(201,168,76,0.25); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+.teamKpiWrap { background: #141414; border: 1px solid rgba(201,168,76,0.25); border-radius: 14px; padding: 16px; margin-bottom: 14px; transition: transform 0.2s; }
+.teamKpiWrap:hover { transform: translateY(-2px); }
 .teamKpiHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .teamCount { font-size: 0.65rem; color: #8A8278; font-weight: 400; }
 .teamKpiWrap .stats { grid-template-columns: repeat(6, 1fr); }
@@ -39,14 +62,16 @@
 .statSuccess { border-color: rgba(34,197,94,0.3) !important; background: rgba(34,197,94,0.04) !important; }
 .statDanger { border-color: rgba(239,68,68,0.3) !important; background: rgba(239,68,68,0.04) !important; }
 
-.groupCard { background: #141414; border: 1px solid #232323; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.groupCard { background: #141414; border: 1px solid #232323; border-radius: 12px; padding: 16px; margin-bottom: 12px; transition: transform 0.2s; }
+.groupCard:hover { transform: translateY(-2px); }
 .groupTitle { font-size: 0.85rem; font-weight: 700; color: #C9A84C; }
 .groupCount { font-size: 0.65rem; color: #8A8278; font-weight: 400; }
 
 .l1PerfCard { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: rgba(244,99,30,0.06); border: 1px solid rgba(244,99,30,0.2); border-radius: 8px; margin-bottom: 10px; }
 .l1PerfLabel { font-size: 0.65rem; color: #F4631E; font-weight: 600; }
 
-.sellerCard { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 10px; margin-bottom: 6px; overflow: hidden; }
+.sellerCard { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 10px; margin-bottom: 6px; overflow: hidden; transition: transform 0.2s; }
+.sellerCard:hover { transform: translateY(-1px); }
 .sellerAbove { border-left: 3px solid #22C55E; }
 .sellerBelow { border-left: 3px solid #F4631E; }
 .sellerCardHeader { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; transition: background 0.2s; }
