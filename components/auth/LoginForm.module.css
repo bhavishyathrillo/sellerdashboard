@@ -27,8 +27,10 @@
   height: 100%;
   object-fit: cover;
   opacity: 0.55;
+  border: none;
+  pointer-events: none;
+  transform: scale(1.1);
 }
-
 /* Pulse animation on pins */
 .pulse {
   animation: pulseRing 2.5s ease-out infinite;

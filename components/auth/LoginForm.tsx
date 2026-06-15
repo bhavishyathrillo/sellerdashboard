@@ -53,16 +53,15 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     <div className={styles.wrapper}>
 
       {/* Video background */}
-      <div className={styles.videoBg} aria-hidden="false">
-        <video
-          className={styles.videoBgPlayer}
-          src="https://ltiglt8xyyg9iroo.public.blob.vercel-storage.com/login-bg.mp4"
-          autoPlay
-          loop
-          playsInline
-          muted
-        />
-      </div>
+      <div className={styles.videoBg} aria-hidden="true">
+  <iframe
+    className={styles.videoBgPlayer}
+    src="https://www.youtube.com/embed/T6dCntaqHZ0?autoplay=1&mute=1&loop=1&playlist=T6dCntaqHZ0&controls=0&showinfo=0&modestbranding=1&iv_load_policy=3"
+    allow="autoplay; encrypted-media"
+    allowFullScreen
+    frameBorder="0"
+  />
+</div>
 
       {/* Fade overlay */}
       <div className={styles.videoOverlay} aria-hidden="true" />
