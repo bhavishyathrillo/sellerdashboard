@@ -17,14 +17,14 @@ export async function POST(req: Request) {
     .from('seller_credentials')
     .select('email, password, name, role, status')
     .eq('email', email.toLowerCase().trim())
-    .single()
+    .maybeSingle()
 
   if (error) {
     return NextResponse.json({ error: 'DB error: ' + error.message }, { status: 500 })
   }
 
   if (!data) {
-    return NextResponse.json({ error: 'User not found in DB' }, { status: 401 })
+    return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
   }
 
   if (data.password !== password) {
@@ -37,7 +37,6 @@ export async function POST(req: Request) {
 
   let role = data.role
 
-  // If role is SELLER, check if they're actually L1/L2 in srs_raw
   if (role === 'SELLER') {
     const { data: srsCheck } = await supabase
       .from('srs_raw')
@@ -53,6 +52,12 @@ export async function POST(req: Request) {
       }
     }
   }
+
+  // Update last login
+  await supabase
+    .from('seller_credentials')
+    .update({ last_login: new Date().toISOString() })
+    .eq('email', email.toLowerCase().trim())
 
   return NextResponse.json({ email: data.email, name: data.name, role })
 }
