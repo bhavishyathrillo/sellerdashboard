@@ -68,15 +68,17 @@ const { data: todayRow } = await supabase
         .from('srs_raw')
         .select('seller_email')
         .eq('l2_email', email)
-      const emails = team?.map(t => t.seller_email) || []
-      query = query.in('seller_email', emails)
+      const emails = (team || []).map(t => t.seller_email).filter(e => e.toLowerCase() !== email.toLowerCase())
+      if (emails.length > 0) query = query.in('seller_email', emails)
+      else query = query.eq('seller_email', '__none__')
     } else if (role === 'L1') {
       const { data: team } = await supabase
         .from('srs_raw')
         .select('seller_email')
         .eq('l1_email', email)
-      const emails = team?.map(t => t.seller_email) || []
-      query = query.in('seller_email', emails)
+      const emails = (team || []).map(t => t.seller_email).filter(e => e.toLowerCase() !== email.toLowerCase())
+      if (emails.length > 0) query = query.in('seller_email', emails)
+      else query = query.eq('seller_email', '__none__')
     }
   } else {
     query = query.eq('seller_email', email.toLowerCase())

@@ -1,0 +1,15 @@
+.page { padding: 24px; max-width: 1000px; color: #F0EDE8; }
+.title { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; color: #C9A84C; }
+.tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.tab { padding: 8px 16px; border: 1px solid #232323; background: transparent; color: #8A8278; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
+.tabActive { background: #F4631E; border-color: #F4631E; color: #fff; }
+.addForm { display: flex; gap: 10px; margin-bottom: 16px; }
+.input, .select { padding: 8px 12px; background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 8px; color: #F0EDE8; font-size: 0.8rem; }
+.input { flex: 1; }
+.btn { padding: 8px 16px; background: #F4631E; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.tableWrap { background: #141414; border: 1px solid #232323; border-radius: 12px; overflow: hidden; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+.table th { padding: 10px 14px; text-align: left; background: #1A1A1A; color: #8A8278; font-size: 0.65rem; text-transform: uppercase; }
+.table td { padding: 10px 14px; border-bottom: 1px solid #1A1A1A; }
+.delBtn { background: transparent; border: 1px solid #EF4444; color: #EF4444; padding: 3px 10px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; }
+.empty { text-align: center; padding: 60px; color: #8A8278; }

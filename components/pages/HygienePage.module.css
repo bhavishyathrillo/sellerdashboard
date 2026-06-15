@@ -1,0 +1,81 @@
+.page { padding: 16px; max-width: 1000px; margin: 0 auto; color: #F0EDE8; position: relative; animation: pageIn 0.5s ease; }
+@keyframes pageIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+.particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.particle { position: absolute; top: 110%; color: #C9A84C; font-size: 0.45rem; animation: particleRise linear infinite; opacity: 0.25; }
+@keyframes particleRise { 0%{transform:translateY(0) rotate(0);opacity:0} 10%{opacity:0.5} 90%{opacity:0.2} 100%{transform:translateY(-110vh) rotate(360deg);opacity:0} }
+
+.hero { position: relative; text-align: center; padding: 16px 12px; margin-bottom: 14px; z-index: 1; }
+.heroGlow { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 200px; height: 100px; background: radial-gradient(ellipse, rgba(244,99,30,0.08), transparent); pointer-events: none; }
+.heroIcon { font-size: 2rem; display: block; animation: heroBounce 2s ease-in-out infinite; }
+@keyframes heroBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+.heroTitle { font-size: 1.3rem; font-weight: 900; background: linear-gradient(135deg, #C9A84C, #F4631E); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 4px 0 2px; }
+.heroSub { font-size: 0.68rem; color: #8A8278; }
+
+.kpiGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; position: relative; z-index: 1; }
+.kpiCard { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 12px; text-align: center; transition: all 0.3s; cursor: default; }
+.kpiCard:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.12); box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
+.kpiPrimary { border-color: rgba(244,99,30,0.3); background: rgba(244,99,30,0.05); }
+.kpiSuccess { border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.05); }
+.kpiWarn { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.05); }
+.kpiDanger { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); }
+.kpiIcon { font-size: 1.2rem; margin-bottom: 4px; }
+.kpiValue { font-size: 1.2rem; font-weight: 900; }
+.kpiLabel { font-size: 0.55rem; color: #8A8278; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+.kpiTrend { font-size: 0.52rem; color: #8A8278; margin-top: 3px; }
+
+.streakCard { display: flex; align-items: center; gap: 12px; padding: 14px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; margin-bottom: 12px; position: relative; z-index: 1; overflow: hidden; }
+.streakElite { border-color: rgba(255,215,0,0.5); background: linear-gradient(135deg, rgba(255,215,0,0.06), rgba(255,215,0,0.01)); animation: eliteGlow 2s ease-in-out infinite; }
+@keyframes eliteGlow { 0%,100%{box-shadow:0 0 15px rgba(255,215,0,0.08)} 50%{box-shadow:0 0 30px rgba(255,215,0,0.2)} }
+.streakHot { border-color: rgba(244,99,30,0.35); background: rgba(244,99,30,0.05); }
+.streakWarm { border-color: rgba(245,158,11,0.25); }
+.streakRing { position: relative; width: 60px; height: 60px; flex-shrink: 0; }
+.streakCenter { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.streakNum { font-size: 1.2rem; font-weight: 900; line-height: 1; }
+.streakUnit { font-size: 0.5rem; color: #8A8278; text-transform: uppercase; }
+.streakInfo { flex: 1; }
+.streakTitle { display: block; font-size: 0.8rem; font-weight: 700; }
+.streakSub { display: block; font-size: 0.62rem; color: #8A8278; margin-top: 2px; }
+.streakBadge { display: inline-block; padding: 2px 8px; background: linear-gradient(135deg, #FFD700, #C9A84C); color: #000; font-size: 0.5rem; font-weight: 900; border-radius: 3px; margin-top: 4px; letter-spacing: 0.08em; }
+
+.chartCard { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 14px; margin-bottom: 12px; position: relative; z-index: 1; animation: fadeIn 0.5s ease 0.15s both; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.chartHeader { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+.chartHeader h3 { font-size: 0.78rem; font-weight: 700; color: #C9A84C; }
+.chartSubtitle { font-size: 0.6rem; color: #8A8278; }
+.lineChart { display: flex; gap: 8px; }
+.chartYAxis { display: flex; flex-direction: column; justify-content: space-between; font-size: 0.55rem; color: #8A8278; padding: 0 3px; height: 120px; min-width: 20px; }
+.chartContent { flex: 1; overflow-x: auto; position: relative; }
+.svg { width: 100%; height: 120px; }
+.chartXAxis { display: flex; justify-content: space-between; padding-top: 4px; }
+.xLabel { font-size: 0.5rem; color: #8A8278; text-align: center; flex: 1; }
+
+.tooltip { position: fixed; transform: translate(-50%,-100%); background: #1a1a1a; border: 1px solid #F4631E; border-radius: 8px; padding: 6px 10px; z-index: 100; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+.tooltipDate { display: block; font-size: 0.55rem; color: #8A8278; }
+.tooltipVal { display: block; font-size: 0.75rem; font-weight: 700; color: #F4631E; }
+
+.tableCard { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 14px; position: relative; z-index: 1; animation: fadeIn 0.5s ease 0.25s both; }
+.tableCard h3 { font-size: 0.78rem; font-weight: 700; margin-bottom: 10px; color: #C9A84C; }
+.tableWrap { overflow: hidden; border-radius: 8px; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+.table th { padding: 7px 10px; text-align: left; background: rgba(255,255,255,0.03); color: #8A8278; font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.table td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.rowGood td { background: rgba(34,197,94,0.02); }
+.rowBad td { background: rgba(239,68,68,0.02); }
+.dateDay { display: block; font-weight: 600; font-size: 0.65rem; }
+.dateFull { display: block; font-size: 0.58rem; color: #8A8278; }
+.callsCell { font-weight: 700; }
+.badgeGreen { padding: 2px 8px; border-radius: 5px; background: rgba(34,197,94,0.12); color: #22C55E; font-size: 0.6rem; font-weight: 600; }
+.badgeRed { padding: 2px 8px; border-radius: 5px; background: rgba(239,68,68,0.12); color: #EF4444; font-size: 0.6rem; font-weight: 600; }
+.badgeNone { color: #8A8278; font-size: 0.65rem; }
+
+.loadingWrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50vh; gap: 10px; }
+.loadingRing { width: 40px; height: 40px; border: 3px solid rgba(244,99,30,0.1); border-top-color: #F4631E; border-right-color: #C9A84C; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.loadingText { color: #8A8278; font-size: 0.75rem; animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
+
+@media (max-width: 700px) {
+  .kpiGrid { grid-template-columns: repeat(2, 1fr); }
+  .streakCard { flex-direction: column; text-align: center; }
+}

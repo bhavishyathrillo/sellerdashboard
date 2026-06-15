@@ -1,0 +1,14 @@
+.page { padding: 24px; max-width: 900px; color: #F0EDE8; }
+.title { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; color: #C9A84C; }
+.section { background: #141414; border: 1px solid #232323; border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+.section h2 { font-size: 1rem; margin-bottom: 12px; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.table th { padding: 8px 12px; text-align: left; background: #1A1A1A; color: #8A8278; font-size: 0.65rem; text-transform: uppercase; }
+.table td { padding: 8px 12px; border-bottom: 1px solid #1A1A1A; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.card { background: rgba(255,255,255,0.03); border: 1px solid #232323; border-radius: 8px; padding: 10px; text-align: center; }
+.card span { display: block; font-size: 0.7rem; color: #8A8278; }
+.card strong { font-size: 1rem; color: #22C55E; }
+.mhl { padding: 2px 8px; border-radius: 10px; background: rgba(239,68,68,0.15); color: #EF4444; font-size: 0.7rem; font-weight: 700; }
+.mho { padding: 2px 8px; border-radius: 10px; background: rgba(245,158,11,0.15); color: #F59E0B; font-size: 0.7rem; font-weight: 700; }
+.loading { text-align: center; padding: 60px; color: #8A8278; }

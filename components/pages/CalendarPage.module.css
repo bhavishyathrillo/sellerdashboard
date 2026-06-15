@@ -1,0 +1,17 @@
+.page { padding: 24px; color: #F0EDE8; }
+.controls { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.navBtn { padding: 8px 16px; background: transparent; border: 1px solid #2A2A2A; color: #8A8278; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
+.navBtn:hover { border-color: #F4631E; color: #F4631E; }
+.monthLabel { font-size: 1.1rem; font-weight: 700; color: #C9A84C; flex: 1; text-align: center; }
+.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.dayName { padding: 10px; text-align: center; font-size: 0.65rem; color: #8A8278; text-transform: uppercase; font-weight: 600; }
+.cell { background: #141414; border: 1px solid #232323; padding: 12px; min-height: 80px; position: relative; }
+.emptyCell { background: rgba(0,0,0,0.15); }
+.today { border-color: #F4631E; background: rgba(244,99,30,0.05); }
+.today .dayNum { color: #F4631E; }
+.green { border-top: 3px solid #22C55E; }
+.red { border-top: 3px solid #EF4444; }
+.dayNum { font-size: 0.85rem; font-weight: 700; color: #8A8278; }
+.dot { display: block; width: 6px; height: 6px; border-radius: 50%; margin-top: 8px; }
+.greenDot { background: #22C55E; }
+.redDot { background: #EF4444; }

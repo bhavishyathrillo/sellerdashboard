@@ -1,0 +1,13 @@
+.bar { display: flex; align-items: center; height: 34px; background: linear-gradient(90deg, #0a0a0a, #111, #0a0a0a); border-bottom: 2px solid #F4631E; padding: 0; gap: 0; overflow: hidden; flex-shrink: 0; position: relative; }
+.bar::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #FFD700, #F4631E, #FFD700, transparent); animation: borderShine 2s linear infinite; }
+@keyframes borderShine { 0%{background-position:-200% center} 100%{background-position:200% center} }
+.label { display: flex; align-items: center; gap: 7px; background: linear-gradient(135deg, #F4631E, #e84d0a); color: #fff; padding: 6px 16px; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; z-index: 2; flex-shrink: 0; clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%); padding-right: 22px; box-shadow: 0 0 20px rgba(244,99,30,0.4); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: livePulse 0.8s ease-in-out infinite; box-shadow: 0 0 6px #fff; }
+@keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.5)} }
+.trackWrap { flex: 1; overflow: hidden; height: 100%; mask-image: linear-gradient(90deg, transparent 0%, #000 30px, #000 calc(100% - 30px), transparent 100%); -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 30px, #000 calc(100% - 30px), transparent 100%); }
+.track { display: flex; align-items: center; height: 100%; white-space: nowrap; }
+.item { display: inline-flex; align-items: center; padding: 0 35px 0 0; color: #e0dcd5; font-size: 0.73rem; font-weight: 500; letter-spacing: 0.02em; white-space: nowrap; flex-shrink: 0; }
+.item::before { content: '✦'; color: #F4631E; margin-right: 8px; font-size: 0.55rem; animation: starSpin 2s linear infinite; display: inline-block; }
+@keyframes starSpin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+.close { background: none; border: none; color: #555; cursor: pointer; font-size: 0.75rem; flex-shrink: 0; z-index: 2; padding: 0 10px; transition: color 0.2s; }
+.close:hover { color: #EF4444; }

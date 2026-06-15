@@ -1,0 +1,11 @@
+.page { padding: 24px; max-width: 1000px; color: #F0EDE8; }
+.title { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; color: #C9A84C; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat { background: #141414; border: 1px solid #232323; border-radius: 10px; padding: 14px; }
+.stat span { display: block; font-size: 0.6rem; color: #8A8278; text-transform: uppercase; margin-bottom: 4px; }
+.stat strong { font-size: 1.2rem; }
+.tableWrap { background: #141414; border: 1px solid #232323; border-radius: 12px; overflow: hidden; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.table th { padding: 10px 14px; text-align: left; background: #1A1A1A; color: #8A8278; font-size: 0.65rem; text-transform: uppercase; }
+.table td { padding: 10px 14px; border-bottom: 1px solid #1A1A1A; }
+.loading, .empty { text-align: center; padding: 60px; color: #8A8278; }

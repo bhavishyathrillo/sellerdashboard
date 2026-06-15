@@ -1,0 +1,77 @@
+.page { padding: 20px; max-width: 700px; margin: 0 auto; color: #F0EDE8; position: relative; animation: pageIn 0.5s ease; }
+@keyframes pageIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+.particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.particle { position: absolute; top: 110%; color: #C9A84C; font-size: 0.45rem; animation: rise linear infinite; opacity: 0.2; }
+@keyframes rise { 0%{transform:translateY(0) rotate(0)} 100%{transform:translateY(-110vh) rotate(360deg)} }
+
+/* Hero */
+.hero { position: relative; text-align: center; padding: 20px; margin-bottom: 16px; z-index: 1; }
+.heroGlow { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 200px; height: 100px; background: radial-gradient(ellipse, rgba(244,99,30,0.08), transparent); pointer-events: none; }
+.heroEmoji { font-size: 2.2rem; display: block; animation: bounce 2s ease-in-out infinite; }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.heroTitle { font-size: 1.4rem; font-weight: 900; background: linear-gradient(135deg, #C9A84C, #F4631E); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 4px 0; }
+.heroSub { font-size: 0.72rem; color: #8A8278; }
+
+/* Profile Card */
+.profileCard { background: #141414; border: 1px solid #232323; border-radius: 16px; padding: 18px; margin-bottom: 14px; position: relative; z-index: 1; }
+.profileTop { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #F4631E, #C9A84C); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; font-size: 1.1rem; position: relative; }
+.avatarRing { position: absolute; inset: -3px; border-radius: 50%; border: 2px solid rgba(244,99,30,0.4); animation: ringPulse 2s ease-in-out infinite; }
+@keyframes ringPulse { 0%,100%{transform:scale(1);opacity:0.5} 50%{transform:scale(1.1);opacity:1} }
+.profileInfo { flex: 1; }
+.profileName { font-size: 1rem; font-weight: 700; }
+.profileMeta { font-size: 0.65rem; color: #8A8278; margin-top: 2px; }
+.statusBadge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.58rem; font-weight: 600; background: rgba(255,255,255,0.05); color: #8A8278; margin-top: 4px; }
+.statusActive { background: rgba(34,197,94,0.12); color: #22C55E; }
+.profileGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.profileItem { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 10px; padding: 10px; text-align: center; }
+.profileIcon { font-size: 1rem; display: block; margin-bottom: 4px; }
+.profileLabel { font-size: 0.55rem; color: #8A8278; display: block; text-transform: uppercase; }
+.profileVal { font-size: 0.72rem; font-weight: 600; display: block; margin-top: 2px; }
+
+/* Hike Card */
+.hikeCard { display: flex; align-items: center; gap: 14px; padding: 16px 18px; background: #141414; border: 1px solid #232323; border-radius: 14px; margin-bottom: 14px; position: relative; z-index: 1; overflow: hidden; }
+.hikeAvailable { border-color: rgba(34,197,94,0.3); background: linear-gradient(135deg, rgba(34,197,94,0.06), #141414); }
+.hikeGlow { position: absolute; inset: 0; background: radial-gradient(circle at 30% 50%, rgba(34,197,94,0.08), transparent); pointer-events: none; }
+.hikeIcon { font-size: 2rem; }
+.hikeLabel { display: block; font-size: 0.65rem; color: #8A8278; text-transform: uppercase; }
+.hikeValue { display: block; font-size: 1.8rem; font-weight: 900; color: #22C55E; }
+.hikeSub { display: block; font-size: 0.6rem; color: #8A8278; margin-top: 2px; }
+
+/* ARPS */
+.arpsSection { margin-bottom: 14px; position: relative; z-index: 1; }
+.sectionTitle { font-size: 0.8rem; font-weight: 700; color: #C9A84C; margin-bottom: 10px; }
+.arpsCards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.arpsCard { background: #141414; border: 1px solid #232323; border-radius: 10px; padding: 12px; text-align: center; }
+.arpsPeriod { display: block; font-size: 0.6rem; color: #8A8278; margin-bottom: 4px; }
+.arpsVal { display: block; font-size: 1rem; font-weight: 700; }
+.arpsChart { display: flex; align-items: flex-end; justify-content: center; gap: 20px; height: 100px; padding: 10px 0; }
+.arpsBarCol { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; max-width: 60px; }
+.arpsBarVal { font-size: 0.62rem; font-weight: 600; color: #C9A84C; }
+.arpsBarWrap { flex: 1; width: 24px; display: flex; align-items: flex-end; }
+.arpsBar { width: 100%; border-radius: 4px 4px 0 0; min-height: 4px; transition: height 0.6s ease; }
+.arpsBarLabel { font-size: 0.55rem; color: #8A8278; }
+
+.noArps { text-align: center; padding: 24px; background: #141414; border: 1px solid #232323; border-radius: 12px; margin-bottom: 14px; color: #8A8278; font-size: 0.78rem; position: relative; z-index: 1; }
+.noArps span { font-size: 1.5rem; display: block; margin-bottom: 6px; }
+
+/* Managers */
+.managerRow { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; position: relative; z-index: 1; }
+.managerCard { background: #141414; border: 1px solid #232323; border-radius: 10px; padding: 12px; text-align: center; }
+.managerLabel { display: block; font-size: 0.55rem; color: #8A8278; text-transform: uppercase; margin-bottom: 4px; }
+.managerName { display: block; font-size: 0.78rem; font-weight: 600; }
+
+/* Loading / Empty */
+.loadingWrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 40vh; gap: 12px; }
+.loadingRing { width: 40px; height: 40px; border: 3px solid rgba(244,99,30,0.1); border-top-color: #F4631E; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.emptyWrap { text-align: center; padding: 60px; color: #8A8278; }
+.emptyIcon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+.emptyWrap h2 { font-size: 1rem; margin-bottom: 4px; }
+.emptyWrap p { font-size: 0.75rem; }
+
+@media (max-width: 500px) {
+  .profileGrid { grid-template-columns: repeat(2, 1fr); }
+  .arpsCards { grid-template-columns: repeat(3, 1fr); }
+}

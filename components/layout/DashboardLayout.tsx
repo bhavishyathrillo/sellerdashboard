@@ -14,16 +14,14 @@ interface DashboardLayoutProps {
 }
 
 const navItems = [
-  { id: 'home',        label: 'Overview',    icon: '◎' },
+  { id: 'home',        label: 'Overview',    icon: '◈' },
+  { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
   { id: 'performance', label: 'Performance', icon: '↗' },
-  { id: 'mhl',         label: 'MHL / MHO',  icon: '⚑' },
-  { id: 'pipeline',    label: 'Pipeline',    icon: '⬡' },
-  { id: 'roadmap',     label: 'Roadmap',     icon: '◈' },
+  { id: 'rewards',     label: 'Rewards',     icon: '🎰' },
+  { id: 'mhl',         label: 'MHL / MHO',  icon: '☑' },
+  { id: 'pipeline',    label: 'Pipeline',    icon: '⬇' },
+  { id: 'roadmap',     label: 'Roadmap',     icon: '🗺' },
   { id: 'hygiene',     label: 'Hygiene',     icon: '✦' },
-]
-
-const managerItems = [
-  { id: 'team',        label: 'Team View',   icon: '⊞' },
 ]
 
 const adminItems = [
@@ -34,37 +32,20 @@ export default function DashboardLayout({
   session, onLogout, children, activePage, onNavigate
 }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
-  const isManager = ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(session.role)
   const isAdmin = ['ADMIN', 'MODERATOR'].includes(session.role)
 
   const allNavItems = [
     ...navItems,
-    ...(isManager ? managerItems : []),
     ...(isAdmin ? adminItems : []),
   ]
 
-  const flagColor: Record<string, string> = {
-    '1 White':  '#9A9A9A',
-    '2 Red':    '#EF4444',
-    '3 Yellow': '#F59E0B',
-    '4 Orange': '#F4631E',
-    '5 Green':  '#22C55E',
-    '6 Star':   '#C9A84C',
-  }
-
   return (
     <div className={styles.shell}>
-
-      {/* Sidebar */}
       <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`}>
-
-        {/* Logo */}
         <div className={styles.logoArea}>
           <Image src="/thrillo-logo.svg" alt="Thrillophilia" width={32} height={32} className={styles.logoImg}/>
           {!collapsed && <span className={styles.logoText}>Thrillophilia</span>}
         </div>
-
-        {/* Nav */}
         <nav className={styles.nav}>
           {allNavItems.map(item => (
             <button
@@ -77,8 +58,6 @@ export default function DashboardLayout({
             </button>
           ))}
         </nav>
-
-        {/* Bottom — user + logout */}
         <div className={styles.sidebarBottom}>
           <div className={styles.userCard}>
             <div className={styles.userAvatar}>
@@ -95,39 +74,18 @@ export default function DashboardLayout({
             {collapsed ? '⏻' : '⏻ Sign out'}
           </button>
         </div>
-
-        {/* Collapse toggle */}
-        <button
-          className={styles.collapseBtn}
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          {collapsed ? '→' : '←'}
-        </button>
-
       </aside>
 
-      {/* Main */}
+      <button
+        className={styles.collapseBtn}
+        onClick={() => setCollapsed(!collapsed)}
+        style={{ left: collapsed ? '55px' : '220px' }}
+      >
+        {collapsed ? '→' : '←'}
+      </button>
+
       <main className={styles.main}>
-
-        {/* Top bar */}
-        <header className={styles.topbar}>
-          <div className={styles.topbarLeft}>
-            <h1 className={styles.pageTitle}>
-              {allNavItems.find(i => i.id === activePage)?.label || 'Overview'}
-            </h1>
-          </div>
-          <div className={styles.topbarRight}>
-            <span className={styles.greeting}>
-              Hey, {session.name?.split(' ')[0]} 👋
-            </span>
-          </div>
-        </header>
-
-        {/* Page content */}
-        <div className={styles.content}>
-          {children}
-        </div>
-
+        {children}
       </main>
     </div>
   )

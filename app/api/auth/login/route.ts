@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+﻿import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 const supabase = createClient(
@@ -13,15 +13,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Email and password required' }, { status: 400 })
   }
 
-  // Check against seller_credentials table
   const { data, error } = await supabase
     .from('seller_credentials')
     .select('email, password, name, role, status')
     .eq('email', email.toLowerCase().trim())
     .single()
 
-  if (error || !data) {
-    return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
+  if (error) {
+    return NextResponse.json({ error: 'DB error: ' + error.message }, { status: 500 })
+  }
+
+  if (!data) {
+    return NextResponse.json({ error: 'User not found in DB' }, { status: 401 })
   }
 
   if (data.password !== password) {
@@ -29,18 +32,27 @@ export async function POST(req: Request) {
   }
 
   if (data.status !== 'Active') {
-    return NextResponse.json({ error: 'Your account is inactive. Contact admin.' }, { status: 403 })
+    return NextResponse.json({ error: 'Account inactive' }, { status: 403 })
   }
 
-  // Update last login
-  await supabase
-    .from('seller_credentials')
-    .update({ last_login: new Date().toISOString() })
-    .eq('email', email)
+  let role = data.role
 
-  return NextResponse.json({
-    email: data.email,
-    name: data.name,
-    role: data.role
-  })
+  // If role is SELLER, check if they're actually L1/L2 in srs_raw
+  if (role === 'SELLER') {
+    const { data: srsCheck } = await supabase
+      .from('srs_raw')
+      .select('l1_email, l2_email')
+      .or(`l1_email.eq.${email.toLowerCase().trim()},l2_email.eq.${email.toLowerCase().trim()}`)
+      .limit(1)
+
+    if (srsCheck && srsCheck.length > 0) {
+      if (srsCheck[0].l2_email === email.toLowerCase().trim()) {
+        role = 'L2'
+      } else if (srsCheck[0].l1_email === email.toLowerCase().trim()) {
+        role = 'L1'
+      }
+    }
+  }
+
+  return NextResponse.json({ email: data.email, name: data.name, role })
 }

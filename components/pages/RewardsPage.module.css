@@ -1,0 +1,99 @@
+.page { 
+  padding: 16px; 
+  max-width: 750px; 
+  margin: 0 auto; 
+  color: #F0EDE8; 
+  position: relative;
+  animation: pageIn 0.6s ease;
+  background: linear-gradient(180deg, rgba(244,99,30,0.03) 0%, rgba(201,168,76,0.02) 30%, rgba(0,0,0,0) 70%);
+}
+@keyframes pageIn { from{opacity:0;transform:translateY(15px)} to{opacity:1;transform:translateY(0)} }
+
+.loadingWrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50vh; gap: 12px; }
+.loadingSpinner { width: 44px; height: 44px; border: 3px solid rgba(244,99,30,0.15); border-top-color: #F4631E; border-right-color: #C9A84C; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.hero { position: relative; text-align: center; padding: 20px 16px; background: linear-gradient(180deg, rgba(244,99,30,0.06), rgba(201,168,76,0.04), transparent); border: 1px solid rgba(201,168,76,0.2); border-radius: 16px; margin-bottom: 16px; overflow: hidden; animation: heroIn 0.8s ease; }
+@keyframes heroIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+.heroGlow { position: absolute; top: -40px; left: 50%; transform: translateX(-50%); width: 200px; height: 120px; background: radial-gradient(ellipse, rgba(244,99,30,0.15), transparent); pointer-events: none; animation: glowPulse 3s ease-in-out infinite; }
+@keyframes glowPulse { 0%,100%{opacity:0.6;transform:translateX(-50%) scale(1)} 50%{opacity:1;transform:translateX(-50%) scale(1.2)} }
+.heroEmoji { font-size: 2rem; display: block; animation: bounce 1.5s ease-in-out infinite; position: relative; z-index: 1; filter: drop-shadow(0 0 10px rgba(201,168,76,0.5)); }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.heroTitle { font-size: 1.4rem; font-weight: 900; background: linear-gradient(135deg, #C9A84C, #FFD700, #F4631E, #FFD700, #C9A84C); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 4px 0 2px; position: relative; z-index: 1; animation: shimmer 3s linear infinite; }
+@keyframes shimmer { 0%{background-position:0% center} 100%{background-position:200% center} }
+.heroSub { font-size: 0.7rem; color: #8A8278; position: relative; z-index: 1; }
+
+.progressRing { position: relative; width: 80px; height: 80px; margin: 10px auto 0; z-index: 1; filter: drop-shadow(0 0 8px rgba(244,99,30,0.3)); }
+.progressSvg { width: 100%; height: 100%; }
+.progressCircle { transition: stroke-dasharray 1.5s cubic-bezier(0.34,1.56,0.64,1); }
+.progressCenter { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.progressPct { font-size: 1.1rem; font-weight: 900; animation: countUp 1s ease; }
+.progressLabel { font-size: 0.55rem; color: #8A8278; text-transform: uppercase; }
+
+.motivationBox { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: rgba(244,99,30,0.1); border: 1px solid rgba(244,99,30,0.25); border-radius: 20px; margin-top: 10px; font-size: 0.72rem; position: relative; z-index: 1; animation: slideUp 0.5s ease 0.3s both; }
+@keyframes slideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.motivationBox strong { color: #F4631E; animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+.unlockedBox { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: rgba(34,160,107,0.1); border: 1px solid rgba(34,160,107,0.25); border-radius: 20px; margin-top: 10px; font-size: 0.72rem; color: #22C55E; position: relative; z-index: 1; animation: popIn 0.5s ease 0.3s both; }
+@keyframes popIn { 0%{transform:scale(0);opacity:0} 80%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+
+.prizeSection { margin-bottom: 16px; animation: fadeIn 0.6s ease 0.4s both; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.prizeSection h3 { font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; color: #C9A84C; }
+.prizeGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.prizeCard { display: flex; align-items: center; gap: 5px; padding: 6px 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; font-size: 0.68rem; transition: all 0.3s; cursor: default; }
+.prizeCard:hover { background: rgba(244,99,30,0.08); border-color: rgba(244,99,30,0.3); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.prizeDot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; animation: dotGlow 2s ease-in-out infinite; }
+@keyframes dotGlow { 0%,100%{box-shadow:0 0 0 0 currentColor} 50%{box-shadow:0 0 6px 2px currentColor} }
+
+.wheelSection { text-align: center; margin-bottom: 20px; animation: fadeIn 0.6s ease 0.5s both; }
+.wheelTabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 10px; }
+.wheelTab { padding: 7px 16px; border: 1px solid #2a2a2a; background: transparent; color: #8A8278; border-radius: 10px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.3s; }
+.wheelTab:hover { border-color: #F4631E; color: #F4631E; transform: translateY(-1px); }
+.wheelTabActive { border-color: #F4631E; background: rgba(244,99,30,0.1); color: #F4631E; box-shadow: 0 0 15px rgba(244,99,30,0.2); animation: tabPop 0.3s ease; }
+@keyframes tabPop { 0%{transform:scale(0.9)} 100%{transform:scale(1)} }
+.wheelContainer { display: inline-block; }
+.wheelCanvas { display: block; transition: transform 0.3s; }
+.wheelCanvas:hover { transform: scale(1.02); }
+
+.spinButton { display: block; margin: 10px auto 0; padding: 14px 40px; background: linear-gradient(135deg, #F4631E, #e84d0a, #F4631E); background-size: 200% auto; color: #fff; border: none; border-radius: 14px; cursor: pointer; font-weight: 800; font-size: 0.95rem; letter-spacing: 0.04em; transition: all 0.3s; text-transform: uppercase; animation: btnShimmer 3s linear infinite; }
+@keyframes btnShimmer { 0%{background-position:0% center} 100%{background-position:200% center} }
+.spinButton:hover:not(:disabled) { transform: translateY(-3px) scale(1.03); box-shadow: 0 14px 35px rgba(244,99,30,0.5); animation: none; background: #F4631E; }
+.spinButton:active:not(:disabled) { transform: scale(0.95); }
+.spinButton:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.5); animation: none; }
+
+.resultBox { text-align: center; padding: 10px 16px; margin-top: 10px; font-size: 0.85rem; font-weight: 700; color: #8A8278; animation: slideUp 0.4s ease; }
+.resultWin { color: #22C55E; font-size: 1rem; animation: winBounce 0.6s ease; }
+@keyframes winBounce { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.2)} 100%{transform:scale(1);opacity:1} }
+
+.milestoneSection { margin-bottom: 16px; animation: fadeIn 0.6s ease 0.6s both; }
+.milestoneSection h3 { font-size: 0.85rem; font-weight: 700; color: #C9A84C; }
+.milestoneSub { font-size: 0.68rem; color: #8A8278; margin-bottom: 10px; }
+.milestoneGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+.milestoneCard { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 8px; text-align: center; position: relative; overflow: hidden; transition: all 0.3s; cursor: default; }
+.milestoneCard:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
+.milestoneUnlocked { border-color: #C9A84C; background: rgba(201,168,76,0.08); animation: unlockedGlow 2s ease-in-out infinite; }
+@keyframes unlockedGlow { 0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,0)} 50%{box-shadow:0 0 20px 5px rgba(201,168,76,0.15)} }
+.milestoneMissed { opacity: 0.5; }
+.milestoneIcon { font-size: 1.1rem; margin-bottom: 4px; }
+.milestoneDay { font-size: 0.55rem; color: #8A8278; text-transform: uppercase; }
+.milestoneTitle { font-size: 0.7rem; font-weight: 700; margin: 3px 0; }
+.milestoneReward { font-size: 0.62rem; color: #8A8278; }
+.milestoneRibbon { position: absolute; top: 6px; right: -16px; background: #C9A84C; color: #000; font-size: 0.48rem; font-weight: 800; padding: 1px 18px; transform: rotate(45deg); animation: ribbonSlide 0.5s ease 0.5s both; }
+@keyframes ribbonSlide { from{right:-30px;opacity:0} to{right:-16px;opacity:1} }
+
+.historySection { animation: fadeIn 0.6s ease 0.7s both; }
+.historySection h3 { font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; }
+.historyList { display: flex; flex-direction: column; gap: 3px; }
+.historyItem { display: flex; align-items: center; gap: 8px; padding: 7px 8px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; font-size: 0.72rem; transition: all 0.2s; }
+.historyItem:hover { background: rgba(255,255,255,0.05); transform: translateX(3px); }
+.historyType { padding: 2px 7px; border-radius: 5px; font-size: 0.62rem; font-weight: 700; }
+.typePremium { background: rgba(201,168,76,0.15); color: #C9A84C; }
+.typeStandard { background: rgba(125,164,212,0.15); color: #7DA4D4; }
+.historyResult { flex: 1; }
+.historyDate { font-size: 0.65rem; color: #8A8278; }
+
+@media (max-width: 600px) {
+  .prizeGrid { grid-template-columns: repeat(2, 1fr); }
+  .milestoneGrid { grid-template-columns: repeat(2, 1fr); }
+}

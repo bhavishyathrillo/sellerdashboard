@@ -1,0 +1,74 @@
+.page { padding: 20px; max-width: 1000px; margin: 0 auto; color: #F0EDE8; }
+
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.title { font-size: 1.4rem; font-weight: 700; color: #C9A84C; }
+
+.viewToggle { display: flex; gap: 4px; background: #141414; border-radius: 10px; padding: 3px; }
+.toggleBtn { padding: 7px 16px; border: none; background: transparent; color: #8A8278; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.2s; }
+.toggleActive { background: #F4631E; color: #fff; }
+
+.statsWrap {  }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+.stat { background: #141414; border: 1px solid #232323; border-radius: 12px; padding: 14px; text-align: center; }
+.stat span { display: block; font-size: 0.6rem; color: #8A8278; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.stat strong { display: block; font-size: 1.4rem; font-weight: 700; }
+.hint { display: block; font-size: 0.55rem; margin-top: 4px; }
+
+.pctSection { margin-bottom: 16px; }
+.pctBar { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.pctFill { height: 100%; background: linear-gradient(90deg, #6B1E3A, #F4631E, #C9A84C); border-radius: 3px; }
+.pctText { font-size: 0.8rem; color: #C9A84C; text-align: right; }
+
+.weeks {  }
+.weeks h2 { font-size: 0.85rem; font-weight: 700; color: #C9A84C; margin-bottom: 10px; }
+.weekGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.weekCard { background: #141414; border: 1px solid #232323; border-radius: 10px; padding: 12px; }
+.weekHeader { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 700; }
+.weekPct { color: #C9A84C; font-size: 0.8rem; }
+.weekRow { display: flex; justify-content: space-between; font-size: 0.7rem; padding: 3px 0; }
+.weekRow span:first-child { color: #8A8278; }
+.weekBar { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.weekBarFill { height: 100%; background: linear-gradient(90deg, #F4631E, #C9A84C); border-radius: 2px; }
+
+.teamSection {  }
+.teamKpiWrap { background: #141414; border: 1px solid rgba(201,168,76,0.25); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+.teamKpiHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.teamCount { font-size: 0.65rem; color: #8A8278; font-weight: 400; }
+.teamKpiWrap .stats { grid-template-columns: repeat(6, 1fr); }
+.statPct { border-color: rgba(201,168,76,0.3) !important; background: rgba(201,168,76,0.06) !important; }
+.statSuccess { border-color: rgba(34,197,94,0.3) !important; background: rgba(34,197,94,0.04) !important; }
+.statDanger { border-color: rgba(239,68,68,0.3) !important; background: rgba(239,68,68,0.04) !important; }
+
+.groupCard { background: #141414; border: 1px solid #232323; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.groupTitle { font-size: 0.85rem; font-weight: 700; color: #C9A84C; }
+.groupCount { font-size: 0.65rem; color: #8A8278; font-weight: 400; }
+
+.l1PerfCard { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: rgba(244,99,30,0.06); border: 1px solid rgba(244,99,30,0.2); border-radius: 8px; margin-bottom: 10px; }
+.l1PerfLabel { font-size: 0.65rem; color: #F4631E; font-weight: 600; }
+
+.sellerCard { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 10px; margin-bottom: 6px; overflow: hidden; }
+.sellerAbove { border-left: 3px solid #22C55E; }
+.sellerBelow { border-left: 3px solid #F4631E; }
+.sellerCardHeader { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; transition: background 0.2s; }
+.sellerCardHeader:hover { background: rgba(255,255,255,0.03); }
+.sellerCardName { flex: 1; font-size: 0.78rem; font-weight: 500; min-width: 120px; }
+.sellerBadge { font-size: 0.55rem; font-weight: 600; margin-left: 6px; padding: 1px 6px; border-radius: 4px; }
+.badgeAbove { background: rgba(34,197,94,0.1); color: #22C55E; }
+.badgeBelow { background: rgba(244,99,30,0.1); color: #F4631E; }
+.sellerBar { width: 100px; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+.sellerBarFill { height: 100%; border-radius: 2px; }
+.sellerPct { font-weight: 700; font-size: 0.78rem; width: 50px; text-align: right; }
+.sellerAmt { font-size: 0.68rem; color: #8A8278; width: 65px; text-align: right; }
+.expandIcon { font-size: 0.6rem; color: #8A8278; width: 16px; text-align: center; }
+.sellerExpanded { padding: 0 12px 12px; }
+
+.loading { text-align: center; padding: 60px; color: #8A8278; }
+.empty { text-align: center; padding: 60px; color: #8A8278; }
+
+@media (max-width: 700px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .teamKpiWrap .stats { grid-template-columns: repeat(3, 1fr); }
+  .weekGrid { grid-template-columns: repeat(2, 1fr); }
+  .sellerBar { width: 60px; }
+  .sellerAmt { display: none; }
+}

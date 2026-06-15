@@ -12,28 +12,45 @@ export async function GET(req: Request) {
   const role = searchParams.get('role')
   const view = searchParams.get('view')
 
-  if (!email) {
-    return NextResponse.json({ error: 'Email required' }, { status: 400 })
-  }
+  if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
 
   let query = supabase.from('mhl_mho').select('*').order('updated_at', { ascending: false })
 
   if (view === 'team' && ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(role || '')) {
     if (role === 'L1') {
-      query = query.eq('l1', email)
+      const { data: teamSellers } = await supabase
+        .from('srs_raw')
+        .select('seller_email')
+        .eq('l1_email', email)
+      const emails = (teamSellers || []).map(s => s.seller_email).filter(e => e.toLowerCase() !== email.toLowerCase())
+      if (emails.length > 0) query = query.in('owner_email', emails)
+      else query = query.eq('owner_email', '__none__')
     } else if (role === 'L2') {
-      query = query.eq('l2', email)
+      const { data: teamSellers } = await supabase
+        .from('srs_raw')
+        .select('seller_email')
+        .eq('l2_email', email)
+      const emails = (teamSellers || []).map(s => s.seller_email).filter(e => e.toLowerCase() !== email.toLowerCase())
+      if (emails.length > 0) query = query.in('owner_email', emails)
+      else query = query.eq('owner_email', '__none__')
     }
-    // ADMIN sees all
   } else {
-    // Seller or My Leads view
     query = query.eq('owner_email', email)
   }
 
   const { data, error } = await query
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  // Add seller names
+  if (data && data.length > 0) {
+    const emails = [...new Set(data.map(d => d.owner_email).filter(Boolean))]
+    const { data: sellers } = await supabase
+      .from('srs_raw')
+      .select('seller_email, seller_name')
+      .in('seller_email', emails)
+    const nameMap: any = {}
+    sellers?.forEach(s => { nameMap[s.seller_email] = s.seller_name })
+    data.forEach(d => { (d as any).seller_name = nameMap[d.owner_email] || d.owner_email?.split('@')[0] })
   }
 
   return NextResponse.json(data || [])
