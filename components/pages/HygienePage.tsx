@@ -42,7 +42,7 @@ export default function HygienePage({ session }: Props) {
   
   const durations = last14Days.map(r => {
     const parts = (r.call_duration || '0:0').split(':')
-    return parseInt(parts[0]||0) * 60 + parseInt(parts[1]||0)
+    return parseInt(parts[0] || '0') * 60 + parseInt(parts[1] || '0')
   })
   const totalDuration = durations.reduce((s, v) => s + v, 0)
   const avgDuration = days > 0 ? Math.round(totalDuration / days) : 0
