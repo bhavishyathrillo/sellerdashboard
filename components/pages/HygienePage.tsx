@@ -44,24 +44,9 @@ export default function HygienePage({ session }: Props) {
     })
   }
 
-<<<<<<< HEAD
   const labels = chartData.map(d => d.date)
   const dialsData = chartData.map(d => d.call_dials)
   const durationData = chartData.map(d => d.call_duration)
-=======
-  const chartData = [...last14Days].reverse()
-  const totalDials = last14Days.reduce((s, r) => s + (r.call_dials || 0), 0)
-  const days = last14Days.length
-  const avgDials = days > 0 ? Math.round(totalDials / days) : 0
-  
-  const durations = last14Days.map(r => {
-    const parts = (r.call_duration || '0:0').split(':')
-    return parseInt(parts[0] || '0') * 60 + parseInt(parts[1] || '0')
-  })
-  const totalDuration = durations.reduce((s, v) => s + v, 0)
-  const avgDuration = days > 0 ? Math.round(totalDuration / days) : 0
-  const targetMin = 480
->>>>>>> ecbf59fc0a633dd6fce5c8236f2fd1a58bf12b1f
 
   // Load Chart.js dynamically
   useEffect(() => {
@@ -227,7 +212,6 @@ export default function HygienePage({ session }: Props) {
         </div>
       </div>
 
-      {/* Chart Card */}
       <div className={styles.chartCard}>
         <div className={styles.chartHeader}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:8}}>
@@ -237,32 +221,18 @@ export default function HygienePage({ session }: Props) {
           <span className={styles.chartSubtitle}>Last 14 Days</span>
         </div>
 
-        {/* Legend Pills */}
         <div className={styles.legendPills}>
-          <button
-            className={`${styles.pill} ${showDials ? styles.pillActive : styles.pillInactive}`}
-            style={showDials ? { borderColor: '#F4631E', background: 'rgba(244,99,30,0.12)', color: '#F4631E' } : {}}
-            onClick={() => setShowDials(!showDials)}
-          >
-            <span className={styles.pillSwatch} style={{ background: '#F4631E' }} />
-            Call Dials
+          <button className={`${styles.pill} ${showDials ? styles.pillActive : styles.pillInactive}`} style={showDials ? { borderColor: '#F4631E', background: 'rgba(244,99,30,0.12)', color: '#F4631E' } : {}} onClick={() => setShowDials(!showDials)}>
+            <span className={styles.pillSwatch} style={{ background: '#F4631E' }} />Call Dials
           </button>
-          <button
-            className={`${styles.pill} ${showDuration ? styles.pillActive : styles.pillInactive}`}
-            style={showDuration ? { borderColor: '#22C55E', background: 'rgba(34,197,94,0.10)', color: '#22C55E' } : {}}
-            onClick={() => setShowDuration(!showDuration)}
-          >
-            <span className={styles.pillSwatch} style={{ background: '#22C55E' }} />
-            Duration
+          <button className={`${styles.pill} ${showDuration ? styles.pillActive : styles.pillInactive}`} style={showDuration ? { borderColor: '#22C55E', background: 'rgba(34,197,94,0.10)', color: '#22C55E' } : {}} onClick={() => setShowDuration(!showDuration)}>
+            <span className={styles.pillSwatch} style={{ background: '#22C55E' }} />Duration
           </button>
         </div>
 
-        <div className={styles.chartWrap}>
-          <canvas ref={chartRef} />
-        </div>
+        <div className={styles.chartWrap}><canvas ref={chartRef} /></div>
       </div>
 
-      {/* Table */}
       <div className={styles.tableCard}>
         <div className={styles.chartHeader}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:6}}>
