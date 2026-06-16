@@ -1,11 +1,16 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './PerformancePage.module.css'
 
 interface Props { session: UserSession }
 
-function fmt(n: number) { if (!n && n !== 0) return '₹0'; if (n >= 100000) return `₹${(n / 100000).toFixed(2)}L`; return `₹${n.toFixed(2)}` }
+function fmt(n: number) { 
+  if (!n && n !== 0) return '₹0'; 
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`; 
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`; 
+  return `₹${n.toFixed(0)}`; 
+}
 
 function Particles() {
   return (
@@ -24,9 +29,103 @@ function SellerStats({ data, fmt }: { data: any; fmt: any }) {
   const shb = data.shb || data.should_have_been_monthly || 0
   const shbDiff = achieved - shb
   const aboveShb = shbDiff >= 0
-  const weeks = data.weeks || [1,2,3,4].map((w:number)=>({week:w, goal:data[`week_${w}_goal`]||0, achieved:data[`week_${w}_achieved`]||0, shb:data[`should_have_been_week_${w}`]||data[`week_${w}_shb`]||0}))
+  const weeks = data.weeks || [1,2,3,4].map((w:number)=>({week:w, goal:data[`week_${w}_goal`]||0, achieved:data[`week_${w}_achieved`]||0, shb:data[`should_have_been_week_${w}`]||0}))
 
-  const maxBarVal = Math.max(...weeks.map((w:any)=>Math.max(w.shb||0,w.achieved||0)),1)
+  const chartRef = useRef<HTMLCanvasElement>(null)
+  const chartInstance = useRef<any>(null)
+  const ChartLib = useRef<any>(null)
+  const [showSHB, setShowSHB] = useState(true)
+  const [showAchieved, setShowAchieved] = useState(true)
+
+  useEffect(() => {
+    import('chart.js/auto').then(mod => {
+      ChartLib.current = mod.default || mod
+      if (chartRef.current) renderChart()
+    })
+    return () => { if (chartInstance.current) chartInstance.current.destroy() }
+  }, [])
+
+  useEffect(() => {
+    if (!chartInstance.current) return
+    chartInstance.current.data.datasets[0].hidden = !showSHB
+    chartInstance.current.data.datasets[1].hidden = !showAchieved
+    chartInstance.current.update()
+  }, [showSHB, showAchieved])
+
+  function renderChart() {
+    if (!chartRef.current || !ChartLib.current) return
+    if (chartInstance.current) chartInstance.current.destroy()
+    const Chart = ChartLib.current
+    const ctx = chartRef.current.getContext('2d')
+    if (!ctx) return
+
+    const labels = weeks.map((w:any) => `Week ${w.week}`)
+    const shbData = weeks.map((w:any) => w.shb || 0)
+    const achData = weeks.map((w:any) => w.achieved || 0)
+
+    chartInstance.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'SHB',
+            data: shbData,
+            borderColor: '#22C55E',
+            backgroundColor: 'rgba(34,197,94,0.08)',
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: '#22C55E',
+            pointBorderColor: '#141414',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            hidden: !showSHB
+          },
+          {
+            label: 'Achieved',
+            data: achData,
+            borderColor: '#EF4444',
+            backgroundColor: 'rgba(239,68,68,0.05)',
+            fill: false,
+            tension: 0.35,
+            pointBackgroundColor: '#EF4444',
+            pointBorderColor: '#141414',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            hidden: !showAchieved
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1a1a1a',
+            borderColor: '#333',
+            borderWidth: 1,
+            titleColor: '#F0EDE8',
+            bodyColor: '#8A8278',
+            callbacks: {
+              label: (ctx: any) => `${ctx.dataset.label}: ${fmt(ctx.raw)}`
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#8A8278', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { 
+            ticks: { color: '#8A8278', font: { size: 10 }, callback: (v: any) => fmt(v) }, 
+            grid: { color: 'rgba(255,255,255,0.06)' }, 
+            beginAtZero: true 
+          }
+        }
+      }
+    })
+  }
 
   return (
     <div className={styles.statsWrap}>
@@ -41,42 +140,24 @@ function SellerStats({ data, fmt }: { data: any; fmt: any }) {
         <p className={styles.pctText}>{pct.toFixed(1)}% of goal</p>
       </div>
 
-      {weeks.length > 0 && (
-        <div className={styles.trendChart}>
-          <div className={styles.chartHeader}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:4}}>
-              <rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/>
-            </svg>
-            <span>SHB vs Achieved</span>
-            <span className={styles.chartHeaderSub}>Weekly</span>
-          </div>
-          <div className={styles.weekBarChart}>
-            <div className={styles.chartYAxis}>
-              <span>{maxBarVal.toFixed(2)}</span>
-              <span>0</span>
-            </div>
-            <div className={styles.chartBars}>
-              {weeks.map((w:any, i:number) => {
-                const shbH = ((w.shb||0)/maxBarVal)*80
-                const achH = ((w.achieved||0)/maxBarVal)*80
-                return (
-                  <div key={i} className={styles.weekBarGroup}>
-                    <div className={styles.weekBars}>
-                      <div className={styles.barGreen} style={{height:`${Math.max(shbH,2)}px`}} data-tip={`SHB: ${(w.shb||0).toFixed(2)}`}/>
-                      <div className={styles.barRed} style={{height:`${Math.max(achH,2)}px`}} data-tip={`Achieved: ${(w.achieved||0).toFixed(2)}`}/>
-                    </div>
-                    <span className={styles.barLabel}>W{w.week}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-          <div className={styles.trendLegend}>
-            <span><span className={styles.legendDot} style={{background:'#22C55E'}}/> SHB</span>
-            <span><span className={styles.legendDot} style={{background:'#EF4444'}}/> Achieved</span>
-          </div>
+      <div className={styles.chartCard}>
+        <div className={styles.chartHeader}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:8}}>
+            <polyline points="3 17 9 11 13 15 21 5"/><polyline points="17 5 21 5 21 9"/>
+          </svg>
+          <h3>SHB vs Achieved</h3>
+          <span className={styles.chartSubtitle}>Weekly</span>
         </div>
-      )}
+        <div className={styles.legendPills}>
+          <button className={`${styles.pill} ${showSHB?styles.pillActive:styles.pillInactive}`} style={showSHB?{borderColor:'#22C55E',background:'rgba(34,197,94,0.10)',color:'#22C55E'}:{}} onClick={()=>setShowSHB(!showSHB)}>
+            <span className={styles.pillSwatch} style={{background:'#22C55E'}}/> SHB
+          </button>
+          <button className={`${styles.pill} ${showAchieved?styles.pillActive:styles.pillInactive}`} style={showAchieved?{borderColor:'#EF4444',background:'rgba(239,68,68,0.10)',color:'#EF4444'}:{}} onClick={()=>setShowAchieved(!showAchieved)}>
+            <span className={styles.pillSwatch} style={{background:'#EF4444'}}/> Achieved
+          </button>
+        </div>
+        <div className={styles.chartWrap}><canvas ref={chartRef}/></div>
+      </div>
 
       {weeks.length>0&&(
         <div className={styles.weeks}><h2>Weekly Breakdown</h2>

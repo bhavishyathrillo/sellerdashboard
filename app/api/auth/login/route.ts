@@ -13,46 +13,85 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Email and password required' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
-    .from('seller_credentials')
-    .select('email, password, name, role, status')
-    .eq('email', email.toLowerCase().trim())
+  const trimmedEmail = email.toLowerCase().trim()
+
+  // First check roles table (for Admin/Moderator/SuperAdmin)
+  const { data: roleData } = await supabase
+    .from('roles')
+    .select('email, role, password, added_by')
+    .eq('email', trimmedEmail)
     .single()
 
-  if (error) {
-    return NextResponse.json({ error: 'DB error: ' + error.message }, { status: 500 })
+  if (roleData?.password) {
+    // Verify password from roles table
+    if (roleData.password !== password) {
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
+    }
+
+    // Get name from seller_credentials or srs_raw
+    let name = trimmedEmail.split('@')[0]
+    const { data: sellerData } = await supabase
+      .from('seller_credentials')
+      .select('name')
+      .eq('email', trimmedEmail)
+      .single()
+    
+    if (sellerData?.name) name = sellerData.name
+    else {
+      const { data: srsData } = await supabase
+        .from('srs_raw')
+        .select('seller_name')
+        .eq('seller_email', trimmedEmail)
+        .single()
+      if (srsData?.seller_name) name = srsData.seller_name
+    }
+
+    return NextResponse.json({ email: trimmedEmail, name, role: roleData.role })
   }
 
-  if (!data) {
-    return NextResponse.json({ error: 'User not found in DB' }, { status: 401 })
-  }
+  // Check seller_credentials for password (regular sellers)
+  const { data: sellerData, error: sellerError } = await supabase
+    .from('seller_credentials')
+    .select('email, password, name, status')
+    .eq('email', trimmedEmail)
+    .single()
 
-  if (data.password !== password) {
+  if (sellerError || !sellerData) {
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
   }
 
-  if (data.status !== 'Active') {
+  if (sellerData.password !== password) {
+    return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
+  }
+
+  if (sellerData.status !== 'Active') {
     return NextResponse.json({ error: 'Account inactive' }, { status: 403 })
   }
 
-  let role = data.role
+  let role = 'SELLER'
 
-  // If role is SELLER, check if they're actually L1/L2 in srs_raw
-  if (role === 'SELLER') {
+  // Check if they have a role in roles table (without password - legacy)
+  const { data: roleEntry } = await supabase
+    .from('roles')
+    .select('role')
+    .eq('email', trimmedEmail)
+    .single()
+
+  if (roleEntry?.role) {
+    role = roleEntry.role
+  } else {
+    // Check srs_raw for L1/L2
     const { data: srsCheck } = await supabase
       .from('srs_raw')
       .select('l1_email, l2_email')
-      .or(`l1_email.eq.${email.toLowerCase().trim()},l2_email.eq.${email.toLowerCase().trim()}`)
+      .or(`l1_email.eq.${trimmedEmail},l2_email.eq.${trimmedEmail}`)
       .limit(1)
 
     if (srsCheck && srsCheck.length > 0) {
-      if (srsCheck[0].l2_email === email.toLowerCase().trim()) {
-        role = 'L2'
-      } else if (srsCheck[0].l1_email === email.toLowerCase().trim()) {
-        role = 'L1'
-      }
+      if (srsCheck[0].l2_email === trimmedEmail) role = 'L2'
+      else if (srsCheck[0].l1_email === trimmedEmail) role = 'L1'
     }
   }
 
-  return NextResponse.json({ email: data.email, name: data.name, role })
+  return NextResponse.json({ email: trimmedEmail, name: sellerData.name, role })
 }
