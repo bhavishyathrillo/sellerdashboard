@@ -41,7 +41,14 @@ export async function POST(req: Request) {
       date: now.toISOString().split('T')[0], month: now.getMonth().toString()
     })
 
-    return NextResponse.json({ success: true, result, spinType })
+    await supabase.from('audit_log').insert({
+  email: email.toLowerCase().trim(),
+  action: 'SPIN_WHEEL',
+  detail: `Type: ${spinType} | Result: ${result}`,
+  created_at: new Date().toISOString()
+})
+
+return NextResponse.json({ success: true, result, spinType })
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message })
   }

@@ -52,7 +52,12 @@ export async function POST(req: Request) {
       }
     }
   }
-
+await supabase.from('audit_log').insert({
+  email: data.email,
+  action: 'LOGIN',
+  detail: `Role: ${role}`,
+  created_at: new Date().toISOString()
+})
   // Update last login
   await supabase
     .from('seller_credentials')
@@ -61,3 +66,4 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ email: data.email, name: data.name, role })
 }
+

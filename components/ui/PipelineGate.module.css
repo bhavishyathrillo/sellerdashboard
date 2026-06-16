@@ -1,0 +1,190 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #060810;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Poppins', system-ui, sans-serif;
+  animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 50% 50%,
+    rgba(244,99,30,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 480px;
+  background: #0e0c0a;
+  border: 1px solid rgba(244,99,30,0.15);
+  border-radius: 24px;
+  padding: 36px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 60px rgba(244,99,30,0.05);
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUp {
+  from { opacity:0; transform:translateY(24px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.logo { border-radius: 10px; }
+
+.headerText { display: flex; flex-direction: column; gap: 2px; }
+
+.greeting {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #F0EDE8;
+  letter-spacing: -0.01em;
+}
+
+.date {
+  font-size: 0.72rem;
+  color: #4A4642;
+}
+
+.divider {
+  height: 1px;
+  background: rgba(255,255,255,0.05);
+  margin-bottom: 24px;
+}
+
+.message {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: rgba(244,99,30,0.06);
+  border: 1px solid rgba(244,99,30,0.12);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.lockIcon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+
+.messageTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #F0EDE8;
+  margin-bottom: 4px;
+}
+
+.messageSub {
+  font-size: 0.75rem;
+  color: #6A6660;
+  line-height: 1.5;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.inputGroup { display: flex; flex-direction: column; gap: 7px; }
+
+.label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #6A6660;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.inputWrap { position: relative; display: flex; align-items: center; }
+
+.rupee {
+  position: absolute;
+  left: 14px;
+  color: #6A6660;
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 14px 14px 32px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  color: #F0EDE8;
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.input:focus { border-color: rgba(244,99,30,0.4); }
+.input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+.errorMsg { font-size: 0.72rem; color: #EF4444; }
+
+.btn {
+  width: 100%;
+  padding: 14px;
+  background: #F4631E;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.18s ease, transform 0.18s ease;
+  box-shadow: 0 4px 20px rgba(244,99,30,0.3);
+  letter-spacing: 0.01em;
+  margin-top: 4px;
+}
+
+.btn:hover:not(:disabled) { filter: brightness(1.1); }
+.btn:active:not(:disabled) { transform: scale(0.99); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.logoutBtn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  color: #3A3632;
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.logoutBtn:hover { border-color: rgba(239,68,68,0.3); color: #ef4444; }
