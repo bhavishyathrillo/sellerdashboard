@@ -26,11 +26,17 @@ export default function ThrillNews({ email, role }: Props) {
         const top = leaderboard?.[0]
         if (top) news.push(`🏆 ${top.seller_name} leads the company — ${(top.goal_achieved_percent||0).toFixed(1)}% achieved!`)
 
-        if (overview?.todayPipeline === null || overview?.todayPipeline === undefined) {
-          news.push(`⏰ You haven't submitted pipeline today — Deadline: ${overview?.deadlineStr || '11:00 AM'}`)
-        } else {
-          news.push(`✅ Pipeline submitted: ₹${(overview.todayPipeline||0).toLocaleString('en-IN')} (${overview.todayStatus||'OK'})`)
-        }
+        try {
+  const today = new Date().toISOString().split('T')[0]
+  const pipelineCheck = await fetch(`/api/pipeline/check?email=${encodeURIComponent(email)}&date=${today}`).then(r=>r.json())
+  if (pipelineCheck?.submitted) {
+    news.push(`✅ Pipeline submitted for today`)
+  } else {
+    news.push(`⏰ You haven't submitted pipeline today — Deadline: 11:00 AM`)
+  }
+} catch {
+  news.push(`⏰ Submit your pipeline for today`)
+}
 
         if (role === 'L2') {
           const pct = m.pct || m.goal_achieved_percent || 0

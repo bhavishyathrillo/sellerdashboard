@@ -44,9 +44,24 @@ export default function HygienePage({ session }: Props) {
     })
   }
 
+<<<<<<< HEAD
   const labels = chartData.map(d => d.date)
   const dialsData = chartData.map(d => d.call_dials)
   const durationData = chartData.map(d => d.call_duration)
+=======
+  const chartData = [...last14Days].reverse()
+  const totalDials = last14Days.reduce((s, r) => s + (r.call_dials || 0), 0)
+  const days = last14Days.length
+  const avgDials = days > 0 ? Math.round(totalDials / days) : 0
+  
+  const durations = last14Days.map(r => {
+    const parts = (r.call_duration || '0:0').split(':')
+    return parseInt(parts[0] || '0') * 60 + parseInt(parts[1] || '0')
+  })
+  const totalDuration = durations.reduce((s, v) => s + v, 0)
+  const avgDuration = days > 0 ? Math.round(totalDuration / days) : 0
+  const targetMin = 480
+>>>>>>> ecbf59fc0a633dd6fce5c8236f2fd1a58bf12b1f
 
   // Load Chart.js dynamically
   useEffect(() => {

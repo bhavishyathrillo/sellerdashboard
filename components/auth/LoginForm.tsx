@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import styles from './LoginForm.module.css'
-
+import GlobeBackground from '@/components/ui/GlobeBackground'
 interface LoginFormProps {
   onLogin: (email: string, name: string, role: string) => void
 }
@@ -50,30 +50,17 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   }
 
   return (
-    <div className={styles.wrapper}>
+  <div className={styles.wrapper}>
 
-      {/* Video background */}
-      <div className={styles.videoBg} aria-hidden="false">
-        <video
-          className={styles.videoBgPlayer}
-          src="https://ltiglt8xyyg9iroo.public.blob.vercel-storage.com/login-bg.mp4"
-          autoPlay
-          loop
-          playsInline
-          muted
-        />
-      </div>
+    {/* LEFT — Globe */}
+    <div className={styles.leftPanel}>
+      <GlobeBackground />
+    </div>
 
-      {/* Fade overlay */}
-      <div className={styles.videoOverlay} aria-hidden="true" />
-
-      {/* Ambient glow */}
-      <div className={styles.ambientGlow} aria-hidden="true" />
-
-      {/* Login card */}
+    {/* RIGHT — Login */}
+    <div className={styles.rightPanel}>
       <div className={styles.card}>
 
-        {/* Logo */}
         <div className={styles.logoRow}>
           <Image
             src="/thrillo-logo.svg"
@@ -89,8 +76,6 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         <p className={styles.subheading}>Sign in to your sales dashboard</p>
 
         <form onSubmit={handleSubmit} noValidate className={styles.form}>
-
-          {/* Email */}
           <div className={styles.field}>
             <label htmlFor="email" className={styles.label}>Email</label>
             <input
@@ -106,7 +91,6 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
             />
           </div>
 
-          {/* Password */}
           <div className={styles.field}>
             <label htmlFor="password" className={styles.label}>Password</label>
             <div className={styles.passwordWrap}>
@@ -140,12 +124,12 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
               <>Sign in <span className={styles.arrow}>→</span></>
             )}
           </button>
-
         </form>
 
         <p className={styles.hint}>Access restricted to Thrillophilia employees</p>
 
       </div>
     </div>
-  )
+  </div>
+)
 }

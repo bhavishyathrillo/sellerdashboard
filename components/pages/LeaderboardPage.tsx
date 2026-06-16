@@ -73,7 +73,8 @@ export default function LeaderboardPage({ session }: Props) {
       if (res.ok) {
         setSellers(data || [])
         if (!haul && !region) {
-          setAllRegions([...new Set((data || []).map((s: Seller) => s.region).filter(Boolean))].sort())
+          const regions = (data || []).map((s: Seller) => s.region as string).filter((r: string) => Boolean(r))
+         setAllRegions([...new Set(regions)] as string[])
         }
       }
     } catch {} finally { setLoading(false) }
