@@ -30,7 +30,6 @@ function formatRegion(r: string) {
   return regionDisplay[r] || r.replace(/_/g, ' ').replace(/ tours$/i, '').replace(/\b\w/g, (c: string) => c.toUpperCase())
 }
 
-// SVG Icons
 function StarIcon() {
   return (
     <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" style={{display:'inline',verticalAlign:'middle'}}>
@@ -38,10 +37,6 @@ function StarIcon() {
     </svg>
   )
 }
-
-function GoldMedal() { return <span style={{fontSize:'0.85rem'}}>1st</span> }
-function SilverMedal() { return <span style={{fontSize:'0.85rem'}}>2nd</span> }
-function BronzeMedal() { return <span style={{fontSize:'0.85rem'}}>3rd</span> }
 
 function CrownIcon() {
   return (
@@ -64,7 +59,7 @@ function FloatingParticles() {
 }
 
 export default function LeaderboardPage({ session }: Props) {
-  const [sellers, setSellers] = useState<Seller[]>([])
+  const [allSellers, setAllSellers] = useState<Seller[]>([])
   const [teamSellers, setTeamSellers] = useState<Seller[]>([])
   const [loading, setLoading] = useState(true)
   const [haul, setHaul] = useState('')
@@ -76,44 +71,53 @@ export default function LeaderboardPage({ session }: Props) {
   const isManager = ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(session.role)
 
   useEffect(() => {
-    // Load overall leaderboard
-    fetch('/api/seller/leaderboard')
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setSellers(data)
+    loadData()
+  }, [haul, region])
+
+  async function loadData() {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (haul) params.set('haul', haul)
+      if (region) params.set('region', region)
+      
+      const res = await fetch(`/api/seller/leaderboard?${params}`)
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setAllSellers(data)
+        if (!haul && !region) {
           setAllRegions([...new Set(data.map((s: Seller) => s.region).filter(Boolean))].sort())
         }
-      })
+      }
+    } catch {}
     
-    // Load team leaderboard
+    // Load team data
     if (isManager) {
-      fetch(`/api/seller/team-performance?email=${encodeURIComponent(session.email)}&role=${session.role}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data?.team) {
-            // SORT by goal_achieved_percent DESCENDING
-            const sorted = [...data.team].sort((a: any, b: any) => 
-              (b.goal_achieved_percent || 0) - (a.goal_achieved_percent || 0)
-            )
-            setTeamSellers(sorted)
-          }
-        })
+      try {
+        const teamRes = await fetch(`/api/seller/team-performance?email=${encodeURIComponent(session.email)}&role=${session.role}`)
+        const teamData = await teamRes.json()
+        if (teamData?.team) {
+          const sorted = [...teamData.team].sort((a: any, b: any) => 
+            (b.goal_achieved_percent || 0) - (a.goal_achieved_percent || 0)
+          )
+          setTeamSellers(sorted)
+        }
+      } catch {}
     }
     
     setLoading(false)
-  }, [])
+  }
 
   if (loading) return (
     <div className={styles.loaderWrap}><div className={styles.loaderRing} /><p className={styles.loaderText}>Loading rankings...</p></div>
   )
 
-  const activeSellers = viewMode === 'team' && isManager ? teamSellers : sellers
+  const activeSellers = viewMode === 'team' && isManager ? teamSellers : allSellers
 
-  // Build global rank map
+  // Global rank map for team view
   const globalRankMap: Record<string, number> = {}
   if (viewMode === 'team') {
-    sellers.forEach((s, i) => {
+    allSellers.forEach((s, i) => {
       globalRankMap[s.seller_email?.toLowerCase()] = i + 1
     })
   }
@@ -176,35 +180,37 @@ export default function LeaderboardPage({ session }: Props) {
       </div>
 
       {/* Podium */}
-      <div className={styles.podiumSection}>
-        <div className={styles.podium}>
-          {podiumData.map((s, i) => {
-            const pos = rankOrder[i]; const isGold = pos === 0
-            const globalRank = viewMode === 'team' ? globalRankMap[s?.seller_email?.toLowerCase()] : null
-            return (
-              <div key={s?.seller_email || i} className={`${styles.podiumCard} ${isGold?styles.cardGold:pos===1?styles.cardSilver:styles.cardBronze}`} style={{animationDelay:`${i*0.2}s`}}>
-                {isGold && <div className={styles.crown}><CrownIcon /></div>}
-                {isGold && <div className={styles.sparkles}><StarIcon /></div>}
-                <div className={styles.rankNum} style={{color:glowColors[pos]}}>
-                  #{pos+1} {globalRank && <span style={{fontSize:'0.55rem',opacity:0.7}}>(Global #{globalRank})</span>}
+      {podiumData.length > 0 && (
+        <div className={styles.podiumSection}>
+          <div className={styles.podium}>
+            {podiumData.map((s, i) => {
+              const pos = rankOrder[i]; const isGold = pos === 0
+              const globalRank = viewMode === 'team' ? globalRankMap[s?.seller_email?.toLowerCase()] : null
+              return (
+                <div key={s?.seller_email || i} className={`${styles.podiumCard} ${isGold?styles.cardGold:pos===1?styles.cardSilver:styles.cardBronze}`} style={{animationDelay:`${i*0.2}s`}}>
+                  {isGold && <div className={styles.crown}><CrownIcon /></div>}
+                  {isGold && <div className={styles.sparkles}><StarIcon /></div>}
+                  <div className={styles.rankNum} style={{color:glowColors[pos]}}>
+                    #{pos+1} {globalRank && <span style={{fontSize:'0.55rem',opacity:0.7}}>(Global #{globalRank})</span>}
+                  </div>
+                  <div className={styles.avatarWarp}><div className={styles.avatarInner}>{initials(s?.seller_name)}</div><div className={styles.avatarRing} style={{borderColor:glowColors[pos]}}/></div>
+                  <div className={styles.podName}>{s?.seller_name}</div><div className={styles.podTeam}>{s?.l1_name}</div>
+                  <div className={styles.podProgress}><div className={styles.podProgressBar}><div className={styles.podProgressFill} style={{width:`${Math.min(s?.goal_achieved_percent||0,100)}%`,background:`linear-gradient(90deg,${glowColors[pos]},#F4631E)`}}/></div></div>
+                  <div className={styles.podStats}><span className={styles.podPct} style={{color:glowColors[pos]}}>{s?.goal_achieved_percent?.toFixed(1)}%</span><span className={styles.podAmt}>{fmt(s?.actual_achieved_monthly||0)}</span></div>
+                  <span className={styles.podHaul}>{s?.haul}</span>
                 </div>
-                <div className={styles.avatarWarp}><div className={styles.avatarInner}>{initials(s?.seller_name)}</div><div className={styles.avatarRing} style={{borderColor:glowColors[pos]}}/></div>
-                <div className={styles.podName}>{s?.seller_name}</div><div className={styles.podTeam}>{s?.l1_name}</div>
-                <div className={styles.podProgress}><div className={styles.podProgressBar}><div className={styles.podProgressFill} style={{width:`${Math.min(s?.goal_achieved_percent||0,100)}%`,background:`linear-gradient(90deg,${glowColors[pos]},#F4631E)`}}/></div></div>
-                <div className={styles.podStats}><span className={styles.podPct} style={{color:glowColors[pos]}}>{s?.goal_achieved_percent?.toFixed(1)}%</span><span className={styles.podAmt}>{fmt(s?.actual_achieved_monthly||0)}</span></div>
-                <span className={styles.podHaul}>{s?.haul}</span>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Haul boxes — only Overall */}
       {viewMode === 'overall' && (
         <div className={styles.haulRow}>
           {hauls.map(h => {
             const hSellers = activeSellers.filter(s => s.haul === h).slice(0, 3)
-            return (<div key={h} className={styles.haulBox}><h3 className={styles.haulBoxTitle}>{h}</h3>{hSellers.map((s,i)=>(<div key={s.seller_email} className={styles.haulLine}><span>{i===0?<GoldMedal/>:i===1?<SilverMedal/>:<BronzeMedal/>}</span><span className={styles.haulLineName}>{s.seller_name}</span><span className={styles.haulLinePct}>{s.goal_achieved_percent?.toFixed(1)}%</span></div>))}</div>)
+            return (<div key={h} className={styles.haulBox}><h3 className={styles.haulBoxTitle}>{h}</h3>{hSellers.map((s,i)=>(<div key={s.seller_email} className={styles.haulLine}><span>{i===0?'1st':i===1?'2nd':'3rd'}</span><span className={styles.haulLineName}>{s.seller_name}</span><span className={styles.haulLinePct}>{s.goal_achieved_percent?.toFixed(1)}%</span></div>))}</div>)
           })}
         </div>
       )}
