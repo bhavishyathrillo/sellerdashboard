@@ -68,6 +68,7 @@ export default function L1HomePage({ session }: { session: UserSession }) {
   )
 
   const { teamTotals } = data
+  const l1Email = session.email.toLowerCase()
 
   return (
     <div className={styles.page}>
@@ -109,100 +110,118 @@ export default function L1HomePage({ session }: { session: UserSession }) {
         </div>
       </div>
 
-      {data.l2Groups.map((group: any) => (
-        <div key={group.l2_email} style={{
-          background:'#141414',border:'1px solid #232323',borderRadius:'12px',
-          padding:'14px',marginBottom:'10px',transition:'all 0.3s'
-        }}>
-          <div onClick={() => toggleL2(group.l2_email)} style={{
-            display:'flex',alignItems:'center',justifyContent:'space-between',
-            cursor:'pointer',padding:'4px 0'
+      {data.l2Groups.map((group: any) => {
+        // Check if this is the L1's own group (where l2_email = L1's email)
+        const isL1OwnGroup = group.l2_email?.toLowerCase() === l1Email
+
+        return (
+          <div key={group.l2_email} style={{
+            background:'#141414',border:'1px solid #232323',borderRadius:'12px',
+            padding:'14px',marginBottom:'10px',transition:'all 0.3s'
           }}>
-            <div style={{display:'flex',alignItems:'center',gap:'10px',flex:1}}>
-              <span style={{fontSize:'0.7rem',color:'#8A8278',width:'16px'}}>
-                {expandedL2[group.l2_email] ? <ChevronDown /> : <ChevronRight />}
-              </span>
-              <div>
-                <span style={{fontWeight:700,fontSize:'0.85rem',display:'block'}}>
-                  <UserIcon /> {group.l2_name}
+            <div onClick={() => toggleL2(group.l2_email)} style={{
+              display:'flex',alignItems:'center',justifyContent:'space-between',
+              cursor:'pointer',padding:'4px 0'
+            }}>
+              <div style={{display:'flex',alignItems:'center',gap:'10px',flex:1}}>
+                <span style={{fontSize:'0.7rem',color:'#8A8278',width:'16px'}}>
+                  {expandedL2[group.l2_email] ? <ChevronDown /> : <ChevronRight />}
                 </span>
-                <span style={{fontSize:'0.6rem',color:'#8A8278'}}>
-                  {group.l2_kpi.region || '--'} · {group.l2_kpi.haul || '--'} · {group.seller_count} seller{group.seller_count !== 1 ? 's' : ''}
-                </span>
+                <div>
+                  <span style={{fontWeight:700,fontSize:'0.85rem',display:'block'}}>
+                    <UserIcon /> {group.l2_name}
+                  </span>
+                  <span style={{fontSize:'0.6rem',color:'#8A8278'}}>
+                    {group.l2_kpi.region || '--'} · {group.l2_kpi.haul || '--'} · {group.seller_count} seller{group.seller_count !== 1 ? 's' : ''}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
-              <div style={{textAlign:'right'}}>
-                <span style={{fontSize:'0.7rem',color:'#8A8278',display:'block'}}>
-                  {fmt(group.l2_kpi.achieved)} / {fmt(group.l2_kpi.goal)}
-                </span>
-                <span style={{fontSize:'0.6rem',color:'#8A8278'}}>
-                  SHB: {fmt(group.l2_kpi.shb)}
-                </span>
-              </div>
-              <span style={{
-                fontWeight:700,fontSize:'0.9rem',
-                color: group.l2_kpi.pct >= 100 ? '#22C55E' : '#F4631E'
-              }}>
-                {group.l2_kpi.pct.toFixed(1)}%
-              </span>
-            </div>
-          </div>
-
-          <div style={{height:'4px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',margin:'8px 0'}}>
-            <div style={{
-              height:'100%',background:'linear-gradient(90deg,#F4631E,#C9A84C)',
-              borderRadius:'2px',width:`${Math.min(group.l2_kpi.pct,100)}%`,transition:'width 0.5s'
-            }}/>
-          </div>
-
-          {expandedL2[group.l2_email] && group.sellers.length > 0 && (
-            <div style={{display:'flex',flexDirection:'column',gap:'4px',marginTop:'8px'}}>
-              {group.sellers.map((seller: any) => (
-                <div key={seller.seller_email} style={{
-                  padding:'8px 12px',marginLeft:'24px',
-                  background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.04)',
-                  borderRadius:'8px'
-                }}>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                    <span style={{fontWeight:500,fontSize:'0.78rem'}}>{seller.seller_name}</span>
-                    <span style={{
-                      fontWeight:700,fontSize:'0.8rem',
-                      color: seller.pct >= 100 ? '#22C55E' : '#F4631E'
-                    }}>
-                      {seller.pct.toFixed(1)}%
+              {/* Only show stats for non-L1 groups */}
+              {!isL1OwnGroup && (
+                <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
+                  <div style={{textAlign:'right'}}>
+                    <span style={{fontSize:'0.7rem',color:'#8A8278',display:'block'}}>
+                      {fmt(group.l2_kpi.achieved)} / {fmt(group.l2_kpi.goal)}
+                    </span>
+                    <span style={{fontSize:'0.6rem',color:'#8A8278'}}>
+                      SHB: {fmt(group.l2_kpi.shb)}
                     </span>
                   </div>
-                  <div style={{marginTop:'3px'}}>
-                    <div style={{
-                      display:'flex',justifyContent:'space-between',
-                      fontSize:'0.62rem',color:'#8A8278',marginBottom:'2px'
-                    }}>
-                      <span>{fmt(seller.achieved)} / {fmt(seller.goal)} completed</span>
-                      <span>SHB: {fmt(seller.shb)}</span>
+                  <span style={{
+                    fontWeight:700,fontSize:'0.9rem',
+                    color: group.l2_kpi.pct >= 100 ? '#22C55E' : '#F4631E'
+                  }}>
+                    {group.l2_kpi.pct.toFixed(1)}%
+                  </span>
+                </div>
+              )}
+              {/* For L1's own group, just show seller count */}
+              {isL1OwnGroup && (
+                <span style={{fontSize:'0.65rem',color:'#8A8278'}}>
+                  {group.seller_count} seller{group.seller_count !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+
+            {/* Progress bar - only for non-L1 groups */}
+            {!isL1OwnGroup && (
+              <div style={{height:'4px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',margin:'8px 0'}}>
+                <div style={{
+                  height:'100%',background:'linear-gradient(90deg,#F4631E,#C9A84C)',
+                  borderRadius:'2px',width:`${Math.min(group.l2_kpi.pct,100)}%`,transition:'width 0.5s'
+                }}/>
+              </div>
+            )}
+
+            {/* Sellers under this group */}
+            {expandedL2[group.l2_email] && group.sellers.length > 0 && (
+              <div style={{display:'flex',flexDirection:'column',gap:'4px',marginTop:'8px'}}>
+                {group.sellers.map((seller: any) => (
+                  <div key={seller.seller_email} style={{
+                    padding:'8px 12px',marginLeft:'24px',
+                    background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.04)',
+                    borderRadius:'8px'
+                  }}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <span style={{fontWeight:500,fontSize:'0.78rem'}}>{seller.seller_name}</span>
+                      <span style={{
+                        fontWeight:700,fontSize:'0.8rem',
+                        color: seller.pct >= 100 ? '#22C55E' : '#F4631E'
+                      }}>
+                        {seller.pct.toFixed(1)}%
+                      </span>
                     </div>
-                    <div style={{
-                      height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',overflow:'hidden'
-                    }}>
+                    <div style={{marginTop:'3px'}}>
                       <div style={{
-                        height:'100%',borderRadius:'2px',
-                        background: seller.pct >= 100 ? '#22C55E' : '#F4631E',
-                        width:`${Math.min(seller.pct,150)}%`,transition:'width 0.5s'
-                      }}/>
+                        display:'flex',justifyContent:'space-between',
+                        fontSize:'0.62rem',color:'#8A8278',marginBottom:'2px'
+                      }}>
+                        <span>{fmt(seller.achieved)} / {fmt(seller.goal)} completed</span>
+                        <span>SHB: {fmt(seller.shb)}</span>
+                      </div>
+                      <div style={{
+                        height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',overflow:'hidden'
+                      }}>
+                        <div style={{
+                          height:'100%',borderRadius:'2px',
+                          background: seller.pct >= 100 ? '#22C55E' : '#F4631E',
+                          width:`${Math.min(seller.pct,150)}%`,transition:'width 0.5s'
+                        }}/>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          {expandedL2[group.l2_email] && group.sellers.length === 0 && (
-            <div style={{padding:'12px',marginLeft:'24px',color:'#8A8278',fontSize:'0.75rem',textAlign:'center'}}>
-              No sellers under this manager
-            </div>
-          )}
-        </div>
-      ))}
+            {expandedL2[group.l2_email] && group.sellers.length === 0 && (
+              <div style={{padding:'12px',marginLeft:'24px',color:'#8A8278',fontSize:'0.75rem',textAlign:'center'}}>
+                No sellers under this manager
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
