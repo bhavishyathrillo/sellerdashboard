@@ -39,6 +39,16 @@ export default function DashboardLayout({
     ...(isAdmin ? adminItems : []),
   ]
 
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'L1': return 'Category Manager'
+      case 'L2': return 'L1 Manager'
+      case 'ADMIN': return 'Admin'
+      case 'MODERATOR': return 'Moderator'
+      default: return 'Seller'
+    }
+  }
+
   return (
     <div className={styles.shell}>
       <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`}>
@@ -67,10 +77,7 @@ export default function DashboardLayout({
               <div className={styles.userInfo}>
                 <p className={styles.userName}>{session.name}</p>
                 <p className={styles.userRole}>
-                  {session.role === 'L2' ? 'L2 Manager' : 
-                   session.role === 'L1' ? 'L1 Manager' : 
-                   session.role === 'ADMIN' ? 'Admin' : 
-                   session.role === 'MODERATOR' ? 'Moderator' : 'Seller'}
+                  {getRoleLabel(session.role)}
                 </p>
               </div>
             )}

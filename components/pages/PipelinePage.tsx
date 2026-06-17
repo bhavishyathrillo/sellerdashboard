@@ -51,14 +51,19 @@ export default function PipelinePage({ session }: PipelinePageProps) {
   const [value, setValue] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [view, setView] = useState<'mine' | 'team'>('mine')
+  const [view, setView] = useState<'mine' | 'team'>(
+    session.role === 'L1' ? 'team' : 'mine'
+  )
+  const [dateFilter, setDateFilter] = useState<'today' | '5days' | '15days' | 'all'>('all')
 
   const isManager = ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(session.role)
+  const isL1 = session.role === 'L1'
 
   const load = async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ email: session.email, role: session.role, view })
+      const actualView = isL1 ? 'team' : view
+      const params = new URLSearchParams({ email: session.email, role: session.role, view: actualView })
       const res = await fetch(`/api/pipeline?${params}`)
       const json = await res.json()
       if (!res.ok) { setError(json.error || 'Failed to load'); return }
@@ -98,6 +103,34 @@ export default function PipelinePage({ session }: PipelinePageProps) {
     }
   }
 
+  // Filter history based on date filter
+  const getFilteredHistory = () => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    
+    let cutoffDate: Date | null = null
+    
+    if (dateFilter === 'today') {
+      cutoffDate = new Date(now)
+    } else if (dateFilter === '5days') {
+      cutoffDate = new Date(now)
+      cutoffDate.setDate(cutoffDate.getDate() - 4)
+    } else if (dateFilter === '15days') {
+      cutoffDate = new Date(now)
+      cutoffDate.setDate(cutoffDate.getDate() - 14)
+    }
+    
+    if (!cutoffDate) return history
+    
+    return history.filter(h => {
+      const hDate = new Date(h.date)
+      hDate.setHours(0, 0, 0, 0)
+      return hDate >= cutoffDate!
+    })
+  }
+
+  const filteredHistory = getFilteredHistory()
+
   if (loading) return (
     <div className={styles.loadingWrap}>
       <div className={styles.spinner} />
@@ -105,15 +138,14 @@ export default function PipelinePage({ session }: PipelinePageProps) {
     </div>
   )
 
-  const greenCount = history.filter(h => h.status === 'GREEN').length
-  const redCount = history.filter(h => h.status === 'RED').length
-  const avgPipeline = history.length > 0
-    ? history.reduce((a, b) => a + (b.pipeline_value || 0), 0) / history.length
+  const greenCount = filteredHistory.filter(h => h.status === 'GREEN').length
+  const redCount = filteredHistory.filter(h => h.status === 'RED').length
+  const avgPipeline = filteredHistory.length > 0
+    ? filteredHistory.reduce((a, b) => a + (b.pipeline_value || 0), 0) / filteredHistory.length
     : 0
 
   return (
     <div className={styles.page}>
-      {/* Particles */}
       <div className={styles.particles}>
         {[...Array(10)].map((_, i) => (
           <div key={i} className={styles.particle} style={{
@@ -128,8 +160,7 @@ export default function PipelinePage({ session }: PipelinePageProps) {
       </div>
 
       <div className={styles.topGrid}>
-        {/* Today's submission — only for mine view */}
-        {view === 'mine' && todayStatus && (
+        {!isL1 && view === 'mine' && todayStatus && (
           <div className={`${styles.submitCard} ${todayStatus.submitted ? (todayStatus.status === 'GREEN' ? styles.cardGreen : styles.cardRed) : styles.cardPending}`}>
             <div className={styles.cardHeader}>
               <div>
@@ -191,7 +222,6 @@ export default function PipelinePage({ session }: PipelinePageProps) {
           </div>
         )}
 
-        {/* Monthly Overview */}
         <div className={styles.monthlyCard}>
           <div className={styles.monthlyHeader}>
             <div className={styles.monthlyTitle}>Monthly Overview</div>
@@ -200,7 +230,7 @@ export default function PipelinePage({ session }: PipelinePageProps) {
           <div className={styles.monthlyRows}>
             <div className={styles.monthlyRow}>
               <span className={styles.monthlyRowLabel}>Total Submissions</span>
-              <span className={styles.monthlyRowValue}>{history.length}</span>
+              <span className={styles.monthlyRowValue}>{filteredHistory.length}</span>
             </div>
             <div className={styles.monthlyDivider} />
             <div className={styles.monthlyRow}>
@@ -216,18 +246,17 @@ export default function PipelinePage({ session }: PipelinePageProps) {
           <div className={styles.monthlyProgress}>
             <div className={styles.progressHeader}>
               <span className={styles.progressLabel}>Green Rate</span>
-              <span className={styles.progressPct}>{history.length > 0 ? ((greenCount / history.length) * 100).toFixed(0) : 0}%</span>
+              <span className={styles.progressPct}>{filteredHistory.length > 0 ? ((greenCount / filteredHistory.length) * 100).toFixed(0) : 0}%</span>
             </div>
             <div className={styles.progressTrack}>
-              <div className={styles.progressFill} style={{ width: `${history.length > 0 ? (greenCount / history.length) * 100 : 0}%` }} />
+              <div className={styles.progressFill} style={{ width: `${filteredHistory.length > 0 ? (greenCount / filteredHistory.length) * 100 : 0}%` }} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stats Strip */}
       <div className={styles.statsStrip}>
-        <div className={styles.stat}><div className={styles.statVal}>{history.length}</div><div className={styles.statLbl}>Total</div></div>
+        <div className={styles.stat}><div className={styles.statVal}>{filteredHistory.length}</div><div className={styles.statLbl}>Total</div></div>
         <div className={styles.statDivider} />
         <div className={styles.stat}><div className={styles.statVal} style={{color:'#22C55E'}}>{greenCount}</div><div className={styles.statLbl}>Green</div></div>
         <div className={styles.statDivider} />
@@ -235,30 +264,58 @@ export default function PipelinePage({ session }: PipelinePageProps) {
         <div className={styles.statDivider} />
         <div className={styles.stat}><div className={styles.statVal}>{fmt(avgPipeline)}</div><div className={styles.statLbl}>Avg Pipeline</div></div>
         <div className={styles.statDivider} />
-        <div className={styles.stat}><div className={styles.statVal} style={{color:'#22C55E'}}>{history.length>0?((greenCount/history.length)*100).toFixed(0):0}%</div><div className={styles.statLbl}>Green Rate</div></div>
+        <div className={styles.stat}><div className={styles.statVal} style={{color:'#22C55E'}}>{filteredHistory.length>0?((greenCount/filteredHistory.length)*100).toFixed(0):0}%</div><div className={styles.statLbl}>Green Rate</div></div>
       </div>
 
       {/* History */}
       <div className={styles.historySection}>
         <div className={styles.historyHeader}>
-          <h3 className={styles.sectionTitle}>Submission History</h3>
-          {isManager && (
+          <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+            <h3 className={styles.sectionTitle}>Submission History</h3>
+            {/* Date Filter Toggle */}
+            <div style={{display:'flex',gap:'3px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'7px',padding:'2px'}}>
+              {[
+                { key: 'today', label: 'Today' },
+                { key: '5days', label: '5 Days' },
+                { key: '15days', label: '15 Days' },
+                { key: 'all', label: 'All' },
+              ].map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setDateFilter(f.key as any)}
+                  style={{
+                    padding:'5px 10px',border:'none',borderRadius:'5px',
+                    background: dateFilter === f.key ? 'rgba(244,99,30,0.15)' : 'transparent',
+                    color: dateFilter === f.key ? '#F4631E' : '#8A8278',
+                    cursor:'pointer',fontSize:'0.65rem',fontWeight:600,transition:'all 0.15s'
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* View toggle for non-L1 managers */}
+          {isManager && !isL1 && (
             <div className={styles.viewToggle}>
               <button className={`${styles.toggleBtn} ${view==='mine'?styles.toggleActive:''}`} onClick={()=>setView('mine')}>My Submissions</button>
               <button className={`${styles.toggleBtn} ${view==='team'?styles.toggleActive:''}`} onClick={()=>setView('team')}>Team View</button>
             </div>
           )}
+          {isL1 && (
+            <span style={{fontSize:'0.7rem',color:'#C9A84C',fontWeight:600}}>Team Submissions</span>
+          )}
         </div>
 
-        {history.length === 0 ? (
-          <div className={styles.emptyWrap}><p>No submissions yet</p></div>
+        {filteredHistory.length === 0 ? (
+          <div className={styles.emptyWrap}><p>No submissions found</p></div>
         ) : (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
                 <tr>
                   <th>Date</th>
-                  {view === 'team' && <th>Seller</th>}
+                  {(view === 'team' || isL1) && <th>Seller</th>}
                   <th>Pipeline</th>
                   <th>Required</th>
                   <th>vs Required</th>
@@ -267,13 +324,13 @@ export default function PipelinePage({ session }: PipelinePageProps) {
                 </tr>
               </thead>
               <tbody>
-                {history.map(row => {
+                {filteredHistory.map(row => {
                   const diff = (row.pipeline_value || 0) - (row.required_daily || 0)
                   const above = diff >= 0
                   return (
                     <tr key={row.id} className={styles.row}>
                       <td className={styles.dateCell}>{fmtDate(row.date)}</td>
-                      {view === 'team' && <td className={styles.sellerCell}>{row.seller_email}</td>}
+                      {(view === 'team' || isL1) && <td className={styles.sellerCell}>{row.seller_email}</td>}
                       <td className={styles.valueCell}>{fmt(row.pipeline_value)}</td>
                       <td className={styles.reqCell}>{fmt(row.required_daily)}</td>
                       <td><span style={{ color: above ? '#22C55E' : '#EF4444', fontSize: '0.75rem', fontWeight: 500 }}>{above ? '↑' : '↓'} {fmt(Math.abs(diff))}</span></td>

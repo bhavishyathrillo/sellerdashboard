@@ -34,6 +34,184 @@ export default function RewardsPage({ session }: Props) {
   const [selectedWheel, setSelectedWheel] = useState<'PREMIUM' | 'STANDARD'>('PREMIUM')
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
+  // ========== L1 MANAGER: Team Rewards View ==========
+  if (session.role === 'L1') {
+    const [l1Rewards, setL1Rewards] = useState<any>(null)
+    const [l1Loading, setL1Loading] = useState(true)
+    const [showPremium, setShowPremium] = useState(true)
+    const [showStandard, setShowStandard] = useState(true)
+
+    useEffect(() => {
+      fetch(`/api/seller/l1-rewards?email=${encodeURIComponent(session.email)}`)
+        .then(r => r.json())
+        .then(d => { setL1Rewards(d); setL1Loading(false) })
+        .catch(() => setL1Loading(false))
+    }, [session.email])
+
+    if (l1Loading) return (
+      <div className={styles.loadingWrap}><div className={styles.loadingSpinner}/><p>Loading team rewards...</p></div>
+    )
+
+    if (!l1Rewards) return (
+      <div className={styles.page}><FloatingParticles /><div style={{textAlign:'center',padding:'80px',color:'#8A8278'}}>No rewards data found</div></div>
+    )
+
+    // Determine what to show
+    const bothSelected = showPremium && showStandard
+
+    // Build filtered lists
+    let eligible: any[] = []
+    let notEligible: any[] = []
+    let sectionTitle = ''
+    let sectionColor = ''
+
+    if (bothSelected) {
+      // Both selected - show "Both" data
+      eligible = l1Rewards.both?.eligible || []
+      notEligible = l1Rewards.both?.notEligible || []
+      sectionTitle = 'Premium + Standard'
+      sectionColor = '#22C55E'
+    } else if (showPremium) {
+      eligible = l1Rewards.premium?.eligible || []
+      notEligible = l1Rewards.premium?.notEligible || []
+      sectionTitle = 'Premium'
+      sectionColor = '#C9A84C'
+    } else if (showStandard) {
+      eligible = l1Rewards.standard?.eligible || []
+      notEligible = l1Rewards.standard?.notEligible || []
+      sectionTitle = 'Standard'
+      sectionColor = '#7DA4D4'
+    }
+
+    const togglePremium = () => setShowPremium(!showPremium)
+    const toggleStandard = () => setShowStandard(!showStandard)
+
+    return (
+      <div className={styles.page}>
+        <FloatingParticles />
+        
+        <div className={styles.hero}>
+          <div className={styles.heroGlow}/>
+          <span className={styles.heroEmoji}>🏆</span>
+          <h1 className={styles.heroTitle}>Team Rewards</h1>
+          <p className={styles.heroSub}>Track spin eligibility across your team</p>
+        </div>
+
+        {/* Summary Cards */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'8px',marginBottom:'14px'}}>
+          <div style={{background:'#141414',border:'1px solid rgba(201,168,76,0.3)',borderRadius:'12px',padding:'12px',textAlign:'center'}}>
+            <div style={{fontSize:'1.4rem',fontWeight:700,color:'#C9A84C'}}>{l1Rewards.summary.premiumEligible}</div>
+            <div style={{fontSize:'0.58rem',color:'#8A8278',textTransform:'uppercase'}}>Premium Eligible</div>
+          </div>
+          <div style={{background:'#141414',border:'1px solid rgba(125,164,212,0.3)',borderRadius:'12px',padding:'12px',textAlign:'center'}}>
+            <div style={{fontSize:'1.4rem',fontWeight:700,color:'#7DA4D4'}}>{l1Rewards.summary.standardEligible}</div>
+            <div style={{fontSize:'0.58rem',color:'#8A8278',textTransform:'uppercase'}}>Standard Eligible</div>
+          </div>
+          <div style={{background:'#141414',border:'1px solid rgba(34,197,94,0.3)',borderRadius:'12px',padding:'12px',textAlign:'center'}}>
+            <div style={{fontSize:'1.4rem',fontWeight:700,color:'#22C55E'}}>{l1Rewards.summary.bothEligible}</div>
+            <div style={{fontSize:'0.58rem',color:'#8A8278',textTransform:'uppercase'}}>Both</div>
+          </div>
+        </div>
+
+        {/* Toggle Buttons */}
+        <div style={{display:'flex',gap:'8px',marginBottom:'16px'}}>
+          <button onClick={togglePremium} style={{
+            padding:'8px 20px',borderRadius:'8px',border:`1px solid ${showPremium ? '#C9A84C' : '#2A2A2A'}`,
+            background: showPremium ? 'rgba(201,168,76,0.12)' : 'transparent',
+            color: showPremium ? '#C9A84C' : '#8A8278',
+            cursor:'pointer',fontSize:'0.72rem',fontWeight:600,transition:'all 0.2s'
+          }}>
+            👑 Premium ({l1Rewards.summary.premiumEligible})
+          </button>
+          <button onClick={toggleStandard} style={{
+            padding:'8px 20px',borderRadius:'8px',border:`1px solid ${showStandard ? '#7DA4D4' : '#2A2A2A'}`,
+            background: showStandard ? 'rgba(125,164,212,0.12)' : 'transparent',
+            color: showStandard ? '#7DA4D4' : '#8A8278',
+            cursor:'pointer',fontSize:'0.72rem',fontWeight:600,transition:'all 0.2s'
+          }}>
+            ⭐ Standard ({l1Rewards.summary.standardEligible})
+          </button>
+        </div>
+
+        {/* Eligible Section */}
+        <div style={{marginBottom:'16px'}}>
+          <h3 style={{fontSize:'0.8rem',fontWeight:700,color:sectionColor,marginBottom:'8px'}}>
+            Eligible for {sectionTitle} Spin ({eligible.length})
+          </h3>
+          {eligible.length === 0 ? (
+            <div style={{textAlign:'center',padding:'30px',color:'#8A8278',fontSize:'0.8rem'}}>No sellers eligible</div>
+          ) : (
+            eligible.map((s: any) => (
+              <div key={s.seller_email} style={{
+                background:'#141414',border:`1px solid ${sectionColor}22`,borderRadius:'10px',padding:'12px',marginBottom:'6px'
+              }}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:s.spins.length > 0 ? '8px' : '0'}}>
+                  <div>
+                    <span style={{fontWeight:600,fontSize:'0.82rem',display:'block'}}>{s.seller_name}</span>
+                    <span style={{fontSize:'0.62rem',color:sectionColor}}>100% · {s.milestone || 'Goal Done'}</span>
+                  </div>
+                  <div style={{display:'flex',gap:'8px'}}>
+                    {s.max_premium > 0 && (
+                      <span style={{fontSize:'0.62rem',background:'rgba(201,168,76,0.15)',color:'#C9A84C',padding:'3px 8px',borderRadius:'6px',fontWeight:600}}>
+                        👑 {s.premium_available}/{s.max_premium}
+                      </span>
+                    )}
+                    {s.max_standard > 0 && (
+                      <span style={{fontSize:'0.62rem',background:'rgba(125,164,212,0.15)',color:'#7DA4D4',padding:'3px 8px',borderRadius:'6px',fontWeight:600}}>
+                        ⭐ {s.standard_available}/{s.max_standard}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {s.spins.length > 0 && (
+                  <div style={{borderTop:'1px solid rgba(255,255,255,0.04)',paddingTop:'8px',display:'flex',flexDirection:'column',gap:'4px'}}>
+                    {s.spins.map((spin: any, i: number) => (
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:'10px',fontSize:'0.7rem',color:'#8A8278'}}>
+                        <span style={{background:spin.type==='PREMIUM'?'rgba(201,168,76,0.15)':'rgba(125,164,212,0.15)',color:spin.type==='PREMIUM'?'#C9A84C':'#7DA4D4',padding:'2px 8px',borderRadius:'4px',fontSize:'0.6rem',fontWeight:600}}>{spin.type}</span>
+                        <span style={{flex:1}}>{spin.result}</span>
+                        <span style={{fontSize:'0.6rem',opacity:0.5}}>{spin.date ? new Date(spin.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Not Eligible Section */}
+        <div>
+          <h3 style={{fontSize:'0.8rem',fontWeight:700,color:'#EF4444',marginBottom:'8px'}}>
+            Not Eligible for {sectionTitle} Spin ({notEligible.length})
+          </h3>
+          {notEligible.length === 0 ? (
+            <div style={{textAlign:'center',padding:'30px',color:'#8A8278',fontSize:'0.8rem'}}>All sellers are eligible!</div>
+          ) : (
+            notEligible.map((s: any) => (
+              <div key={s.seller_email} style={{
+                display:'flex',alignItems:'center',justifyContent:'space-between',
+                background:'#141414',border:'1px solid rgba(239,68,68,0.1)',
+                borderRadius:'8px',padding:'10px 14px',marginBottom:'4px'
+              }}>
+                <div>
+                  <span style={{fontWeight:500,fontSize:'0.78rem',display:'block'}}>{s.seller_name}</span>
+                  <span style={{fontSize:'0.62rem',color:'#8A8278'}}>{s.pct.toFixed(1)}% achieved</span>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <span style={{fontSize:'0.72rem',color:'#F4631E',fontWeight:600}}>{s.gap_to_goal.toFixed(1)}% left</span>
+                  <div style={{height:'4px',width:'80px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',marginTop:'4px',overflow:'hidden'}}>
+                    <div style={{height:'100%',background:'#F4631E',borderRadius:'2px',width:`${Math.min(s.pct,100)}%`}}/>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ========== NON-L1 ==========
   useEffect(() => { loadRewards() }, [])
 
   async function loadRewards() {
@@ -83,25 +261,11 @@ export default function RewardsPage({ session }: Props) {
     ctx.beginPath(); ctx.arc(cx,cy,r+6,0,2*Math.PI); ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 10; ctx.stroke()
     ctx.beginPath(); ctx.arc(cx,cy,r+6,0,2*Math.PI); ctx.strokeStyle = '#555'; ctx.lineWidth = 3; ctx.stroke()
     prizes.forEach((p,i)=>{const s=i*arc-Math.PI/2,e=s+arc;const mid=s+arc/2;const grad=ctx.createLinearGradient(cx+Math.cos(mid)*r,cy+Math.sin(mid)*r,cx,cy);grad.addColorStop(0,colors[i]);grad.addColorStop(1,'rgba(0,0,0,0.3)');ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,s,e);ctx.fillStyle=grad;ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1.5;ctx.stroke();ctx.save();ctx.translate(cx,cy);ctx.rotate(mid);ctx.fillStyle='#fff';ctx.font='bold 10px "Segoe UI", sans-serif';ctx.textAlign='right';ctx.fillText(p,r-18,5);ctx.restore()})
-    
-    const glassGrad = ctx.createRadialGradient(cx, cy, r*0.2, cx, cy, r)
-    glassGrad.addColorStop(0, 'rgba(255,255,255,0.05)')
-    glassGrad.addColorStop(0.5, 'rgba(0,0,0,0.55)')
-    glassGrad.addColorStop(1, 'rgba(0,0,0,0.7)')
+    const glassGrad = ctx.createRadialGradient(cx, cy, r*0.2, cx, cy, r); glassGrad.addColorStop(0, 'rgba(255,255,255,0.05)'); glassGrad.addColorStop(0.5, 'rgba(0,0,0,0.55)'); glassGrad.addColorStop(1, 'rgba(0,0,0,0.7)')
     ctx.beginPath(); ctx.arc(cx,cy,r,0,2*Math.PI); ctx.fillStyle = glassGrad; ctx.fill()
     ctx.beginPath(); ctx.arc(cx,cy,60,0,2*Math.PI); ctx.strokeStyle = 'rgba(255,68,68,0.4)'; ctx.lineWidth = 2; ctx.stroke()
-    ctx.beginPath(); ctx.arc(cx,cy,58,0,2*Math.PI); ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.stroke()
-    const lockGlow = ctx.createRadialGradient(cx,cy,30,cx,cy,55); lockGlow.addColorStop(0,'rgba(30,30,30,0.98)'); lockGlow.addColorStop(1,'rgba(0,0,0,0.95)')
-    ctx.beginPath(); ctx.arc(cx,cy,55,0,2*Math.PI); ctx.fillStyle = lockGlow; ctx.fill()
-    ctx.beginPath(); ctx.arc(cx,cy,52,0,2*Math.PI); ctx.strokeStyle = '#EF4444'; ctx.lineWidth = 3; ctx.stroke()
-    ctx.beginPath(); ctx.arc(cx,cy,48,0,2*Math.PI); ctx.strokeStyle = 'rgba(255,68,68,0.3)'; ctx.lineWidth = 6; ctx.stroke()
-    ctx.fillStyle = '#fff'; ctx.font = '40px sans-serif'; ctx.textAlign = 'center'; ctx.shadowColor = 'rgba(239,68,68,0.5)'; ctx.shadowBlur = 15
-    ctx.fillText('🔒', cx, cy - 8); ctx.shadowBlur = 0
-    ctx.fillStyle = '#EF4444'; ctx.font = 'bold 11px "Segoe UI", sans-serif'; ctx.textAlign = 'center'
-    ctx.fillText('GOAL NOT', cx, cy + 26)
-    ctx.fillText('COMPLETED', cx, cy + 40)
-    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '8px "Segoe UI", sans-serif'
-    ctx.fillText('Unlock by hitting 100%', cx, cy + 52)
+    ctx.fillStyle = '#fff'; ctx.font = '40px sans-serif'; ctx.textAlign = 'center'; ctx.shadowColor = 'rgba(239,68,68,0.5)'; ctx.shadowBlur = 15; ctx.fillText('🔒', cx, cy - 8); ctx.shadowBlur = 0
+    ctx.fillStyle = '#EF4444'; ctx.font = 'bold 11px "Segoe UI", sans-serif'; ctx.textAlign = 'center'; ctx.fillText('GOAL NOT', cx, cy + 26); ctx.fillText('COMPLETED', cx, cy + 40)
   }
 
   async function spin() {

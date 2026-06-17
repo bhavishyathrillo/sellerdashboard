@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import IntroScreen from '@/components/ui/IntroScreen'
@@ -10,6 +10,7 @@ import AutoRefresh from '@/components/ui/AutoRefresh'
 import { getSession, saveSession, clearSession, UserSession } from '@/lib/session'
 
 import HomePage from '@/components/pages/HomePage'
+import L1HomePage from '@/components/pages/L1HomePage'
 import PipelinePage from '@/components/pages/PipelinePage'
 import MHLPage from '@/components/pages/MHLPage'
 import LeaderboardPage from '@/components/pages/LeaderboardPage'
@@ -127,7 +128,12 @@ export default function Home() {
         >
           <ThrillNews email={session.email} role={session.role} />
           <AutoRefresh interval={300000} />
-          {activePage === 'home'        && <HomePage session={session} />}
+          
+          {activePage === 'home' && (
+            session.role === 'L1' 
+              ? <L1HomePage session={session} />
+              : <HomePage session={session} />
+          )}
           {activePage === 'pipeline'    && <PipelinePage session={session} />}
           {activePage === 'mhl'         && <MHLPage session={session} />}
           {activePage === 'leaderboard' && <LeaderboardPage session={session} />}

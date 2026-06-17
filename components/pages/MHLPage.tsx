@@ -53,11 +53,28 @@ function daysSinceCall(val: string | null): number | null {
   } catch { return null }
 }
 
+function LeadIdLink({ leadId }: { leadId: string }) {
+  return (
+    <a
+      href={`https://admin.thrillophilia.com/admin/1/enquiries?code=${leadId}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={styles.leadId}
+      style={{textDecoration:'none',cursor:'pointer'}}
+      title={`Open ${leadId} in admin`}
+    >
+      {leadId}
+    </a>
+  )
+}
+
 export default function MHLPage({ session }: HomePageProps) {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [view, setView] = useState<'mine' | 'team'>('mine')
+  const [view, setView] = useState<'mine' | 'team'>(
+    session.role === 'L1' ? 'team' : 'mine'
+  )
   const [tableView, setTableView] = useState(false)
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('all')
@@ -147,7 +164,7 @@ export default function MHLPage({ session }: HomePageProps) {
             <div className={styles.viewToggle}>
               <button className={`${styles.toggleBtn} ${view==='mine'?styles.toggleActive:''}`} onClick={()=>setView('mine')}>My Leads</button>
               <button className={`${styles.toggleBtn} ${view==='team'?styles.toggleActive:''}`} onClick={()=>setView('team')}>Team View</button>
-              {view==='team' && <button className={`${styles.toggleBtn} ${tableView?styles.toggleActive:''}`} onClick={()=>setTableView(!tableView)}>📋 Table</button>}
+              {view==='team' && <button className={`${styles.toggleBtn} ${tableView?styles.toggleActive:''}`} onClick={()=>setTableView(!tableView)}>Table</button>}
             </div>
           )}
           <input className={styles.search} placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)} />
@@ -191,7 +208,7 @@ export default function MHLPage({ session }: HomePageProps) {
             return (
               <div key={owner} className={styles.sellerGroup}>
                 <div className={styles.sellerGroupHeader} onClick={()=>toggleSeller(owner)}>
-                  <span className={styles.sellerGroupName}><span className={styles.expandArrow}>{isExpanded?'▼':'▶'}</span> 👤 {sellerName}</span>
+                  <span className={styles.sellerGroupName}><span className={styles.expandArrow}>{isExpanded?'▼':'▶'}</span> {sellerName}</span>
                   <span className={styles.sellerGroupCounts}><span style={{color:'#EF4444'}}>MHL:{gmhl}</span><span style={{color:'#F59E0B'}}>MHO:{gmho}</span><span>Total:{leads.length}</span></span>
                 </div>
                 {isExpanded && (
@@ -201,7 +218,7 @@ export default function MHLPage({ session }: HomePageProps) {
                       const days=daysSinceCall(lead.last_call)
                       const sc=stageColors[lead.stage?.toLowerCase()]||'#4A4642'
                       const tc=lead.mhl_mho==='MHL'?'#EF4444':'#F59E0B'
-                      return <tr key={lead.id}><td><span className={styles.leadId}>{lead.lead_id}</span></td><td><span className={styles.stageBadge} style={{background:`${sc}18`,color:sc,borderColor:`${sc}30`}}>{lead.stage||'—'}</span></td><td><span className={styles.typeBadge} style={{background:`${tc}15`,color:tc,borderColor:`${tc}25`}}>{lead.mhl_mho}</span></td><td className={styles.dateCell}>{formatLastCall(lead.last_call)}</td><td>{days!==null?<span className={styles.daysBadge} style={{color:days>7?'#EF4444':days>3?'#F59E0B':'#22C55E'}}>{days}d</span>:'—'}</td></tr>
+                      return <tr key={lead.id}><td><LeadIdLink leadId={lead.lead_id} /></td><td><span className={styles.stageBadge} style={{background:`${sc}18`,color:sc,borderColor:`${sc}30`}}>{lead.stage||'—'}</span></td><td><span className={styles.typeBadge} style={{background:`${tc}15`,color:tc,borderColor:`${tc}25`}}>{lead.mhl_mho}</span></td><td className={styles.dateCell}>{formatLastCall(lead.last_call)}</td><td>{days!==null?<span className={styles.daysBadge} style={{color:days>7?'#EF4444':days>3?'#F59E0B':'#22C55E'}}>{days}d</span>:'—'}</td></tr>
                     })}</tbody>
                   </table>
                 )}
@@ -231,7 +248,7 @@ export default function MHLPage({ session }: HomePageProps) {
                     <tbody>{leads.map((lead:Lead)=>{
                       const days=daysSinceCall(lead.last_call)
                       const tc=lead.mhl_mho==='MHL'?'#EF4444':'#F59E0B'
-                      return <tr key={lead.id}><td><span className={styles.leadId}>{lead.lead_id}</span></td><td><span className={styles.typeBadge} style={{background:`${tc}15`,color:tc,borderColor:`${tc}25`}}>{lead.mhl_mho}</span></td><td className={styles.dateCell}>{formatLastCall(lead.last_call)}</td><td>{days!==null?<span className={styles.daysBadge} style={{color:days>7?'#EF4444':days>3?'#F59E0B':'#22C55E'}}>{days}d</span>:'—'}</td></tr>
+                      return <tr key={lead.id}><td><LeadIdLink leadId={lead.lead_id} /></td><td><span className={styles.typeBadge} style={{background:`${tc}15`,color:tc,borderColor:`${tc}25`}}>{lead.mhl_mho}</span></td><td className={styles.dateCell}>{formatLastCall(lead.last_call)}</td><td>{days!==null?<span className={styles.daysBadge} style={{color:days>7?'#EF4444':days>3?'#F59E0B':'#22C55E'}}>{days}d</span>:'—'}</td></tr>
                     })}</tbody>
                   </table>
                 )}
