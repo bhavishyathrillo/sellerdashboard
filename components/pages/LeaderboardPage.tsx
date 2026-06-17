@@ -91,7 +91,6 @@ export default function LeaderboardPage({ session }: Props) {
       }
     } catch {}
     
-    // Load team data
     if (isManager) {
       try {
         const teamRes = await fetch(`/api/seller/team-performance?email=${encodeURIComponent(session.email)}&role=${session.role}`)
@@ -122,11 +121,35 @@ export default function LeaderboardPage({ session }: Props) {
     })
   }
 
-  const top3 = activeSellers.slice(0, 3)
-  const rankOrder = [1, 0, 2]
-  const podiumData = rankOrder.map(i => top3[i]).filter(Boolean)
+  // Build podium: Always show Gold in center, then Silver (left), then Bronze (right)
+  const buildPodium = () => {
+    const result: { seller: Seller | null; rank: number; color: string; cardClass: string }[] = []
+    
+    if (activeSellers.length >= 1) {
+      // Gold (#1) - Center
+      result.push({ seller: activeSellers[0], rank: 1, color: '#FFD700', cardClass: styles.cardGold })
+    }
+    if (activeSellers.length >= 2) {
+      // Silver (#2) - Left
+      result.push({ seller: activeSellers[1], rank: 2, color: '#C0C0C0', cardClass: styles.cardSilver })
+    }
+    if (activeSellers.length >= 3) {
+      // Bronze (#3) - Right
+      result.push({ seller: activeSellers[2], rank: 3, color: '#CD7F32', cardClass: styles.cardBronze })
+    }
+    
+    // Reorder for display: Silver(left) | Gold(center) | Bronze(right)
+    if (result.length === 3) {
+      return [result[1], result[0], result[2]] // Silver, Gold, Bronze
+    } else if (result.length === 2) {
+      return [result[0], result[1]] // Gold, Silver
+    } else {
+      return result // Just Gold
+    }
+  }
+
+  const podiumData = buildPodium()
   const hauls = ['Short Haul', 'Long Haul', 'Domestic']
-  const glowColors = ['#FFD700', '#C0C0C0', '#CD7F32']
 
   return (
     <div className={styles.page}>
@@ -182,22 +205,23 @@ export default function LeaderboardPage({ session }: Props) {
       {/* Podium */}
       {podiumData.length > 0 && (
         <div className={styles.podiumSection}>
-          <div className={styles.podium}>
-            {podiumData.map((s, i) => {
-              const pos = rankOrder[i]; const isGold = pos === 0
-              const globalRank = viewMode === 'team' ? globalRankMap[s?.seller_email?.toLowerCase()] : null
+          <div className={styles.podium} style={{justifyContent:'center'}}>
+            {podiumData.map((item, i) => {
+              const s = item.seller
+              if (!s) return null
+              const globalRank = viewMode === 'team' ? globalRankMap[s.seller_email?.toLowerCase()] : null
               return (
-                <div key={s?.seller_email || i} className={`${styles.podiumCard} ${isGold?styles.cardGold:pos===1?styles.cardSilver:styles.cardBronze}`} style={{animationDelay:`${i*0.2}s`}}>
-                  {isGold && <div className={styles.crown}><CrownIcon /></div>}
-                  {isGold && <div className={styles.sparkles}><StarIcon /></div>}
-                  <div className={styles.rankNum} style={{color:glowColors[pos]}}>
-                    #{pos+1} {globalRank && <span style={{fontSize:'0.55rem',opacity:0.7}}>(Global #{globalRank})</span>}
+                <div key={s.seller_email} className={`${styles.podiumCard} ${item.cardClass}`} style={{animationDelay:`${i*0.2}s`}}>
+                  {item.rank === 1 && <div className={styles.crown}><CrownIcon /></div>}
+                  {item.rank === 1 && <div className={styles.sparkles}><StarIcon /></div>}
+                  <div className={styles.rankNum} style={{color: item.color}}>
+                    #{item.rank} {globalRank && <span style={{fontSize:'0.55rem',opacity:0.7}}>(Global #{globalRank})</span>}
                   </div>
-                  <div className={styles.avatarWarp}><div className={styles.avatarInner}>{initials(s?.seller_name)}</div><div className={styles.avatarRing} style={{borderColor:glowColors[pos]}}/></div>
-                  <div className={styles.podName}>{s?.seller_name}</div><div className={styles.podTeam}>{s?.l1_name}</div>
-                  <div className={styles.podProgress}><div className={styles.podProgressBar}><div className={styles.podProgressFill} style={{width:`${Math.min(s?.goal_achieved_percent||0,100)}%`,background:`linear-gradient(90deg,${glowColors[pos]},#F4631E)`}}/></div></div>
-                  <div className={styles.podStats}><span className={styles.podPct} style={{color:glowColors[pos]}}>{s?.goal_achieved_percent?.toFixed(1)}%</span><span className={styles.podAmt}>{fmt(s?.actual_achieved_monthly||0)}</span></div>
-                  <span className={styles.podHaul}>{s?.haul}</span>
+                  <div className={styles.avatarWarp}><div className={styles.avatarInner}>{initials(s.seller_name)}</div><div className={styles.avatarRing} style={{borderColor: item.color}}/></div>
+                  <div className={styles.podName}>{s.seller_name}</div><div className={styles.podTeam}>{s.l1_name}</div>
+                  <div className={styles.podProgress}><div className={styles.podProgressBar}><div className={styles.podProgressFill} style={{width:`${Math.min(s.goal_achieved_percent||0,100)}%`,background:`linear-gradient(90deg,${item.color},#F4631E)`}}/></div></div>
+                  <div className={styles.podStats}><span className={styles.podPct} style={{color: item.color}}>{s.goal_achieved_percent?.toFixed(1)}%</span><span className={styles.podAmt}>{fmt(s.actual_achieved_monthly||0)}</span></div>
+                  <span className={styles.podHaul}>{s.haul}</span>
                 </div>
               )
             })}
@@ -220,32 +244,36 @@ export default function LeaderboardPage({ session }: Props) {
         <h2 className={styles.rankingsTitle}>
           {viewMode === 'team' ? `My Team Rankings (${activeSellers.length} sellers)` : 'All Rankings'}
         </h2>
-        <div className={styles.rankingsList}>
-          {(showAll || viewMode === 'team' ? activeSellers.slice(0, 50) : activeSellers.slice(0, 10)).map((s, i) => {
-            const teamRank = i + 1
-            const globalRank = viewMode === 'team' ? globalRankMap[s.seller_email?.toLowerCase()] : teamRank
-            return (
-              <div key={s.seller_email} className={styles.rankingRow}>
-                <span className={styles.rankingPos}>{teamRank}</span>
-                <div className={styles.rankingAvatar}>{initials(s.seller_name)}</div>
-                <div className={styles.rankingInfo}>
-                  <span className={styles.rankingName}>{s.seller_name}</span>
-                  <span className={styles.rankingMeta}>
-                    {s.l1_name} · {s.haul} · {formatRegion(s.region)}
-                    {viewMode === 'team' && globalRank && (
-                      <span style={{color:'#C9A84C',fontWeight:600,marginLeft:'6px'}}>
-                        · Global #{globalRank}
-                      </span>
-                    )}
-                  </span>
+        {activeSellers.length === 0 ? (
+          <div style={{textAlign:'center',padding:'30px',color:'#8A8278'}}>No sellers found</div>
+        ) : (
+          <div className={styles.rankingsList}>
+            {(showAll || viewMode === 'team' ? activeSellers.slice(0, 50) : activeSellers.slice(0, 10)).map((s, i) => {
+              const teamRank = i + 1
+              const globalRank = viewMode === 'team' ? globalRankMap[s.seller_email?.toLowerCase()] : teamRank
+              return (
+                <div key={s.seller_email} className={styles.rankingRow}>
+                  <span className={styles.rankingPos}>{teamRank}</span>
+                  <div className={styles.rankingAvatar}>{initials(s.seller_name)}</div>
+                  <div className={styles.rankingInfo}>
+                    <span className={styles.rankingName}>{s.seller_name}</span>
+                    <span className={styles.rankingMeta}>
+                      {s.l1_name} · {s.haul} · {formatRegion(s.region)}
+                      {viewMode === 'team' && globalRank && (
+                        <span style={{color:'#C9A84C',fontWeight:600,marginLeft:'6px'}}>
+                          · Global #{globalRank}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className={styles.rankingBar}><div className={styles.rankingBarFill} style={{width:`${Math.min(s.goal_achieved_percent||0,100)}%`}}/></div>
+                  <span className={styles.rankingPct}>{s.goal_achieved_percent?.toFixed(1)}%</span>
+                  <span className={styles.rankingAmt}>{fmt(s.actual_achieved_monthly||0)}</span>
                 </div>
-                <div className={styles.rankingBar}><div className={styles.rankingBarFill} style={{width:`${Math.min(s.goal_achieved_percent||0,100)}%`}}/></div>
-                <span className={styles.rankingPct}>{s.goal_achieved_percent?.toFixed(1)}%</span>
-                <span className={styles.rankingAmt}>{fmt(s.actual_achieved_monthly||0)}</span>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
         {activeSellers.length > 10 && viewMode === 'overall' && (
           <button onClick={() => setShowAll(!showAll)} className={styles.moreBtn}>{showAll ? 'Show Less' : 'View More'}</button>
         )}
