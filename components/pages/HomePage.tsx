@@ -229,15 +229,15 @@ export default function HomePage({ session }: HomePageProps) {
         </div>
         <div className={styles.infoCard}>
           <h3 className={styles.infoTitle}>Flight Adoption</h3>
-          <div className={styles.infoRow}><span className={styles.infoLabel}>Adoption Rate</span><span className={styles.infoValue}>{((data.flight_adoption || 0) * 100).toFixed(1)}%<span className={styles.infoSub}> / {((data.flight_adoption_goal || 0) * 100).toFixed(0)}% goal</span></span></div>
-          <div className={styles.infoRow}><span className={styles.infoLabel}>PAX Achieved</span><span className={styles.infoValue}>{data.flight_adoption_pax_achieved || 0}<span className={styles.infoSub}> / {data.flight_adoption_pax_goal || 0} goal</span></span></div>
-          <div className={styles.weekBar} style={{ marginTop: '10px' }}><div className={styles.weekBarFill} style={{width: `${Math.min(((data.flight_adoption || 0) / (data.flight_adoption_goal || 1)) * 100, 100)}%`,background: data.flight_adoption >= data.flight_adoption_goal ? '#22C55E' : '#F4631E'}} /></div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'80px',color:'#8A8278',fontSize:'0.75rem'}}>
+            Data will come soon
+          </div>
         </div>
         <div className={styles.infoCard}>
           <h3 className={styles.infoTitle}>Impacts</h3>
           <div className={styles.infoRow}><span className={styles.infoLabel}>Cancellation</span><span className={styles.infoValue} style={{ color: data.cancellation_impact < 0 ? '#EF4444' : '#F0EDE8' }}>{fmt(data.cancellation_impact)}</span></div>
           <div className={styles.infoRow}><span className={styles.infoLabel}>Escalation</span><span className={styles.infoValue} style={{ color: data.escalation_impacts < 0 ? '#EF4444' : '#F0EDE8' }}>{fmt(data.escalation_impacts)}</span></div>
-          <div className={styles.infoRow}><span className={styles.infoLabel}>L2 Manager</span><span className={styles.infoValue}>{data.l2_name}</span></div>
+          <div className={styles.infoRow}><span className={styles.infoLabel}>L1 Manager</span><span className={styles.infoValue}>{data.l2_name}</span></div>
         </div>
       </div>
     </div>

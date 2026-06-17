@@ -20,8 +20,7 @@ import AdminPage from '@/components/pages/AdminPage'
 import RewardsPage from '@/components/pages/RewardsPage'
 import CalendarPage from '@/components/pages/CalendarPage'
 import PerformancePage from '@/components/pages/PerformancePage'
-import TTKPage from '@/components/pages/TTKPage'
-import PriorityPage from '@/components/pages/PriorityPage'
+
 import TeamPage from '@/components/pages/TeamPage'
 
 type AppState = 'intro' | 'login' | 'pipeline_gate' | 'dashboard'
@@ -143,8 +142,7 @@ export default function Home() {
           {activePage === 'calendar'    && <CalendarPage session={session} />}
           {activePage === 'performance' && <PerformancePage session={session} />}
           {activePage === 'admin'       && <AdminPage session={session} />}
-          {activePage === 'ttk'         && <TTKPage session={session} />}
-          {activePage === 'priority'    && <PriorityPage session={session} />}
+       
           {activePage === 'team'        && <TeamPage session={session} />}
         </DashboardLayout>
       )}
