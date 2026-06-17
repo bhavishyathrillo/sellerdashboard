@@ -34,31 +34,37 @@ export async function GET(req: Request) {
     .map((s: any) => s.seller_email)
     .filter((e: string) => e.toLowerCase() !== trimmedEmail)
 
-  // Build 14-day date list
+  // Build date list from 1st of this month to today
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   
-  const exactDates: string[] = []
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date(today)
-    d.setDate(d.getDate() - i)
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+  const daysInRange = Math.floor((today.getTime() - firstOfMonth.getTime()) / (1000 * 60 * 60 * 24)) + 1
+
+  const dateList: string[] = []
+  for (let i = 0; i < daysInRange; i++) {
+    const d = new Date(firstOfMonth)
+    d.setDate(d.getDate() + i)
     const yyyy = d.getFullYear()
     const mm = String(d.getMonth() + 1).padStart(2, '0')
     const dd = String(d.getDate()).padStart(2, '0')
-    exactDates.push(`${yyyy}-${mm}-${dd}`)
+    dateList.push(`${yyyy}-${mm}-${dd}`)
   }
 
-  // Get efficiency data
+  const dateFrom = dateList[0]
+  const dateTo = dateList[dateList.length - 1]
+
   const { data: allEfficiency, error: effError } = await supabase
     .from('efficiency')
     .select('*')
     .in('seller_email', sellerEmails)
+    .gte('date', dateFrom)
+    .lte('date', dateTo)
 
   if (effError) {
     return NextResponse.json({ error: effError.message }, { status: 500 })
   }
 
-  // Build per-seller data
   const sellerData = sellers
     .filter((s: any) => s.seller_email.toLowerCase() !== trimmedEmail)
     .map((s: any) => {
@@ -66,7 +72,7 @@ export async function GET(req: Request) {
         e.seller_email?.toLowerCase() === s.seller_email.toLowerCase()
       )
 
-      const dailyData = exactDates.map(dateStr => {
+      const dailyData = dateList.map(dateStr => {
         const found = sellerEff.find((e: any) => {
           const rowDate = (e.date || '').split('T')[0]
           return rowDate === dateStr
@@ -96,10 +102,9 @@ export async function GET(req: Request) {
       }
     })
 
-  // Team averages
   const totalSellers = sellerData.length
 
-  const teamDailyData = exactDates.map((dateStr, idx) => {
+  const teamDailyData = dateList.map((dateStr, idx) => {
     const dayData = sellerData.map(s => s.dailyData[idx])
     const sellersWithData = dayData.filter(d => d.call_dials > 0).length
     return {
@@ -124,6 +129,6 @@ export async function GET(req: Request) {
       dailyData: teamDailyData
     },
     sellers: sellerData,
-    dateRange: { from: exactDates[0], to: exactDates[13], count: 14 }
+    dateRange: { from: dateFrom, to: dateTo, count: daysInRange, type: 'this_month' }
   })
 }

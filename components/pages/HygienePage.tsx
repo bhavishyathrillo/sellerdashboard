@@ -72,6 +72,14 @@ function StarIcon() {
   )
 }
 
+// Helper: Get date string YYYY-MM-DD
+function getDateStr(d: Date) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export default function HygienePage({ session }: Props) {
   const [data, setData] = useState<EfficiencyRow[]>([])
   const [teamData, setTeamData] = useState<any>(null)
@@ -126,17 +134,29 @@ export default function HygienePage({ session }: Props) {
     setLoading(false)
   }
 
-  // Build chart data
+  // Build date list: 1st of month to today
   const today = new Date()
-  const chartData: { date: string; call_dials: number; call_duration: number }[] = []
+  today.setHours(0, 0, 0, 0)
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+  const daysInMonth = Math.floor((today.getTime() - firstOfMonth.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
+  // Generate exact date strings for this month
+  const monthDateList: string[] = []
+  for (let i = 0; i < daysInMonth; i++) {
+    const d = new Date(firstOfMonth)
+    d.setDate(d.getDate() + i)
+    monthDateList.push(getDateStr(d))
+  }
+
+  const chartData: { date: string; call_dials: number; call_duration: number }[] = []
   const isTeamView = (isL1) || (isL2 && viewMode === 'team')
 
   if (isTeamView && teamData?.teamAverage) {
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(today)
-      d.setDate(d.getDate() - i)
-      const found = teamData.teamAverage.dailyData?.[13 - i]
+    // Use team data from API (already filtered by month)
+    for (let i = 0; i < daysInMonth; i++) {
+      const d = new Date(firstOfMonth)
+      d.setDate(d.getDate() + i)
+      const found = teamData.teamAverage.dailyData?.[i]
       chartData.push({
         date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
         call_dials: found?.call_dials || 0,
@@ -144,15 +164,20 @@ export default function HygienePage({ session }: Props) {
       })
     }
   } else {
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(today)
-      d.setDate(d.getDate() - i)
-      const dateStr = d.toISOString().split('T')[0]
-      const found = data.find(r => r.date?.startsWith(dateStr))
+    // Personal data: match against exact month dates
+    for (let i = 0; i < daysInMonth; i++) {
+      const d = new Date(firstOfMonth)
+      d.setDate(d.getDate() + i)
+      const dateStr = getDateStr(d)
+      // Find matching row by exact date match
+      const found = data.find(r => {
+        const rowDate = (r.date || '').split('T')[0]
+        return rowDate === dateStr
+      })
       chartData.push({
         date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-        call_dials: found?.call_dials || 0,
-        call_duration: Math.round(parseFloat(found?.call_duration || '0')) || 0
+        call_dials: found ? (found.call_dials || 0) : 0,
+        call_duration: found ? Math.round(parseFloat(found.call_duration || '0')) || 0 : 0
       })
     }
   }
@@ -228,7 +253,7 @@ export default function HygienePage({ session }: Props) {
           }
         },
         scales: {
-          x: { ticks: { color: '#8A8278', maxRotation: 45, autoSkip: false, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          x: { ticks: { color: '#8A8278', maxRotation: 45, autoSkip: true, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
           y1: { type: 'linear', position: 'left', title: { display: true, text: 'Calls', color: '#F4631E' }, ticks: { color: '#F4631E', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.06)' }, beginAtZero: true },
           y2: { type: 'linear', position: 'right', title: { display: true, text: 'Min', color: '#22C55E' }, ticks: { color: '#22C55E', font: { size: 10 } }, grid: { drawOnChartArea: false }, beginAtZero: true }
         }
@@ -268,7 +293,7 @@ export default function HygienePage({ session }: Props) {
         interaction: { mode: 'index', intersect: false },
         plugins: { legend: { display: true, labels: { color: '#8A8278', font: { size: 9 }, boxWidth: 12 } } },
         scales: {
-          x: { ticks: { color: '#8A8278', font: { size: 8 }, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          x: { ticks: { color: '#8A8278', font: { size: 8 }, maxRotation: 45, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.04)' } },
           y1: { type: 'linear', position: 'left', ticks: { color: '#F4631E', font: { size: 8 } }, grid: { color: 'rgba(255,255,255,0.06)' }, beginAtZero: true },
           y2: { type: 'linear', position: 'right', ticks: { color: '#22C55E', font: { size: 8 } }, grid: { drawOnChartArea: false }, beginAtZero: true }
         }
@@ -293,9 +318,10 @@ export default function HygienePage({ session }: Props) {
 
   if (loading) return <div className={styles.loading}><div className={styles.spinner} /><p>Loading hygiene...</p></div>
 
+  const monthName = today.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+
   return (
     <div className={styles.page}>
-      {/* Particles */}
       <div className={styles.particles}>
         {[...Array(10)].map((_, i) => (
           <div key={i} className={styles.particle} style={{left:`${Math.random()*100}%`,animationDelay:`${Math.random()*6}s`,animationDuration:`${4+Math.random()*6}s`}}>
@@ -304,7 +330,6 @@ export default function HygienePage({ session }: Props) {
         ))}
       </div>
 
-      {/* Hero */}
       <div className={styles.hero}>
         <div className={styles.heroGlow} />
         <span className={styles.heroIcon}>
@@ -314,7 +339,7 @@ export default function HygienePage({ session }: Props) {
         </span>
         <h1 className={styles.heroTitle}>Performance Hygiene</h1>
         <p className={styles.heroSub}>
-          {isTeamView ? 'Team average call metrics · Last 14 Days' : 'Your daily discipline. Your success story.'}
+          {isTeamView ? `Team average call metrics · ${monthName}` : `Your daily discipline · ${monthName}`}
         </p>
       </div>
 
@@ -348,7 +373,7 @@ export default function HygienePage({ session }: Props) {
           </div>
           <div className={styles.kpiValue}>{totalDials}</div>
           <div className={styles.kpiLabel}>{isTeamView ? 'Avg Total Calls' : 'Total Calls'}</div>
-          <div className={styles.kpiTrend}>Last 14 days</div>
+          <div className={styles.kpiTrend}>{monthName}</div>
         </div>
         <div className={styles.kpiCard}>
           <div className={styles.kpiIcon}>
@@ -379,7 +404,7 @@ export default function HygienePage({ session }: Props) {
             <polyline points="3 17 9 11 13 15 21 5"/><polyline points="17 5 21 5 21 9"/>
           </svg>
           <h3>Call Dials & Duration Trend</h3>
-          <span className={styles.chartSubtitle}>{isTeamView ? 'Team Average · Last 14 Days' : 'Last 14 Days'}</span>
+          <span className={styles.chartSubtitle}>{isTeamView ? `Team Average · ${monthName}` : monthName}</span>
         </div>
         <div className={styles.legendPills}>
           <button className={`${styles.pill} ${showDials ? styles.pillActive : styles.pillInactive}`} style={showDials ? { borderColor: '#F4631E', background: 'rgba(244,99,30,0.12)', color: '#F4631E' } : {}} onClick={() => setShowDials(!showDials)}>
@@ -396,7 +421,7 @@ export default function HygienePage({ session }: Props) {
       {isTeamView && teamData?.sellers && (
         <div className={styles.tableCard}>
           <div className={styles.chartHeader}>
-            <h3>Seller Breakdown · Last 14 Days ({teamData.sellers.length} sellers)</h3>
+            <h3>Seller Breakdown · {monthName} ({teamData.sellers.length} sellers)</h3>
           </div>
           {teamData.sellers.map((seller: SellerEfficiency) => {
             const canvasId = `seller-chart-${seller.seller_email.replace(/[^a-zA-Z0-9]/g, '')}`
@@ -455,7 +480,7 @@ export default function HygienePage({ session }: Props) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:6}}>
               <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
             </svg>
-            <h3>Daily Call Log</h3>
+            <h3>Daily Call Log · {monthName}</h3>
           </div>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
