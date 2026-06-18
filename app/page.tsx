@@ -11,16 +11,22 @@ import { getSession, saveSession, clearSession, UserSession } from '@/lib/sessio
 
 import HomePage from '@/components/pages/HomePage'
 import L1HomePage from '@/components/pages/L1HomePage'
+import AdminOverviewPage from '@/components/pages/AdminOverviewPage'
+import AdminPerformancePage from '@/components/pages/AdminPerformancePage'
+import AdminMHLPage from '@/components/pages/AdminMHLPage'
+import AdminPipelinePage from '@/components/pages/AdminPipelinePage'
+import AdminHygienePage from '@/components/pages/AdminHygienePage'
+import SelectPersonaPage from '@/components/pages/SelectPersonaPage'
 import PipelinePage from '@/components/pages/PipelinePage'
 import MHLPage from '@/components/pages/MHLPage'
 import LeaderboardPage from '@/components/pages/LeaderboardPage'
 import RoadmapPage from '@/components/pages/RoadmapPage'
 import HygienePage from '@/components/pages/HygienePage'
-import AdminPage from '@/components/pages/AdminPage'
 import RewardsPage from '@/components/pages/RewardsPage'
 import CalendarPage from '@/components/pages/CalendarPage'
 import PerformancePage from '@/components/pages/PerformancePage'
-
+import TTKPage from '@/components/pages/TTKPage'
+import PriorityPage from '@/components/pages/PriorityPage'
 import TeamPage from '@/components/pages/TeamPage'
 
 type AppState = 'intro' | 'login' | 'pipeline_gate' | 'dashboard'
@@ -39,7 +45,7 @@ export default function Home() {
       setSession(existing)
       const savedTab = localStorage.getItem('activeTab')
       if (savedTab) setActivePage(savedTab)
-      if (GATED_ROLES.includes(existing.role)) {
+      if (GATED_ROLES.includes(existing.role) && !['ADMIN', 'SUPERADMIN'].includes(existing.role)) {
         checkPipelineAndRoute(existing)
       } else {
         setState('dashboard')
@@ -74,7 +80,7 @@ export default function Home() {
     saveSession(email, name, role)
     const s = getSession()
     setSession(s)
-    if (GATED_ROLES.includes(role)) {
+    if (GATED_ROLES.includes(role) && !['ADMIN', 'SUPERADMIN'].includes(role)) {
       await checkPipelineAndRoute(s!)
     } else {
       setState('dashboard')
@@ -82,6 +88,7 @@ export default function Home() {
   }
 
   const handleLogout = () => {
+    localStorage.removeItem('admin_viewing')
     clearSession()
     setSession(null)
     setState('login')
@@ -99,6 +106,8 @@ export default function Home() {
   }
 
   if (!checked) return null
+
+  const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session?.role || '')
 
   return (
     <>
@@ -125,24 +134,69 @@ export default function Home() {
           activePage={activePage}
           onNavigate={handleNavigate}
         >
-          <ThrillNews email={session.email} role={session.role} />
+          {/* ThrillNews - only for non-admin */}
+          {!isAdmin && <ThrillNews email={session.email} role={session.role} />}
           <AutoRefresh interval={300000} />
           
-          {activePage === 'home' && (
-            session.role === 'L1' 
-              ? <L1HomePage session={session} />
-              : <HomePage session={session} />
+          {/* Admin: Select Persona */}
+          {activePage === 'selectPersona' && isAdmin && (
+            <SelectPersonaPage session={session} />
           )}
-          {activePage === 'pipeline'    && <PipelinePage session={session} />}
-          {activePage === 'mhl'         && <MHLPage session={session} />}
+
+          {/* Admin: Overview */}
+          {activePage === 'home' && isAdmin && (
+            <AdminOverviewPage />
+          )}
+
+          {/* L1 Manager */}
+          {activePage === 'home' && !isAdmin && session.role === 'L1' && (
+            <L1HomePage session={session} />
+          )}
+
+          {/* L2 / Seller */}
+          {activePage === 'home' && !isAdmin && session.role !== 'L1' && (
+            <HomePage session={session} />
+          )}
+
+          {/* Admin: Performance */}
+          {activePage === 'performance' && isAdmin && (
+            <AdminPerformancePage />
+          )}
+          {activePage === 'performance' && !isAdmin && (
+            <PerformancePage session={session} />
+          )}
+
+          {/* Admin: MHL/MHO */}
+          {activePage === 'mhl' && isAdmin && (
+            <AdminMHLPage />
+          )}
+          {activePage === 'mhl' && !isAdmin && (
+            <MHLPage session={session} />
+          )}
+
+          {/* Admin: Pipeline */}
+          {activePage === 'pipeline' && isAdmin && (
+            <AdminPipelinePage />
+          )}
+          {activePage === 'pipeline' && !isAdmin && (
+            <PipelinePage session={session} />
+          )}
+
+          {/* Admin: Hygiene */}
+          {activePage === 'hygiene' && isAdmin && (
+            <AdminHygienePage />
+          )}
+          {activePage === 'hygiene' && !isAdmin && (
+            <HygienePage session={session} />
+          )}
+
+          {/* All other tabs */}
           {activePage === 'leaderboard' && <LeaderboardPage session={session} />}
           {activePage === 'roadmap'     && <RoadmapPage session={session} />}
-          {activePage === 'hygiene'     && <HygienePage session={session} />}
           {activePage === 'rewards'     && <RewardsPage session={session} />}
           {activePage === 'calendar'    && <CalendarPage session={session} />}
-          {activePage === 'performance' && <PerformancePage session={session} />}
-          {activePage === 'admin'       && <AdminPage session={session} />}
-       
+          {activePage === 'ttk'         && <TTKPage session={session} />}
+          {activePage === 'priority'    && <PriorityPage session={session} />}
           {activePage === 'team'        && <TeamPage session={session} />}
         </DashboardLayout>
       )}

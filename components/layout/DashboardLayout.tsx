@@ -16,27 +16,29 @@ interface DashboardLayoutProps {
 const navItems = [
   { id: 'home',        label: 'Overview',    icon: '◈' },
   { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
-  { id: 'performance', label: 'Performance', icon: '↗' },
-  { id: 'rewards',     label: 'Rewards',     icon: '🎰' },
+  { id: 'performance', label: 'Performance', icon: '↗', adminOnly: false },
+  { id: 'rewards',     label: 'Rewards',     icon: '🎰', adminOnly: false },
   { id: 'mhl',         label: 'MHL / MHO',  icon: '☑' },
   { id: 'pipeline',    label: 'Pipeline',    icon: '⬇' },
-  { id: 'roadmap',     label: 'Roadmap',     icon: '🗺' },
+  { id: 'roadmap',     label: 'Roadmap',     icon: '🗺', adminOnly: false },
   { id: 'hygiene',     label: 'Hygiene',     icon: '✦' },
-]
-
-const adminItems = [
-  { id: 'admin',       label: 'Admin',       icon: '⊛' },
 ]
 
 export default function DashboardLayout({
   session, onLogout, children, activePage, onNavigate
 }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
-  const isAdmin = ['ADMIN', 'MODERATOR'].includes(session.role)
+  const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session.role)
+
+  // Filter out items marked adminOnly: false for admin
+  const filteredNavItems = navItems.filter(item => {
+    if (isAdmin && item.adminOnly === false) return false
+    return true
+  })
 
   const allNavItems = [
-    ...navItems,
-    ...(isAdmin ? adminItems : []),
+    ...filteredNavItems,
+    ...(isAdmin ? [{ id: 'selectPersona', label: 'Select Persona', icon: '👤' }] : []),
   ]
 
   const getRoleLabel = (role: string) => {
@@ -44,6 +46,7 @@ export default function DashboardLayout({
       case 'L1': return 'Category Manager'
       case 'L2': return 'L1 Manager'
       case 'ADMIN': return 'Admin'
+      case 'SUPERADMIN': return 'Super Admin'
       case 'MODERATOR': return 'Moderator'
       default: return 'Seller'
     }

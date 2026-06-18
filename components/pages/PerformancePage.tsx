@@ -204,6 +204,9 @@ export default function PerformancePage({ session }: Props) {
   const [viewMode, setViewMode] = useState<'my' | 'team'>(
     session.role === 'L1' ? 'team' : 'my'
   )
+  // TOP LINE / BOTTOM LINE TOGGLE for team view
+  const [showTopline, setShowTopline] = useState(true)
+  const [showBottomline, setShowBottomline] = useState(true)
 
   const isManager = ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(session.role)
   const isL1 = session.role === 'L1'
@@ -231,10 +234,22 @@ export default function PerformancePage({ session }: Props) {
     load()
   }, [session.email, session.role])
 
+  // Filter sellers by line type
+  const filterSeller = (seller: any) => {
+    const goalType = (seller.defined_goal || '').toLowerCase()
+    if (showTopline && showBottomline) return true
+    if (showTopline && goalType.includes('topline')) return true
+    if (showBottomline && goalType.includes('bottomline')) return true
+    return false
+  }
+
   if (loading) return <div className={styles.loading}>Loading...</div>
   if (!data && !isL1) return <div className={styles.empty}>No performance data found</div>
 
-  const team = teamData?.team || []
+  // Filter team sellers
+  const team = (teamData?.team || []).filter(filterSeller)
+  
+  // Calculate team totals from filtered sellers
   const totalGoal = team.reduce((a:any,b:any)=>a+(b.bottomline_goal_monthly||0),0)
   const totalAch = team.reduce((a:any,b:any)=>a+(b.actual_achieved_monthly||0),0)
   const totalReq = team.reduce((a:any,b:any)=>a+(b.required_daily_monthly||0),0)
@@ -242,11 +257,13 @@ export default function PerformancePage({ session }: Props) {
   const totalPct = totalGoal > 0 ? (totalAch / totalGoal) * 100 : 0
   const shbDiff = totalAch - totalShb
 
+  const isTeamView = (viewMode === 'team' || isL1)
+
   return (
     <div className={styles.page}>
       <Particles />
       <div className={styles.header}>
-        <h1 className={styles.title}>Performance</h1>
+        <h1 className={styles.title}>↗ Performance</h1>
         {isManager && !isL1 && (
           <div className={styles.viewToggle}>
             <button className={`${styles.toggleBtn} ${viewMode==='my'?styles.toggleActive:''}`} onClick={()=>setViewMode('my')}>My Stats</button>
@@ -260,12 +277,33 @@ export default function PerformancePage({ session }: Props) {
 
       {viewMode === 'my' && data && !isL1 && <SellerStats data={data} fmt={fmt} />}
 
-      {(viewMode === 'team' || isL1) && teamData && (
+      {isTeamView && teamData && (
         <div className={styles.teamSection}>
+          {/* TOP LINE / BOTTOM LINE TOGGLE - Only for team view */}
+          {isManager && (
+            <div style={{display:'flex',gap:'8px',marginBottom:'14px'}}>
+              <button onClick={() => setShowTopline(!showTopline)} style={{
+                padding:'7px 16px',borderRadius:'8px',border:`1px solid ${showTopline ? '#22C55E' : '#2A2A2A'}`,
+                background: showTopline ? 'rgba(34,197,94,0.12)' : 'transparent',
+                color: showTopline ? '#22C55E' : '#8A8278',
+                cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
+              }}>Top Line</button>
+              <button onClick={() => setShowBottomline(!showBottomline)} style={{
+                padding:'7px 16px',borderRadius:'8px',border:`1px solid ${showBottomline ? '#F4631E' : '#2A2A2A'}`,
+                background: showBottomline ? 'rgba(244,99,30,0.12)' : 'transparent',
+                color: showBottomline ? '#F4631E' : '#8A8278',
+                cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
+              }}>Bottom Line</button>
+              <span style={{fontSize:'0.65rem',color:'#8A8278',marginLeft:'auto'}}>
+                {team.length} sellers
+              </span>
+            </div>
+          )}
+
           <div className={styles.teamKpiWrap}>
             <div className={styles.teamKpiHeader}>
               <h3 className={styles.groupTitle}>TEAM TOTALS</h3>
-              <span className={styles.teamCount}>{teamData.totalSellers} sellers</span>
+              <span className={styles.teamCount}>{team.length} sellers</span>
             </div>
             <div className={styles.stats}>
               <div className={`${styles.stat} ${styles.statPct}`}>
@@ -278,7 +316,9 @@ export default function PerformancePage({ session }: Props) {
               <div className={styles.stat}><span>Required</span><strong>{fmt(totalReq)}</strong></div>
               <div className={`${styles.stat} ${shbDiff>=0?styles.statSuccess:styles.statDanger}`}>
                 <span>vs SHB</span>
-                <strong style={{color:shbDiff>=0?'#22C55E':'#EF4444'}}>{shbDiff>=0?`+${fmt(shbDiff)}`:fmt(shbDiff)}</strong>
+                <strong style={{color:shbDiff>=0?'#22C55E':'#EF4444'}}>
+                  {shbDiff>=0?`+${fmt(shbDiff)}`:fmt(shbDiff)}
+                </strong>
               </div>
             </div>
             <div className={styles.pctSection}>
@@ -288,23 +328,29 @@ export default function PerformancePage({ session }: Props) {
           </div>
 
           {/* L2 View: Show "My Team" with Category manager reference */}
-          {teamData.type==='L2' && teamData.l1Groups?.map((group:any)=>(
-            <div key={group.l1_name} className={styles.groupCard}>
-              <h3 className={styles.groupTitle}>My Team <span className={styles.groupCount}>({group.sellers.length} sellers)</span></h3>
-              {group.l1_performance && (
-                <div className={styles.l1PerfCard}>
-                  <span className={styles.l1PerfLabel}>Category: {group.l1_name} · {group.l1_performance.pct?.toFixed(1)}%</span>
-                  <span>{fmt(group.l1_performance.achieved)} / {fmt(group.l1_performance.goal)}</span>
-                </div>
-              )}
-              {group.sellers.map((s:any)=><SellerCard key={s.seller_email} s={s} fmt={fmt} />)}
-            </div>
-          ))}
+          {teamData.type==='L2' && teamData.l1Groups?.map((group:any) => {
+            // Filter sellers in this group
+            const groupSellers = (group.sellers || []).filter(filterSeller)
+            if (groupSellers.length === 0) return null
+            
+            return (
+              <div key={group.l1_name} className={styles.groupCard}>
+                <h3 className={styles.groupTitle}>My Team <span className={styles.groupCount}>({groupSellers.length} sellers)</span></h3>
+                {group.l1_performance && (
+                  <div className={styles.l1PerfCard}>
+                    <span className={styles.l1PerfLabel}>Category: {group.l1_name} · {group.l1_performance.pct?.toFixed(1)}%</span>
+                    <span>{fmt(group.l1_performance.achieved)} / {fmt(group.l1_performance.goal)}</span>
+                  </div>
+                )}
+                {groupSellers.map((s:any)=><SellerCard key={s.seller_email} s={s} fmt={fmt} />)}
+              </div>
+            )
+          })}
 
-          {/* L1 View: Show each L2 group */}
+          {/* L1 View: Show all filtered sellers */}
           {teamData.type==='L1' && (
             <div className={styles.groupCard}>
-              <h3 className={styles.groupTitle}>My Team <span className={styles.groupCount}>({teamData.totalSellers} sellers)</span></h3>
+              <h3 className={styles.groupTitle}>My Team <span className={styles.groupCount}>({team.length} sellers)</span></h3>
               {team.map((s:any)=><SellerCard key={s.seller_email} s={s} fmt={fmt} />)}
             </div>
           )}

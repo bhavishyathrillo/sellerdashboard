@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
   const trimmedEmail = email.toLowerCase().trim()
 
-  // Get all sellers under this L1
+  // Step 1: Get all sellers under this L1 manager
   const { data: allSellers, error: sellersError } = await supabase
     .from('srs_raw')
     .select('*')
@@ -35,6 +35,7 @@ export async function GET(req: Request) {
     })
   }
 
+  // Get L1 name
   const l1Name = allSellers[0]?.l1_name || email.split('@')[0]
 
   // Get L1's own row (if exists)
@@ -59,7 +60,7 @@ export async function GET(req: Request) {
     otherSellers.map((s: any) => s.l2_email).filter(Boolean)
   )]
 
-  // Get L2 managers' personal data
+  // Get L2 managers' personal data from srs_raw
   const { data: l2PersonalData } = await supabase
     .from('srs_raw')
     .select('*')
@@ -82,23 +83,55 @@ export async function GET(req: Request) {
                  s.seller_email?.toLowerCase() !== l2Key
     )
 
-    const l2Name = l2Data.seller_name || sellersUnderL2[0]?.l2_name || l2Email.split('@')[0]
+    // Get L2 name from multiple sources
+    const l2Name = l2Data.seller_name || 
+                   sellersUnderL2[0]?.l2_name || 
+                   l2Email.split('@')[0]
+
+    // L2 personal KPIs
     const l2Goal = l2Data.bottomline_goal_monthly || 0
     const l2Ach = l2Data.actual_achieved_monthly || 0
     const l2Shb = l2Data.should_have_been_monthly || 0
     const l2Pct = l2Goal > 0 ? (l2Ach / l2Goal) * 100 : 0
 
-    const sg = sellersUnderL2.reduce((s: number, r: any) => s + (r.bottomline_goal_monthly || 0), 0)
-    const sa = sellersUnderL2.reduce((s: number, r: any) => s + (r.actual_achieved_monthly || 0), 0)
-    const ss = sellersUnderL2.reduce((s: number, r: any) => s + (r.should_have_been_monthly || 0), 0)
-    const sp = sg > 0 ? (sa / sg) * 100 : 0
+    // Seller totals under this L2
+    const sellerGoal = sellersUnderL2.reduce((s: number, r: any) => s + (r.bottomline_goal_monthly || 0), 0)
+    const sellerAch = sellersUnderL2.reduce((s: number, r: any) => s + (r.actual_achieved_monthly || 0), 0)
+    const sellerShb = sellersUnderL2.reduce((s: number, r: any) => s + (r.should_have_been_monthly || 0), 0)
+    const sellerPct = sellerGoal > 0 ? (sellerAch / sellerGoal) * 100 : 0
 
     return {
-      l2_name: l2Name, l2_email: l2Email,
-      l2_kpi: { goal: l2Goal, achieved: l2Ach, shb: l2Shb, pct: l2Pct, required_daily: l2Data.required_daily_monthly || 0, flag: l2Data.current_seller_flag || '', region: l2Data.region || sellersUnderL2[0]?.region || '', haul: l2Data.haul || sellersUnderL2[0]?.haul || '' },
+      l2_name: l2Name,
+      l2_email: l2Email,
+      l2_kpi: {
+        goal: l2Goal,
+        achieved: l2Ach,
+        shb: l2Shb,
+        pct: l2Pct,
+        required_daily: l2Data.required_daily_monthly || 0,
+        flag: l2Data.current_seller_flag || '',
+        region: l2Data.region || sellersUnderL2[0]?.region || '',
+        haul: l2Data.haul || sellersUnderL2[0]?.haul || '',
+      },
       seller_count: sellersUnderL2.length,
-      seller_totals: { goal: sg, achieved: sa, shb: ss, pct: sp },
-      sellers: sellersUnderL2.map((s: any) => ({ seller_name: s.seller_name, seller_email: s.seller_email, goal: s.bottomline_goal_monthly || 0, achieved: s.actual_achieved_monthly || 0, shb: s.should_have_been_monthly || 0, pct: s.goal_achieved_percent || 0, flag: s.current_seller_flag || '', region: s.region || '', haul: s.haul || '' }))
+      seller_totals: {
+        goal: sellerGoal,
+        achieved: sellerAch,
+        shb: sellerShb,
+        pct: sellerPct,
+      },
+      sellers: sellersUnderL2.map((s: any) => ({
+        seller_name: s.seller_name,
+        seller_email: s.seller_email,
+        goal: s.bottomline_goal_monthly || 0,
+        achieved: s.actual_achieved_monthly || 0,
+        shb: s.should_have_been_monthly || 0,
+        pct: s.goal_achieved_percent || 0,
+        flag: s.current_seller_flag || '',
+        region: s.region || '',
+        haul: s.haul || '',
+        defined_goal: s.defined_goal || '',
+      }))
     }
   })
 
@@ -115,20 +148,53 @@ export async function GET(req: Request) {
     const sp = sg > 0 ? (sa / sg) * 100 : 0
 
     l2Groups.push({
-      l2_name: l1Name, l2_email: trimmedEmail,
-      l2_kpi: { goal: l1Goal, achieved: l1Ach, shb: l1Shb, pct: l1Pct, required_daily: l1OwnRow?.required_daily_monthly || 0, flag: l1OwnRow?.current_seller_flag || '', region: l1OwnRow?.region || sellersUnderL1[0]?.region || '', haul: l1OwnRow?.haul || sellersUnderL1[0]?.haul || '' },
+      l2_name: l1Name,
+      l2_email: trimmedEmail,
+      l2_kpi: {
+        goal: l1Goal,
+        achieved: l1Ach,
+        shb: l1Shb,
+        pct: l1Pct,
+        required_daily: l1OwnRow?.required_daily_monthly || 0,
+        flag: l1OwnRow?.current_seller_flag || '',
+        region: l1OwnRow?.region || sellersUnderL1[0]?.region || '',
+        haul: l1OwnRow?.haul || sellersUnderL1[0]?.haul || '',
+      },
       seller_count: sellersUnderL1.length,
       seller_totals: { goal: sg, achieved: sa, shb: ss, pct: sp },
-      sellers: sellersUnderL1.map((s: any) => ({ seller_name: s.seller_name, seller_email: s.seller_email, goal: s.bottomline_goal_monthly || 0, achieved: s.actual_achieved_monthly || 0, shb: s.should_have_been_monthly || 0, pct: s.goal_achieved_percent || 0, flag: s.current_seller_flag || '', region: s.region || '', haul: s.haul || '' }))
+      sellers: sellersUnderL1.map((s: any) => ({
+        seller_name: s.seller_name,
+        seller_email: s.seller_email,
+        goal: s.bottomline_goal_monthly || 0,
+        achieved: s.actual_achieved_monthly || 0,
+        shb: s.should_have_been_monthly || 0,
+        pct: s.goal_achieved_percent || 0,
+        flag: s.current_seller_flag || '',
+        region: s.region || '',
+        haul: s.haul || '',
+        defined_goal: s.defined_goal || '',
+      }))
     })
   }
 
-  // Totals
+  // Calculate overall team totals
   const totalGoal = l2Groups.reduce((s: number, g: any) => s + g.l2_kpi.goal + g.seller_totals.goal, 0)
   const totalAch = l2Groups.reduce((s: number, g: any) => s + g.l2_kpi.achieved + g.seller_totals.achieved, 0)
   const totalShb = l2Groups.reduce((s: number, g: any) => s + g.l2_kpi.shb + g.seller_totals.shb, 0)
   const totalPct = totalGoal > 0 ? (totalAch / totalGoal) * 100 : 0
   const totalSellers = l2Groups.reduce((s: number, g: any) => s + g.seller_count, 0)
 
-  return NextResponse.json({ l1_name: l1Name, totalSellers, l2Groups, teamTotals: { goal: totalGoal, achieved: totalAch, shb: totalShb, requiredDaily: 0, pct: totalPct, sellers: totalSellers } })
+  return NextResponse.json({
+    l1_name: l1Name,
+    totalSellers,
+    l2Groups,
+    teamTotals: {
+      goal: totalGoal,
+      achieved: totalAch,
+      shb: totalShb,
+      requiredDaily: 0,
+      pct: totalPct,
+      sellers: totalSellers,
+    }
+  })
 }

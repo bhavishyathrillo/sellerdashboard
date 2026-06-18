@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
   const trimmedEmail = email.toLowerCase().trim()
 
-  // First check roles table (for Admin/Moderator/L1/L2)
+  // Check roles table first (Admin/SuperAdmin/L1/L2)
   const { data: roleData } = await supabase
     .from('roles')
     .select('email, role, password, added_by')
@@ -23,12 +23,10 @@ export async function POST(req: Request) {
     .maybeSingle()
 
   if (roleData?.password) {
-    // Verify password from roles table
     if (roleData.password !== password) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
-    // Get name from seller_credentials or srs_raw
     let name = trimmedEmail.split('@')[0]
     const { data: sellerData } = await supabase
       .from('seller_credentials')
@@ -46,10 +44,11 @@ export async function POST(req: Request) {
       if (srsData?.seller_name) name = srsData.seller_name
     }
 
+    // Return the role as-is from roles table (ADMIN, SUPERADMIN, L1, L2, etc.)
     return NextResponse.json({ email: trimmedEmail, name, role: roleData.role })
   }
 
-  // Check seller_credentials for password (regular sellers)
+  // Check seller_credentials for regular sellers
   const { data: sellerData, error: sellerError } = await supabase
     .from('seller_credentials')
     .select('email, password, name, status')
@@ -70,7 +69,7 @@ export async function POST(req: Request) {
 
   let role = 'SELLER'
 
-  // Check if they have a role in roles table (without password - legacy)
+  // Check roles table (without password - legacy)
   const { data: roleEntry } = await supabase
     .from('roles')
     .select('role')
@@ -80,7 +79,7 @@ export async function POST(req: Request) {
   if (roleEntry?.role) {
     role = roleEntry.role
   } else {
-    // Check srs_raw for L1/L2 - CHECK L1 FIRST
+    // Check srs_raw for L1/L2 - L1 first
     const { data: srsCheck } = await supabase
       .from('srs_raw')
       .select('l1_email, l2_email')
@@ -88,7 +87,6 @@ export async function POST(req: Request) {
       .limit(1)
 
     if (srsCheck && srsCheck.length > 0) {
-      // Check L1 first, then L2 (L1 = Category Manager, higher priority)
       if (srsCheck[0].l1_email === trimmedEmail) role = 'L1'
       else if (srsCheck[0].l2_email === trimmedEmail) role = 'L2'
     }

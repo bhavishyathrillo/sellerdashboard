@@ -68,7 +68,9 @@ export default function LeaderboardPage({ session }: Props) {
   const [allRegions, setAllRegions] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<'overall' | 'team'>('overall')
 
-  const isManager = ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(session.role)
+  // Admin has no team toggle — removed ADMIN from isManager
+  const isManager = ['L1', 'L2', 'MODERATOR'].includes(session.role)
+  const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session.role)
 
   useEffect(() => {
     loadData()
@@ -111,41 +113,22 @@ export default function LeaderboardPage({ session }: Props) {
     <div className={styles.loaderWrap}><div className={styles.loaderRing} /><p className={styles.loaderText}>Loading rankings...</p></div>
   )
 
-  const activeSellers = viewMode === 'team' && isManager ? teamSellers : allSellers
+  // Admin always sees overall, managers can toggle
+  const activeSellers = (viewMode === 'team' && isManager) ? teamSellers : allSellers
 
-  // Global rank map for team view
   const globalRankMap: Record<string, number> = {}
-  if (viewMode === 'team') {
-    allSellers.forEach((s, i) => {
-      globalRankMap[s.seller_email?.toLowerCase()] = i + 1
-    })
+  if (viewMode === 'team' && isManager) {
+    allSellers.forEach((s, i) => { globalRankMap[s.seller_email?.toLowerCase()] = i + 1 })
   }
 
-  // Build podium: Always show Gold in center, then Silver (left), then Bronze (right)
   const buildPodium = () => {
     const result: { seller: Seller | null; rank: number; color: string; cardClass: string }[] = []
-    
-    if (activeSellers.length >= 1) {
-      // Gold (#1) - Center
-      result.push({ seller: activeSellers[0], rank: 1, color: '#FFD700', cardClass: styles.cardGold })
-    }
-    if (activeSellers.length >= 2) {
-      // Silver (#2) - Left
-      result.push({ seller: activeSellers[1], rank: 2, color: '#C0C0C0', cardClass: styles.cardSilver })
-    }
-    if (activeSellers.length >= 3) {
-      // Bronze (#3) - Right
-      result.push({ seller: activeSellers[2], rank: 3, color: '#CD7F32', cardClass: styles.cardBronze })
-    }
-    
-    // Reorder for display: Silver(left) | Gold(center) | Bronze(right)
-    if (result.length === 3) {
-      return [result[1], result[0], result[2]] // Silver, Gold, Bronze
-    } else if (result.length === 2) {
-      return [result[0], result[1]] // Gold, Silver
-    } else {
-      return result // Just Gold
-    }
+    if (activeSellers.length >= 1) result.push({ seller: activeSellers[0], rank: 1, color: '#FFD700', cardClass: styles.cardGold })
+    if (activeSellers.length >= 2) result.push({ seller: activeSellers[1], rank: 2, color: '#C0C0C0', cardClass: styles.cardSilver })
+    if (activeSellers.length >= 3) result.push({ seller: activeSellers[2], rank: 3, color: '#CD7F32', cardClass: styles.cardBronze })
+    if (result.length === 3) return [result[1], result[0], result[2]]
+    else if (result.length === 2) return [result[0], result[1]]
+    return result
   }
 
   const podiumData = buildPodium()
@@ -169,7 +152,8 @@ export default function LeaderboardPage({ session }: Props) {
 
       {/* Toggle + Filters */}
       <div style={{display:'flex',justifyContent:'center',gap:'12px',marginBottom:'16px',flexWrap:'wrap',alignItems:'center'}}>
-        {isManager && (
+        {/* Only show My Team toggle for non-admin managers */}
+        {isManager && !isAdmin && (
           <div style={{display:'flex',gap:'4px',background:'#141414',borderRadius:'8px',padding:'3px'}}>
             <button onClick={() => setViewMode('overall')} style={{
               padding:'8px 16px',border:'none',borderRadius:'6px',
@@ -186,6 +170,7 @@ export default function LeaderboardPage({ session }: Props) {
           </div>
         )}
 
+        {/* Haul/Region filters for overall view */}
         {viewMode === 'overall' && (
           <>
             <select value={haul} onChange={e => setHaul(e.target.value)} className={styles.filter}>
@@ -209,7 +194,7 @@ export default function LeaderboardPage({ session }: Props) {
             {podiumData.map((item, i) => {
               const s = item.seller
               if (!s) return null
-              const globalRank = viewMode === 'team' ? globalRankMap[s.seller_email?.toLowerCase()] : null
+              const globalRank = (viewMode === 'team' && isManager) ? globalRankMap[s.seller_email?.toLowerCase()] : null
               return (
                 <div key={s.seller_email} className={`${styles.podiumCard} ${item.cardClass}`} style={{animationDelay:`${i*0.2}s`}}>
                   {item.rank === 1 && <div className={styles.crown}><CrownIcon /></div>}
@@ -242,7 +227,7 @@ export default function LeaderboardPage({ session }: Props) {
       {/* Rankings List */}
       <div className={styles.rankingsSection}>
         <h2 className={styles.rankingsTitle}>
-          {viewMode === 'team' ? `My Team Rankings (${activeSellers.length} sellers)` : 'All Rankings'}
+          {viewMode === 'team' && isManager ? `My Team Rankings (${activeSellers.length} sellers)` : 'All Rankings'}
         </h2>
         {activeSellers.length === 0 ? (
           <div style={{textAlign:'center',padding:'30px',color:'#8A8278'}}>No sellers found</div>
@@ -250,7 +235,7 @@ export default function LeaderboardPage({ session }: Props) {
           <div className={styles.rankingsList}>
             {(showAll || viewMode === 'team' ? activeSellers.slice(0, 50) : activeSellers.slice(0, 10)).map((s, i) => {
               const teamRank = i + 1
-              const globalRank = viewMode === 'team' ? globalRankMap[s.seller_email?.toLowerCase()] : teamRank
+              const globalRank = (viewMode === 'team' && isManager) ? globalRankMap[s.seller_email?.toLowerCase()] : teamRank
               return (
                 <div key={s.seller_email} className={styles.rankingRow}>
                   <span className={styles.rankingPos}>{teamRank}</span>
@@ -259,10 +244,8 @@ export default function LeaderboardPage({ session }: Props) {
                     <span className={styles.rankingName}>{s.seller_name}</span>
                     <span className={styles.rankingMeta}>
                       {s.l1_name} · {s.haul} · {formatRegion(s.region)}
-                      {viewMode === 'team' && globalRank && (
-                        <span style={{color:'#C9A84C',fontWeight:600,marginLeft:'6px'}}>
-                          · Global #{globalRank}
-                        </span>
+                      {(viewMode === 'team' && isManager) && globalRank && (
+                        <span style={{color:'#C9A84C',fontWeight:600,marginLeft:'6px'}}>· Global #{globalRank}</span>
                       )}
                     </span>
                   </div>

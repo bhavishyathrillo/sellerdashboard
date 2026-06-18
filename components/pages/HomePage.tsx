@@ -88,6 +88,10 @@ export default function HomePage({ session }: HomePageProps) {
   const [data, setData] = useState<SellerData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showTopline, setShowTopline] = useState(true)
+  const [showBottomline, setShowBottomline] = useState(true)
+
+  const isL2 = session.role === 'L2'
 
   useEffect(() => {
     const load = async () => {
@@ -117,6 +121,12 @@ export default function HomePage({ session }: HomePageProps) {
   )
 
   if (!data) return null
+
+  // For L2 managers, filter seller data if they have team data
+  // For L2 managers, the data from /api/seller/overview is their personal data
+  // The toggle should only affect team view, not personal view
+  // But since L2 managers see personal data in Overview, the toggle is hidden for them here
+  // The toggle will be visible in Performance/Team view
 
   const flag = flagColors[data.current_seller_flag] || flagColors['1 White']
   const pct = Number(data.goal_achieved_percent) || 0
