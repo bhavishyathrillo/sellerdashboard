@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
   const trimmedEmail = email.toLowerCase().trim()
 
-  // First check roles table (for Admin/Moderator/SuperAdmin)
+  // First check roles table (for Admin/Moderator/L1/L2)
   const { data: roleData } = await supabase
     .from('roles')
     .select('email, role, password, added_by')
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
   if (roleEntry?.role) {
     role = roleEntry.role
   } else {
-    // Check srs_raw for L1/L2
+    // Check srs_raw for L1/L2 - CHECK L1 FIRST
     const { data: srsCheck } = await supabase
       .from('srs_raw')
       .select('l1_email, l2_email')
@@ -88,8 +88,9 @@ export async function POST(req: Request) {
       .limit(1)
 
     if (srsCheck && srsCheck.length > 0) {
-      if (srsCheck[0].l2_email === trimmedEmail) role = 'L2'
-      else if (srsCheck[0].l1_email === trimmedEmail) role = 'L1'
+      // Check L1 first, then L2 (L1 = Category Manager, higher priority)
+      if (srsCheck[0].l1_email === trimmedEmail) role = 'L1'
+      else if (srsCheck[0].l2_email === trimmedEmail) role = 'L2'
     }
   }
 
