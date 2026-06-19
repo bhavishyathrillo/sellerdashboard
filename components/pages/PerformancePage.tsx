@@ -204,12 +204,12 @@ export default function PerformancePage({ session }: Props) {
   const [viewMode, setViewMode] = useState<'my' | 'team'>(
     session.role === 'L1' ? 'team' : 'my'
   )
-  // TOP LINE / BOTTOM LINE TOGGLE for team view
-  const [showTopline, setShowTopline] = useState(true)
-  const [showBottomline, setShowBottomline] = useState(true)
+  const [toggleState, setToggleState] = useState<'topline' | 'bottomline' | 'all'>('all')
+  const [expandedL2, setExpandedL2] = useState<Record<string, boolean>>({})
 
   const isManager = ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(session.role)
   const isL1 = session.role === 'L1'
+  const isL2 = session.role === 'L2'
 
   useEffect(() => {
     async function load() {
@@ -234,12 +234,23 @@ export default function PerformancePage({ session }: Props) {
     load()
   }, [session.email, session.role])
 
-  // Filter sellers by line type
+  const handleToggle = (type: 'topline' | 'bottomline') => {
+    if (toggleState === type) {
+      setToggleState('all')
+    } else {
+      setToggleState(type)
+    }
+  }
+
+  const toggleL2 = (key: string) => {
+    setExpandedL2((prev: any) => ({ ...prev, [key]: !prev[key] }))
+  }
+
   const filterSeller = (seller: any) => {
     const goalType = (seller.defined_goal || '').toLowerCase()
-    if (showTopline && showBottomline) return true
-    if (showTopline && goalType.includes('topline')) return true
-    if (showBottomline && goalType.includes('bottomline')) return true
+    if (toggleState === 'all') return true
+    if (toggleState === 'topline' && goalType.includes('topline')) return true
+    if (toggleState === 'bottomline' && goalType.includes('bottomline')) return true
     return false
   }
 
@@ -249,7 +260,6 @@ export default function PerformancePage({ session }: Props) {
   // Filter team sellers
   const team = (teamData?.team || []).filter(filterSeller)
   
-  // Calculate team totals from filtered sellers
   const totalGoal = team.reduce((a:any,b:any)=>a+(b.bottomline_goal_monthly||0),0)
   const totalAch = team.reduce((a:any,b:any)=>a+(b.actual_achieved_monthly||0),0)
   const totalReq = team.reduce((a:any,b:any)=>a+(b.required_daily_monthly||0),0)
@@ -279,23 +289,29 @@ export default function PerformancePage({ session }: Props) {
 
       {isTeamView && teamData && (
         <div className={styles.teamSection}>
-          {/* TOP LINE / BOTTOM LINE TOGGLE - Only for team view */}
-          {isManager && (
+          {/* TOP LINE / BOTTOM LINE TOGGLE */}
+          {(isL1 || isL2) && (
             <div style={{display:'flex',gap:'8px',marginBottom:'14px'}}>
-              <button onClick={() => setShowTopline(!showTopline)} style={{
-                padding:'7px 16px',borderRadius:'8px',border:`1px solid ${showTopline ? '#22C55E' : '#2A2A2A'}`,
-                background: showTopline ? 'rgba(34,197,94,0.12)' : 'transparent',
-                color: showTopline ? '#22C55E' : '#8A8278',
+              <button onClick={() => handleToggle('topline')} style={{
+                padding:'7px 16px',borderRadius:'8px',
+                border:`1px solid ${toggleState === 'topline' ? '#22C55E' : toggleState === 'all' ? '#22C55E' : '#2A2A2A'}`,
+                background: toggleState === 'topline' ? 'rgba(34,197,94,0.12)' : toggleState === 'all' ? 'rgba(34,197,94,0.06)' : 'transparent',
+                color: toggleState === 'topline' ? '#22C55E' : toggleState === 'all' ? '#8A8278' : '#8A8278',
                 cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
-              }}>Top Line</button>
-              <button onClick={() => setShowBottomline(!showBottomline)} style={{
-                padding:'7px 16px',borderRadius:'8px',border:`1px solid ${showBottomline ? '#F4631E' : '#2A2A2A'}`,
-                background: showBottomline ? 'rgba(244,99,30,0.12)' : 'transparent',
-                color: showBottomline ? '#F4631E' : '#8A8278',
+              }}>
+                {toggleState === 'topline' ? '✓ ' : ''}Top Line
+              </button>
+              <button onClick={() => handleToggle('bottomline')} style={{
+                padding:'7px 16px',borderRadius:'8px',
+                border:`1px solid ${toggleState === 'bottomline' ? '#F4631E' : toggleState === 'all' ? '#F4631E' : '#2A2A2A'}`,
+                background: toggleState === 'bottomline' ? 'rgba(244,99,30,0.12)' : toggleState === 'all' ? 'rgba(244,99,30,0.06)' : 'transparent',
+                color: toggleState === 'bottomline' ? '#F4631E' : toggleState === 'all' ? '#8A8278' : '#8A8278',
                 cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
-              }}>Bottom Line</button>
+              }}>
+                {toggleState === 'bottomline' ? '✓ ' : ''}Bottom Line
+              </button>
               <span style={{fontSize:'0.65rem',color:'#8A8278',marginLeft:'auto'}}>
-                {team.length} sellers
+                {toggleState === 'all' ? 'Showing all' : toggleState === 'topline' ? 'Top Line only' : 'Bottom Line only'}
               </span>
             </div>
           )}
@@ -327,21 +343,63 @@ export default function PerformancePage({ session }: Props) {
             </div>
           </div>
 
-          {/* L2 View: Show "My Team" with Category manager reference */}
+          {/* L2 View: Show L2 groups with Team/Personal toggle on click */}
           {teamData.type==='L2' && teamData.l1Groups?.map((group:any) => {
-            // Filter sellers in this group
             const groupSellers = (group.sellers || []).filter(filterSeller)
             if (groupSellers.length === 0) return null
             
+            const groupKey = group.l1_name || 'unknown'
+            const isExpanded = expandedL2[groupKey] === true
+            
+            // Calculate seller totals
+            const sellerGoal = groupSellers.reduce((s: number, r: any) => s + (r.bottomline_goal_monthly || 0), 0)
+            const sellerAch = groupSellers.reduce((s: number, r: any) => s + (r.actual_achieved_monthly || 0), 0)
+            const sellerShb = groupSellers.reduce((s: number, r: any) => s + (r.should_have_been_monthly || 0), 0)
+            const sellerPct = sellerGoal > 0 ? (sellerAch / sellerGoal) * 100 : 0
+            
+            // When expanded: show L2 manager's PERSONAL data
+            // When collapsed: show TEAM totals
+            const displayGoal = isExpanded ? (group.l1_performance?.goal || 0) : sellerGoal
+            const displayAch = isExpanded ? (group.l1_performance?.achieved || 0) : sellerAch
+            const displayPct = isExpanded ? (group.l1_performance?.pct || 0) : sellerPct
+            
             return (
-              <div key={group.l1_name} className={styles.groupCard}>
-                <h3 className={styles.groupTitle}>My Team <span className={styles.groupCount}>({groupSellers.length} sellers)</span></h3>
-                {group.l1_performance && (
-                  <div className={styles.l1PerfCard}>
-                    <span className={styles.l1PerfLabel}>Category: {group.l1_name} · {group.l1_performance.pct?.toFixed(1)}%</span>
-                    <span>{fmt(group.l1_performance.achieved)} / {fmt(group.l1_performance.goal)}</span>
+              <div key={groupKey} className={styles.groupCard}>
+                <div 
+                  onClick={() => toggleL2(groupKey)} 
+                  style={{
+                    display:'flex',
+                    alignItems:'center',
+                    justifyContent:'space-between',
+                    cursor:'pointer',
+                    padding:'6px 0'
+                  }}
+                >
+                  <h3 className={styles.groupTitle} style={{margin:0}}>
+                    My Team 
+                    <span className={styles.groupCount}>({groupSellers.length} sellers)</span>
+                    <span style={{fontSize:'0.55rem',color:'#8A8278',fontWeight:400,marginLeft:'8px'}}>
+                      {isExpanded ? '· Personal' : '· Team'}
+                    </span>
+                  </h3>
+                  <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                    <span style={{fontSize:'0.7rem',color:'#8A8278'}}>
+                      {fmt(displayAch)} / {fmt(displayGoal)}
+                    </span>
+                    <span style={{fontWeight:700,fontSize:'0.85rem',color:displayPct >= 100 ? '#22C55E' : '#F4631E'}}>
+                      {displayPct.toFixed(1)}%
+                    </span>
+                    <span style={{fontSize:'0.7rem',color:'#8A8278'}}>
+                      {isExpanded ? '▲' : '▼'}
+                    </span>
                   </div>
-                )}
+                </div>
+                
+                {/* Progress bar */}
+                <div style={{height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',margin:'6px 0'}}>
+                  <div style={{height:'100%',background:displayPct >= 100 ? '#22C55E' : '#F4631E',borderRadius:'2px',width:`${Math.min(displayPct,100)}%`,transition:'width 0.5s'}}/>
+                </div>
+                
                 {groupSellers.map((s:any)=><SellerCard key={s.seller_email} s={s} fmt={fmt} />)}
               </div>
             )

@@ -10,104 +10,144 @@ export default function ThrillNews({ email, role }: Props) {
   const trackRef = useRef<HTMLDivElement>(null)
   const animRef = useRef<number>(0)
 
+  // ONLY show for L2 and SELLER
+  const shouldShow = role === 'L2' || role === 'SELLER'
+  
+  if (!shouldShow) {
+    return null
+  }
+
   useEffect(() => {
     async function load() {
       try {
-        const [overview, leaderboard, mhlRes] = await Promise.all([
-          fetch(`/api/seller/overview?email=${encodeURIComponent(email)}&role=${role}`).then(r=>r.json()),
-          fetch(`/api/seller/leaderboard`).then(r=>r.json()),
-          fetch(`/api/mhl?email=${encodeURIComponent(email)}&role=${role}&view=${['L1','L2'].includes(role)?'team':'mine'}`).then(r=>r.json())
-        ])
-
-        const m = overview?.myMonthly || overview || {}
-        const mhlData = Array.isArray(mhlRes) ? mhlRes : []
         const news: string[] = []
 
-        // Top performer
-        const top = leaderboard?.[0]
-        if (top) news.push(`🏆 ${top.seller_name} leads the company — ${(top.goal_achieved_percent||0).toFixed(1)}% achieved!`)
+        // 1. Get TOP performer from leaderboard
+        try {
+          const leaderboardRes = await fetch('/api/seller/leaderboard')
+          const leaderboard = await leaderboardRes.json()
+          if (leaderboard && leaderboard.length > 0) {
+            const top = leaderboard[0]
+            const pct = (top.goal_achieved_percent || 0).toFixed(1)
+            news.push(`🏆 ${top.seller_name} leads the company — ${pct}% achieved!`)
+          }
+        } catch {}
 
-        // Pipeline check - NOT for L1
-        if (role !== 'L1') {
+        // 2. Get SELLER'S OWN data from overview
+        let sellerPct = 0
+        let sellerGoal = 0
+        let sellerAchieved = 0
+        try {
+          const overviewRes = await fetch(`/api/seller/overview?email=${encodeURIComponent(email)}`)
+          const overview = await overviewRes.json()
+          if (overview && !overview.error) {
+            sellerPct = overview.goal_achieved_percent || 0
+            sellerGoal = overview.bottomline_goal_monthly || 0
+            sellerAchieved = overview.actual_achieved_monthly || 0
+          }
+        } catch {}
+
+        // 3. Pipeline check
+        try {
+          const today = new Date().toISOString().split('T')[0]
+          const pipelineRes = await fetch(`/api/pipeline/check?email=${encodeURIComponent(email)}&date=${today}`)
+          const pipelineCheck = await pipelineRes.json()
+          if (pipelineCheck?.submitted) {
+            news.push(`✅ Pipeline submitted for today`)
+          } else {
+            news.push(`⏰ You haven't submitted pipeline today — Deadline: 11:00 AM`)
+          }
+        } catch {
+          news.push(`⏰ Submit your pipeline for today`)
+        }
+
+        // 4. Goal progress & spin
+        const gapToSpin = Math.max(0, 100 - sellerPct)
+        
+        if (role === 'L2') {
+          // L2 Manager - Show goal progress
+          if (gapToSpin > 0) {
+            news.push(`🎰 ${gapToSpin.toFixed(1)}% away from unlocking Premium Spin!`)
+          } else {
+            news.push(`🎉 Goal crushed! Go spin the wheel!`)
+          }
+          
+          // Get TEAM MHL/MHO data
           try {
-            const today = new Date().toISOString().split('T')[0]
-            const pipelineCheck = await fetch(`/api/pipeline/check?email=${encodeURIComponent(email)}&date=${today}`).then(r=>r.json())
-            if (pipelineCheck?.submitted) {
-              news.push(`✅ Pipeline submitted for today`)
+            const mhlRes = await fetch(`/api/mhl?email=${encodeURIComponent(email)}&role=${role}&view=team`)
+            const mhlData = await mhlRes.json()
+            if (Array.isArray(mhlData)) {
+              const mhlCount = mhlData.filter((l: any) => l.mhl_mho === 'MHL').length
+              const mhoCount = mhlData.filter((l: any) => l.mhl_mho === 'MHO').length
+              if (mhlCount > 0 || mhoCount > 0) {
+                news.push(`👥 Your team: ${mhlCount} MHL & ${mhoCount} MHO leads`)
+              }
+            }
+          } catch {}
+
+          // Get TEAM performance
+          try {
+            const teamRes = await fetch(`/api/seller/team-performance?email=${encodeURIComponent(email)}&role=${role}`)
+            const teamData = await teamRes.json()
+            if (teamData?.teamTotal?.pct) {
+              news.push(`📊 Team performance: ${teamData.teamTotal.pct.toFixed(1)}% of goal`)
+            }
+          } catch {}
+
+        } else {
+          // SELLER
+          if (gapToSpin > 0) {
+            news.push(`🎰 ${gapToSpin.toFixed(1)}% away from unlocking Premium Spin!`)
+          } else {
+            news.push(`🎉 Goal crushed! Go spin the wheel!`)
+          }
+          
+          // Show hygiene reminder
+          try {
+            const hygieneRes = await fetch(`/api/seller/efficiency?email=${encodeURIComponent(email)}`)
+            const hygieneData = await hygieneRes.json()
+            if (Array.isArray(hygieneData) && hygieneData.length > 0) {
+              const totalCalls = hygieneData.reduce((sum: number, d: any) => sum + (d.call_dials || 0), 0)
+              if (totalCalls === 0) {
+                news.push(`📞 Start making calls to improve your hygiene!`)
+              } else {
+                news.push(`📞 Keep up your call hygiene — ${totalCalls} calls this month!`)
+              }
             } else {
-              news.push(`⏰ You haven't submitted pipeline today — Deadline: 11:00 AM`)
+              news.push(`📞 Start making calls to improve your hygiene!`)
             }
           } catch {
-            news.push(`⏰ Submit your pipeline for today`)
+            news.push(`📞 Keep up your call hygiene — every call counts!`)
           }
         }
 
-        // ===== L1 MANAGER =====
-        if (role === 'L1') {
-          // Load L1 team data for accurate stats
-          try {
-            const l1Res = await fetch(`/api/seller/l1-team?email=${encodeURIComponent(email)}`).then(r=>r.json())
-            if (l1Res?.teamTotals) {
-              news.push(`📊 Team: ${l1Res.teamTotals.pct.toFixed(1)}% · ${l1Res.totalSellers} sellers · ${l1Res.l2Groups?.length || 0} L2 managers`)
+        // 5. MHL/MHO reminder (for both L2 and SELLER)
+        try {
+          const view = role === 'L2' ? 'team' : 'mine'
+          const mhlRes = await fetch(`/api/mhl?email=${encodeURIComponent(email)}&role=${role}&view=${view}`)
+          const mhlData = await mhlRes.json()
+          if (Array.isArray(mhlData)) {
+            const mhlCount = mhlData.filter((l: any) => l.mhl_mho === 'MHL').length
+            const mhoCount = mhlData.filter((l: any) => l.mhl_mho === 'MHO').length
+            if (mhlCount > 0 || mhoCount > 0) {
+              news.push(`⚠️ ${mhlCount} MHL | ${mhoCount} MHO — Check MHL/MHO tab`)
             }
-          } catch {}
-          
-          const mhlCount = mhlData.filter((l:any)=>l.mhl_mho==='MHL').length
-          const mhoCount = mhlData.filter((l:any)=>l.mhl_mho==='MHO').length
-          if (mhlCount > 0 || mhoCount > 0) {
-            news.push(`⚠️ Team: ${mhlCount} MHL | ${mhoCount} MHO — Check MHL/MHO tab`)
           }
-          
-          // Check team pipeline submissions
-          try {
-            const today = new Date().toISOString().split('T')[0]
-            const pipelineRes = await fetch(`/api/pipeline?email=${encodeURIComponent(email)}&role=L1&view=team`).then(r=>r.json())
-            const todaySubs = (pipelineRes?.history || []).filter((h: any) => h.date?.startsWith(today))
-            const submittedToday = todaySubs.length
-            const totalTeam = l1Res?.totalSellers || 0
-            news.push(`📋 Pipeline: ${submittedToday}/${totalTeam} submitted today`)
-          } catch {}
-        }
+        } catch {}
 
-        // ===== L2 MANAGER =====
-        if (role === 'L2') {
-          const pct = m.pct || m.goal_achieved_percent || 0
-          const gapToSpin = 100 - pct
-          if (gapToSpin > 0) news.push(`🎰 You're ${gapToSpin.toFixed(1)}% away from unlocking Premium Spin!`)
-          else news.push(`🎉 Goal crushed! Go spin the wheel!`)
-          const mhlCount = mhlData.filter((l:any)=>l.mhl_mho==='MHL').length
-          const mhoCount = mhlData.filter((l:any)=>l.mhl_mho==='MHO').length
-          news.push(`👥 Your team: ${mhlCount} MHL & ${mhoCount} MHO leads`)
-          if (overview?.teamTotal?.pct) news.push(`📊 Team performance: ${overview.teamTotal.pct.toFixed(1)}% of goal`)
-        }
+        // Remove duplicates
+        const uniqueNews = [...new Set(news)]
+        setItems(uniqueNews)
 
-        // ===== L1 (continued) =====
-        if (role === 'L1') {
-          const mhlCount = mhlData.filter((l:any)=>l.mhl_mho==='MHL').length
-          const mhoCount = mhlData.filter((l:any)=>l.mhl_mho==='MHO').length
-          if (mhlCount > 0 || mhoCount > 0) {
-            news.push(`👤 Team leads: ${mhlCount} MHL | ${mhoCount} MHO`)
-          }
-        }
-
-        // ===== SELLER =====
-        if (role === 'SELLER') {
-          const pct = m.pct || m.goal_achieved_percent || 0
-          const gapToSpin = 100 - pct
-          if (gapToSpin > 0) news.push(`🎰 ${gapToSpin.toFixed(1)}% away from unlocking Premium Spin!`)
-          else news.push(`🎉 Goal crushed! Go spin the wheel!`)
-          news.push(`📞 Keep up your call hygiene — every call counts!`)
-        }
-
-        // Common MHL/MHO reminder
-        const mhlCount = mhlData.filter((l:any)=>l.mhl_mho==='MHL').length
-        const mhoCount = mhlData.filter((l:any)=>l.mhl_mho==='MHO').length
-        if (role !== 'L1' && (mhlCount > 0 || mhoCount > 0)) {
-          news.push(`⚠️ ${mhlCount} MHL | ${mhoCount} MHO — Check MHL/MHO tab`)
-        }
-
-        setItems(news)
-      } catch {}
+      } catch (error) {
+        console.error('ThrillNews error:', error)
+        // Fallback news if API fails
+        setItems([
+          '🏆 Keep pushing towards your goals!',
+          '📞 Maintain your call hygiene daily',
+          '⚠️ Check your MHL/MHO leads'
+        ])
+      }
     }
     load()
   }, [email, role])

@@ -8,16 +8,46 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    const { data: allRows, error } = await supabase.from('srs_raw').select('*')
+    // Get ALL data from srs_raw
+    const { data: allRows, error } = await supabase
+      .from('srs_raw')
+      .select('*')
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     if (!allRows || allRows.length === 0) {
-      return NextResponse.json({ l1_data: [], message: 'No data in srs_raw' })
+      return NextResponse.json({ 
+        l1_data: [], 
+        totalSellers: 0,
+        totalL1: 0,
+        message: 'No data in srs_raw' 
+      })
     }
 
+    // Get ALL unique seller emails from srs_raw
+    const allSellerEmails = new Set<string>()
+    const sellerDataMap: Record<string, any> = {}
+    
+    allRows.forEach((row: any) => {
+      const email = row.seller_email?.toLowerCase().trim()
+      if (email) {
+        allSellerEmails.add(email)
+        if (!sellerDataMap[email]) {
+          sellerDataMap[email] = {
+            seller_name: row.seller_name || email.split('@')[0],
+            region: row.region || '',
+            haul: row.haul || '',
+            flag: row.current_seller_flag || ''
+          }
+        }
+      }
+    })
+
+    const totalUniqueSellers = allSellerEmails.size
+
+    // Build unique L1 map from all rows
     const l1Map = new Map<string, string>()
     allRows.forEach((row: any) => {
       const email = row.l1_email
@@ -30,6 +60,7 @@ export async function GET() {
       }
     })
 
+    // Build data for each L1
     const l1Data: any[] = []
     
     for (const [l1Email, l1Name] of l1Map.entries()) {
@@ -46,6 +77,7 @@ export async function GET() {
       const totalShb = team.reduce((s: number, r: any) => s + (r.should_have_been_monthly || 0), 0)
       const pct = totalGoal > 0 ? (totalAch / totalGoal) * 100 : 0
 
+      // L2 groups
       const l2Emails = [...new Set(team.map((s: any) => s.l2_email).filter(Boolean))]
       
       const l2Groups = l2Emails.map((l2Email: string) => {
@@ -72,7 +104,7 @@ export async function GET() {
             flag: s.current_seller_flag || '',
             region: s.region || '',
             haul: s.haul || '',
-            defined_goal: s.defined_goal || '',  // <-- ADDED
+            defined_goal: s.defined_goal || '',
           }))
         }
       })
@@ -89,7 +121,11 @@ export async function GET() {
       })
     }
 
-    return NextResponse.json({ l1_data: l1Data })
+    return NextResponse.json({ 
+      l1_data: l1Data,
+      totalSellers: totalUniqueSellers,
+      totalL1: l1Map.size
+    })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

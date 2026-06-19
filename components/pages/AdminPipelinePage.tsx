@@ -13,8 +13,18 @@ interface PipelineSubmission {
   status: string
 }
 
-function fmt(n: number) { if (!n && n !== 0) return '₹0'; if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`; if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`; return `₹${n.toFixed(0)}` }
-function fmtDate(d: string) { try { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) } catch { return d } }
+function fmt(n: number) { 
+  if (!n && n !== 0) return '₹0'; 
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`; 
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`; 
+  return `₹${n.toFixed(0)}`; 
+}
+
+function fmtDate(d: string) { 
+  try { 
+    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) 
+  } catch { return d } 
+}
 
 function ChevronDown() { return (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>) }
 function ChevronRight() { return (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>) }
@@ -34,6 +44,17 @@ function PopupModal({ children, onClose, title }: { children: React.ReactNode; o
   )
 }
 
+// Parse date from input value (YYYY-MM-DD format)
+function parseDateInput(str: string): Date | null {
+  if (!str) return null
+  try {
+    const d = new Date(str + 'T00:00:00')
+    return isNaN(d.getTime()) ? null : d
+  } catch {
+    return null
+  }
+}
+
 export default function AdminPipelinePage() {
   const [l1Data, setL1Data] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -42,38 +63,52 @@ export default function AdminPipelinePage() {
   const [dateFilter, setDateFilter] = useState<'today' | '5days' | '15days' | 'all'>('all')
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards')
   const [search, setSearch] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [filteredResults, setFilteredResults] = useState<any[]>([])
 
   useEffect(() => {
     fetch('/api/admin/pipeline')
       .then(r => r.json())
-      .then(d => { setL1Data(d.l1_data || []); setLoading(false) })
+      .then(d => { 
+        setL1Data(d.l1_data || []); 
+        setLoading(false) 
+      })
+      .catch(err => { console.error('Error loading pipeline:', err); setLoading(false) })
   }, [])
 
-  // Search function
-  useEffect(() => {
-    if (!search.trim()) { setFilteredResults([]); return }
-    const q = search.toLowerCase().trim()
-    const results: any[] = []
-    
-    l1Data.forEach((l1: any) => {
-      const l1Match = l1.l1_name?.toLowerCase().includes(q)
-      l1.l2_groups?.forEach((l2: any) => {
-        const l2Match = l2.l2_name?.toLowerCase().includes(q)
-        l2.submissions?.forEach((sub: any) => {
-          const sellerMatch = sub.seller_email?.toLowerCase().includes(q)
-          if (l1Match || l2Match || sellerMatch) {
-            results.push({ ...sub, l1_name: l1.l1_name, l2_name: l2.l2_name })
-          }
-        })
-      })
-    })
-    // Remove duplicates
-    const seen = new Set()
-    setFilteredResults(results.filter(r => { const k = r.id; if (seen.has(k)) return false; seen.add(k); return true }))
-  }, [search, l1Data])
-
+  // Filter submissions by date
   const filterByDate = (submissions: any[]) => {
+    if (!submissions || submissions.length === 0) return []
+    
+    // If custom date range is set, use it
+    if (dateFrom || dateTo) {
+      // If From > To, swap them automatically
+      let effectiveFrom = dateFrom
+      let effectiveTo = dateTo
+      
+      if (dateFrom && dateTo && dateFrom > dateTo) {
+        effectiveFrom = dateTo
+        effectiveTo = dateFrom
+      }
+      
+      const fromDate = effectiveFrom ? parseDateInput(effectiveFrom) : null
+      const toDate = effectiveTo ? parseDateInput(effectiveTo) : null
+      
+      const from = fromDate ? new Date(fromDate) : new Date(2000, 0, 1)
+      const to = toDate ? new Date(toDate) : new Date(2100, 11, 31)
+      
+      from.setHours(0, 0, 0, 0)
+      to.setHours(23, 59, 59, 999)
+      
+      return submissions.filter((s: any) => {
+        const d = new Date(s.date)
+        d.setHours(0, 0, 0, 0)
+        return d >= from && d <= to
+      })
+    }
+    
+    // Use preset filters
     if (dateFilter === 'all') return submissions
     const now = new Date(); now.setHours(0,0,0,0)
     let cutoff = new Date(now)
@@ -83,7 +118,89 @@ export default function AdminPipelinePage() {
     return submissions.filter((s: any) => new Date(s.date) >= cutoff)
   }
 
+  // Search function - hierarchical with date support
+  useEffect(() => {
+    if (!search.trim() && !dateFrom && !dateTo && dateFilter === 'all') { 
+      setFilteredResults([]); 
+      return 
+    }
+    const q = search.toLowerCase().trim()
+    const results: any[] = []
+    
+    l1Data.forEach((l1: any) => {
+      const l1Match = l1.l1_name?.toLowerCase().includes(q)
+      
+      l1.l2_groups?.forEach((l2: any) => {
+        const l2Match = l2.l2_name?.toLowerCase().includes(q)
+        let filteredSubs = filterByDate(l2.submissions || [])
+        
+        // Apply search filter (seller name)
+        if (q) {
+          filteredSubs = filteredSubs.filter((s: any) => 
+            s.seller_email?.toLowerCase().includes(q) || 
+            l2.l2_name?.toLowerCase().includes(q) ||
+            l1.l1_name?.toLowerCase().includes(q)
+          )
+        }
+        
+        filteredSubs.forEach((sub: any) => {
+          results.push({ 
+            ...sub, 
+            l1_name: l1.l1_name, 
+            l2_name: l2.l2_name,
+            l1_email: l1.l1_email,
+            l2_email: l2.l2_email
+          })
+        })
+      })
+    })
+    const seen = new Set()
+    setFilteredResults(results.filter(r => { const k = r.id; if (seen.has(k)) return false; seen.add(k); return true }))
+  }, [search, l1Data, dateFilter, dateFrom, dateTo])
+
+  // Clear date range
+  const clearDateRange = () => {
+    setDateFrom('')
+    setDateTo('')
+    setDateFilter('all')
+  }
+
   if (loading) return <div className={styles.loadingWrap}><div className={styles.spinner}/><p>Loading...</p></div>
+
+  // Calculate totals from filtered data
+  const getFilteredL1Data = () => {
+    return l1Data.map((l1: any) => {
+      const filteredL2 = (l1.l2_groups || []).map((l2: any) => {
+        let filteredSubs = filterByDate(l2.submissions || [])
+        
+        // Apply search filter
+        if (search.trim()) {
+          const q = search.toLowerCase().trim()
+          filteredSubs = filteredSubs.filter((s: any) => 
+            s.seller_email?.toLowerCase().includes(q) || 
+            l2.l2_name?.toLowerCase().includes(q) ||
+            l1.l1_name?.toLowerCase().includes(q)
+          )
+        }
+        return { ...l2, submissions: filteredSubs, filtered_count: filteredSubs.length }
+      }).filter((l2: any) => l2.filtered_count > 0)
+      
+      const totalSubs = filteredL2.reduce((s: number, l2: any) => s + l2.filtered_count, 0)
+      const totalPipeline = filteredL2.reduce((s: number, l2: any) => {
+        return s + l2.submissions.reduce((sum: number, sub: any) => sum + (sub.pipeline_value || 0), 0)
+      }, 0)
+      const greenCount = filteredL2.reduce((s: number, l2: any) => {
+        return s + l2.submissions.filter((sub: any) => sub.status === 'GREEN').length
+      }, 0)
+      
+      return { ...l1, l2_groups: filteredL2, total_submissions: totalSubs, total_pipeline: totalPipeline, green_count: greenCount }
+    }).filter((l1: any) => l1.total_submissions > 0)
+  }
+
+  const filteredL1Data = getFilteredL1Data()
+  const totalPipeline = filteredL1Data.reduce((s: number, l1: any) => s + l1.total_pipeline, 0)
+  const totalSubmissions = filteredL1Data.reduce((s: number, l1: any) => s + l1.total_submissions, 0)
+  const totalGreen = filteredL1Data.reduce((s: number, l1: any) => s + l1.green_count, 0)
 
   return (
     <div className={styles.page}>
@@ -95,77 +212,177 @@ export default function AdminPipelinePage() {
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px',flexWrap:'wrap',gap:'10px'}}>
         <div>
           <h1 style={{fontSize:'1.4rem',fontWeight:700,color:'#C9A84C'}}>Pipeline</h1>
-          <p style={{fontSize:'0.7rem',color:'#8A8278'}}>{l1Data.length} Category Managers</p>
+          <p style={{fontSize:'0.7rem',color:'#8A8278'}}>{filteredL1Data.length} Category Managers</p>
         </div>
         <div style={{display:'flex',gap:'10px',alignItems:'center',flexWrap:'wrap'}}>
-          {/* View Toggle */}
           <div style={{display:'flex',gap:'3px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'7px',padding:'2px'}}>
             <button onClick={() => setViewMode('cards')} style={{padding:'5px 10px',border:'none',borderRadius:'5px',background:viewMode==='cards'?'rgba(244,99,30,0.15)':'transparent',color:viewMode==='cards'?'#F4631E':'#8A8278',cursor:'pointer',fontSize:'0.65rem',fontWeight:600}}>Cards</button>
             <button onClick={() => setViewMode('table')} style={{padding:'5px 10px',border:'none',borderRadius:'5px',background:viewMode==='table'?'rgba(244,99,30,0.15)':'transparent',color:viewMode==='table'?'#F4631E':'#8A8278',cursor:'pointer',fontSize:'0.65rem',fontWeight:600}}>Table</button>
           </div>
-          {/* Date Filter */}
-          <div style={{display:'flex',gap:'3px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'7px',padding:'2px'}}>
-            {[{k:'today',l:'Today'},{k:'5days',l:'5 Days'},{k:'15days',l:'15 Days'},{k:'all',l:'All'}].map(f => (
-              <button key={f.k} onClick={() => setDateFilter(f.k as any)} style={{padding:'5px 10px',border:'none',borderRadius:'5px',background:dateFilter===f.k?'rgba(244,99,30,0.15)':'transparent',color:dateFilter===f.k?'#F4631E':'#8A8278',cursor:'pointer',fontSize:'0.65rem',fontWeight:600}}>{f.l}</button>
-            ))}
-          </div>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div style={{marginBottom:'16px'}}>
+      {/* Search & Filter Row */}
+      <div style={{display:'flex',flexWrap:'wrap',gap:'10px',marginBottom:'16px',alignItems:'center'}}>
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search by seller name, Category Manager or L1 Manager..."
+          placeholder="Search by seller, Category Manager, or L1 Manager..."
           style={{
-            width:'100%',padding:'10px 14px',background:'#141414',border:'1px solid #232323',
-            borderRadius:'10px',color:'#F0EDE8',fontSize:'0.8rem',outline:'none',
-            maxWidth:'500px'
+            flex:1,minWidth:'200px',padding:'10px 14px',background:'#141414',
+            border:'1px solid #232323',borderRadius:'10px',color:'#F0EDE8',
+            fontSize:'0.8rem',outline:'none'
           }}
         />
+        
+        <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
+          <span style={{fontSize:'0.65rem',color:'#8A8278'}}>From:</span>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+            style={{
+              padding:'8px 10px',background:'#141414',border:'1px solid #232323',
+              borderRadius:'8px',color:'#F0EDE8',fontSize:'0.7rem',outline:'none',
+              width:'130px'
+            }}
+          />
+        </div>
+        
+        <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
+          <span style={{fontSize:'0.65rem',color:'#8A8278'}}>To:</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={e => {
+              // If To is before From, swap them
+              if (dateFrom && e.target.value && dateFrom > e.target.value) {
+                setDateFrom(e.target.value)
+                setDateTo(dateFrom)
+              } else {
+                setDateTo(e.target.value)
+              }
+            }}
+            style={{
+              padding:'8px 10px',background:'#141414',border:'1px solid #232323',
+              borderRadius:'8px',color:'#F0EDE8',fontSize:'0.7rem',outline:'none',
+              width:'130px'
+            }}
+          />
+        </div>
+        
+        {(dateFrom || dateTo) && (
+          <button onClick={clearDateRange} style={{
+            padding:'6px 12px',background:'rgba(239,68,68,0.12)',color:'#EF4444',
+            border:'1px solid rgba(239,68,68,0.2)',borderRadius:'8px',cursor:'pointer',
+            fontSize:'0.65rem',fontWeight:600
+          }}>
+            Clear Dates
+          </button>
+        )}
+        
+        <div style={{display:'flex',gap:'3px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'7px',padding:'2px'}}>
+          {[{k:'today',l:'Today'},{k:'5days',l:'5 Days'},{k:'15days',l:'15 Days'},{k:'all',l:'All'}].map(f => (
+            <button 
+              key={f.k} 
+              onClick={() => { setDateFilter(f.k as any); setDateFrom(''); setDateTo('') }} 
+              style={{
+                padding:'5px 10px',border:'none',borderRadius:'5px',
+                background: dateFilter===f.k && !dateFrom && !dateTo ? 'rgba(244,99,30,0.15)' : 'transparent',
+                color: dateFilter===f.k && !dateFrom && !dateTo ? '#F4631E' : '#8A8278',
+                cursor:'pointer',fontSize:'0.65rem',fontWeight:600,transition:'all 0.15s'
+              }}
+            >
+              {f.l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Stats Row */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'10px',marginBottom:'16px'}}>
+        <div style={{background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'12px',textAlign:'center'}}>
+          <div style={{fontSize:'0.55rem',color:'#8A8278',textTransform:'uppercase'}}>Total Submissions</div>
+          <div style={{fontSize:'1.2rem',fontWeight:700,color:'#F4631E'}}>{totalSubmissions}</div>
+        </div>
+        <div style={{background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'12px',textAlign:'center'}}>
+          <div style={{fontSize:'0.55rem',color:'#8A8278',textTransform:'uppercase'}}>Total Pipeline</div>
+          <div style={{fontSize:'1.2rem',fontWeight:700,color:'#C9A84C'}}>{fmt(totalPipeline)}</div>
+        </div>
+        <div style={{background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'12px',textAlign:'center'}}>
+          <div style={{fontSize:'0.55rem',color:'#8A8278',textTransform:'uppercase'}}>Green</div>
+          <div style={{fontSize:'1.2rem',fontWeight:700,color:'#22C55E'}}>{totalGreen}</div>
+        </div>
+        <div style={{background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'12px',textAlign:'center'}}>
+          <div style={{fontSize:'0.55rem',color:'#8A8278',textTransform:'uppercase'}}>Green Rate</div>
+          <div style={{fontSize:'1.2rem',fontWeight:700,color:'#C9A84C'}}>{totalSubmissions > 0 ? ((totalGreen / totalSubmissions) * 100).toFixed(0) : 0}%</div>
+        </div>
       </div>
 
       {/* TABLE VIEW */}
-      {(viewMode === 'table' || search.trim()) && (
+      {(viewMode === 'table' || search.trim() || dateFrom || dateTo) && (
         <div className={styles.tableWrap}>
           <table className={styles.table}>
-            <thead><tr><th>Date</th><th>Seller</th><th>Category Mgr</th><th>L1 Manager</th><th>Pipeline</th><th>Required</th><th>Status</th></tr></thead>
+            <thead><tr>
+              <th>Date</th><th>Seller</th><th>Category Mgr</th><th>L1 Manager</th><th>Pipeline</th><th>Required</th><th>Status</th>
+            </tr></thead>
             <tbody>
-              {(search.trim() ? filterByDate(filteredResults) : filterByDate(l1Data.flatMap((l1: any) => (l1.l2_groups || []).flatMap((l2: any) => (l2.submissions || []).map((s: any) => ({...s, l1_name: l1.l1_name, l2_name: l2.l2_name})))))).slice(0, 200).map((row: any) => (
-                <tr key={row.id} className={styles.row}>
-                  <td className={styles.dateCell}>{fmtDate(row.date)}</td>
-                  <td className={styles.sellerCell}>{row.seller_email}</td>
-                  <td style={{fontSize:'0.7rem',color:'#C9A84C'}}>{row.l1_name}</td>
-                  <td style={{fontSize:'0.7rem',color:'#8A8278'}}>{row.l2_name}</td>
-                  <td className={styles.valueCell}>{fmt(row.pipeline_value)}</td>
-                  <td className={styles.reqCell}>{fmt(row.required_daily)}</td>
-                  <td><span className={`${styles.badge} ${row.status==='GREEN'?styles.badgeGreen:styles.badgeRed}`}>{row.status}</span></td>
-                </tr>
-              ))}
+              {(() => {
+                let allRows: any[] = []
+                if (search.trim() || dateFrom || dateTo) {
+                  allRows = filteredResults
+                } else {
+                  filteredL1Data.forEach((l1: any) => {
+                    l1.l2_groups?.forEach((l2: any) => {
+                      l2.submissions?.forEach((sub: any) => {
+                        allRows.push({ ...sub, l1_name: l1.l1_name, l2_name: l2.l2_name })
+                      })
+                    })
+                  })
+                }
+                return allRows.slice(0, 300).map((row: any) => (
+                  <tr key={row.id} className={styles.row}>
+                    <td className={styles.dateCell}>{fmtDate(row.date)}</td>
+                    <td className={styles.sellerCell}>{row.seller_email}</td>
+                    <td style={{fontSize:'0.7rem',color:'#C9A84C'}}>{row.l1_name}</td>
+                    <td style={{fontSize:'0.7rem',color:'#8A8278'}}>{row.l2_name}</td>
+                    <td className={styles.valueCell}>{fmt(row.pipeline_value)}</td>
+                    <td className={styles.reqCell}>{fmt(row.required_daily)}</td>
+                    <td><span className={`${styles.badge} ${row.status==='GREEN'?styles.badgeGreen:styles.badgeRed}`}>{row.status}</span></td>
+                  </tr>
+                ))
+              })()}
             </tbody>
           </table>
         </div>
       )}
 
       {/* CARDS VIEW */}
-      {viewMode === 'cards' && !search.trim() && (
+      {viewMode === 'cards' && !search.trim() && !dateFrom && !dateTo && (
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'12px'}}>
-          {l1Data.map((l1: any) => {
-            const filtered = filterByDate(l1.submissions || [])
-            const green = filtered.filter((s: any) => s.status === 'GREEN').length
-            const red = filtered.filter((s: any) => s.status === 'RED').length
+          {filteredL1Data.map((l1: any) => {
+            const green = l1.green_count || 0
+            const total = l1.total_submissions || 0
             return (
-              <div key={l1.l1_email} onClick={() => setSelectedL1({...l1, filtered_submissions: filtered})} style={{
+              <div key={l1.l1_email} onClick={() => setSelectedL1(l1)} style={{
                 background:'#141414',border:'1px solid #232323',borderRadius:'14px',padding:'16px',cursor:'pointer',transition:'all 0.3s'
               }}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
-                  <div><div style={{fontWeight:700,fontSize:'0.9rem'}}>{l1.l1_name}</div><div style={{fontSize:'0.62rem',color:'#8A8278'}}>{l1.l2_count} L1 Managers</div></div>
-                  <div style={{textAlign:'right'}}><div style={{fontWeight:700,fontSize:'1.1rem',color:'#F4631E'}}>{filtered.length}</div><div style={{fontSize:'0.6rem',color:'#8A8278'}}>submissions</div></div>
+                  <div><div style={{fontWeight:700,fontSize:'0.9rem'}}>{l1.l1_name}</div><div style={{fontSize:'0.62rem',color:'#8A8278'}}>{l1.l2_groups.length} L1 Managers</div></div>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontWeight:700,fontSize:'1.1rem',color:'#F4631E'}}>{total}</div>
+                    <div style={{fontSize:'0.6rem',color:'#8A8278'}}>submissions</div>
+                  </div>
                 </div>
-                <div style={{display:'flex',gap:'12px',fontSize:'0.65rem'}}><span style={{color:'#22C55E'}}>Green: {green}</span><span style={{color:'#EF4444'}}>Red: {red}</span><span style={{color:'#8A8278'}}>Rate: {filtered.length>0?((green/filtered.length)*100).toFixed(0):0}%</span></div>
-                <div style={{height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',marginTop:'8px'}}><div style={{height:'100%',background:'#22C55E',borderRadius:'2px',width:`${filtered.length>0?(green/filtered.length)*100:0}%`,transition:'width 0.5s'}}/></div>
+                <div style={{display:'flex',gap:'12px',fontSize:'0.65rem'}}>
+                  <span style={{color:'#22C55E'}}>Green: {green}</span>
+                  <span style={{color:'#EF4444'}}>Red: {total - green}</span>
+                  <span style={{color:'#8A8278'}}>Pipeline: {fmt(l1.total_pipeline)}</span>
+                </div>
+                <div style={{height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',marginTop:'8px'}}>
+                  <div style={{height:'100%',background:'#22C55E',borderRadius:'2px',width:`${total>0?(green/total)*100:0}%`,transition:'width 0.5s'}}/>
+                </div>
               </div>
             )
           })}
@@ -175,16 +392,31 @@ export default function AdminPipelinePage() {
       {/* L1 Popup → L2 Cards */}
       {selectedL1 && (
         <PopupModal title={`${selectedL1.l1_name} — L1 Managers`} onClose={() => setSelectedL1(null)}>
-          <div style={{marginBottom:'12px',display:'flex',gap:'8px'}}><span style={{fontSize:'0.7rem',color:'#22C55E'}}>Green: {selectedL1.filtered_submissions.filter((s:any)=>s.status==='GREEN').length}</span><span style={{fontSize:'0.7rem',color:'#EF4444'}}>Red: {selectedL1.filtered_submissions.filter((s:any)=>s.status==='RED').length}</span><span style={{fontSize:'0.7rem',color:'#8A8278'}}>Total: {selectedL1.filtered_submissions.length}</span></div>
+          <div style={{marginBottom:'12px',display:'flex',gap:'12px',fontSize:'0.7rem',color:'#8A8278'}}>
+            <span>Total: <strong style={{color:'#F4631E'}}>{selectedL1.total_submissions}</strong></span>
+            <span>Pipeline: <strong style={{color:'#C9A84C'}}>{fmt(selectedL1.total_pipeline)}</strong></span>
+            <span>Green: <strong style={{color:'#22C55E'}}>{selectedL1.green_count}</strong></span>
+          </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))',gap:'10px'}}>
             {selectedL1.l2_groups.map((l2: any) => {
-              const l2Filtered = filterByDate(l2.submissions || [])
-              const l2Green = l2Filtered.filter((s:any)=>s.status==='GREEN').length
+              const l2Green = l2.submissions.filter((s:any) => s.status === 'GREEN').length
+              const l2Total = l2.submissions.length
+              const l2Pipeline = l2.submissions.reduce((s: number, sub: any) => s + (sub.pipeline_value || 0), 0)
               return (
-                <div key={l2.l2_email} onClick={(e) => { e.stopPropagation(); setSelectedL2({...l2, filtered_submissions: l2Filtered}) }} style={{background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'14px',cursor:'pointer'}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><div style={{fontWeight:600,fontSize:'0.82rem'}}>{l2.l2_name}</div><div style={{fontSize:'0.6rem',color:'#8A8278'}}>{l2.seller_count} sellers</div></div><div style={{textAlign:'right'}}><div style={{fontWeight:700,fontSize:'0.9rem',color:'#F4631E'}}>{l2Filtered.length}</div></div></div>
-                  <div style={{fontSize:'0.6rem',color:'#22C55E',marginTop:'4px'}}>Green: {l2Green}</div>
-                  <div style={{height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',marginTop:'6px'}}><div style={{height:'100%',background:'#22C55E',borderRadius:'2px',width:`${l2Filtered.length>0?(l2Green/l2Filtered.length)*100:0}%`}}/></div>
+                <div key={l2.l2_email} onClick={(e) => { e.stopPropagation(); setSelectedL2(l2) }} style={{
+                  background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'14px',cursor:'pointer'
+                }}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div><div style={{fontWeight:600,fontSize:'0.82rem'}}>{l2.l2_name}</div><div style={{fontSize:'0.6rem',color:'#8A8278'}}>{l2Total} submissions</div></div>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontWeight:700,fontSize:'0.85rem',color:'#F4631E'}}>{l2Total}</div>
+                      <div style={{fontSize:'0.55rem',color:'#8A8278'}}>Green: {l2Green}</div>
+                    </div>
+                  </div>
+                  <div style={{fontSize:'0.6rem',color:'#C9A84C',marginTop:'2px'}}>Pipeline: {fmt(l2Pipeline)}</div>
+                  <div style={{height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',marginTop:'6px'}}>
+                    <div style={{height:'100%',background:'#22C55E',borderRadius:'2px',width:`${l2Total>0?(l2Green/l2Total)*100:0}%`}}/>
+                  </div>
                 </div>
               )
             })}
@@ -192,11 +424,28 @@ export default function AdminPipelinePage() {
         </PopupModal>
       )}
 
-      {/* L2 Popup → Table */}
+      {/* L2 Popup → Submissions Table */}
       {selectedL2 && (
         <PopupModal title={`${selectedL2.l2_name} — Submissions`} onClose={() => setSelectedL2(null)}>
-          {selectedL2.filtered_submissions.length === 0 ? <div style={{textAlign:'center',padding:'30px',color:'#8A8278'}}>No submissions</div> : (
-            <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Date</th><th>Seller</th><th>Pipeline</th><th>Required</th><th>Status</th></tr></thead><tbody>{selectedL2.filtered_submissions.map((row: any) => (<tr key={row.id} className={styles.row}><td className={styles.dateCell}>{fmtDate(row.date)}</td><td className={styles.sellerCell}>{row.seller_email}</td><td className={styles.valueCell}>{fmt(row.pipeline_value)}</td><td className={styles.reqCell}>{fmt(row.required_daily)}</td><td><span className={`${styles.badge} ${row.status==='GREEN'?styles.badgeGreen:styles.badgeRed}`}>{row.status}</span></td></tr>))}</tbody></table></div>
+          {selectedL2.submissions.length === 0 ? (
+            <div style={{textAlign:'center',padding:'30px',color:'#8A8278'}}>No submissions</div>
+          ) : (
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead><tr><th>Date</th><th>Seller</th><th>Pipeline</th><th>Required</th><th>Status</th></tr></thead>
+                <tbody>
+                  {selectedL2.submissions.map((row: any) => (
+                    <tr key={row.id} className={styles.row}>
+                      <td className={styles.dateCell}>{fmtDate(row.date)}</td>
+                      <td className={styles.sellerCell}>{row.seller_email}</td>
+                      <td className={styles.valueCell}>{fmt(row.pipeline_value)}</td>
+                      <td className={styles.reqCell}>{fmt(row.required_daily)}</td>
+                      <td><span className={`${styles.badge} ${row.status==='GREEN'?styles.badgeGreen:styles.badgeRed}`}>{row.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </PopupModal>
       )}

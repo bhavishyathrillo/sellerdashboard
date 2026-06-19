@@ -43,6 +43,17 @@ function fmtDate(d: string) {
   } catch { return d }
 }
 
+// Parse date from input value (YYYY-MM-DD format)
+function parseDateInput(str: string): Date | null {
+  if (!str) return null
+  try {
+    const d = new Date(str + 'T00:00:00')
+    return isNaN(d.getTime()) ? null : d
+  } catch {
+    return null
+  }
+}
+
 export default function PipelinePage({ session }: PipelinePageProps) {
   const [todayStatus, setTodayStatus] = useState<TodayStatus | null>(null)
   const [history, setHistory] = useState<PipelineSubmission[]>([])
@@ -55,6 +66,10 @@ export default function PipelinePage({ session }: PipelinePageProps) {
     session.role === 'L1' ? 'team' : 'mine'
   )
   const [dateFilter, setDateFilter] = useState<'today' | '5days' | '15days' | 'all'>('all')
+  const [search, setSearch] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [filteredHistory, setFilteredHistory] = useState<PipelineSubmission[]>([])
 
   const isManager = ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(session.role)
   const isL1 = session.role === 'L1'
@@ -63,7 +78,11 @@ export default function PipelinePage({ session }: PipelinePageProps) {
     setLoading(true)
     try {
       const actualView = isL1 ? 'team' : view
-      const params = new URLSearchParams({ email: session.email, role: session.role, view: actualView })
+      const params = new URLSearchParams({ 
+        email: session.email, 
+        role: session.role, 
+        view: actualView 
+      })
       const res = await fetch(`/api/pipeline?${params}`)
       const json = await res.json()
       if (!res.ok) { setError(json.error || 'Failed to load'); return }
@@ -76,7 +95,82 @@ export default function PipelinePage({ session }: PipelinePageProps) {
     }
   }
 
-  useEffect(() => { load() }, [session.email, session.role, view])
+  useEffect(() => { 
+    load() 
+  }, [session.email, session.role, view])
+
+  // Filter history whenever dependencies change
+  useEffect(() => {
+    let filtered = [...history]
+    
+    // If no filters, show all
+    if (dateFilter === 'all' && !dateFrom && !dateTo && !search.trim()) {
+      setFilteredHistory(filtered)
+      return
+    }
+    
+    // Apply preset date filter (Today, 5 Days, 15 Days)
+    if (dateFilter !== 'all' && !dateFrom && !dateTo) {
+      const now = new Date()
+      now.setHours(0, 0, 0, 0)
+      let cutoff = new Date(now)
+      
+      if (dateFilter === 'today') {
+        cutoff = now
+      } else if (dateFilter === '5days') {
+        cutoff.setDate(cutoff.getDate() - 4)
+      } else if (dateFilter === '15days') {
+        cutoff.setDate(cutoff.getDate() - 14)
+      }
+      
+      filtered = filtered.filter(h => {
+        const hDate = new Date(h.date)
+        hDate.setHours(0, 0, 0, 0)
+        return hDate >= cutoff
+      })
+    }
+    
+    // Apply custom date range (FROM - TO) - INCLUSIVE
+    if (dateFrom || dateTo) {
+      const fromDate = dateFrom ? parseDateInput(dateFrom) : null
+      const toDate = dateTo ? parseDateInput(dateTo) : null
+      
+      // If From is empty, use a very early date
+      // If To is empty, use a very late date
+      const effectiveFrom = fromDate || new Date(2000, 0, 1)
+      const effectiveTo = toDate || new Date(2100, 11, 31)
+      
+      // Normalize to start of day for From and end of day for To
+      const from = new Date(effectiveFrom)
+      from.setHours(0, 0, 0, 0)
+      
+      const to = new Date(effectiveTo)
+      to.setHours(23, 59, 59, 999)
+      
+      filtered = filtered.filter(h => {
+        const hDate = new Date(h.date)
+        hDate.setHours(0, 0, 0, 0)
+        return hDate >= from && hDate <= to
+      })
+    }
+    
+    // Apply search filter (seller name)
+    if (search.trim()) {
+      const q = search.toLowerCase().trim()
+      filtered = filtered.filter(h => 
+        h.seller_email?.toLowerCase().includes(q)
+      )
+    }
+    
+    setFilteredHistory(filtered)
+  }, [history, dateFilter, search, dateFrom, dateTo])
+
+  // Clear date range
+  const clearDateRange = () => {
+    setDateFrom('')
+    setDateTo('')
+    setDateFilter('all')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -103,34 +197,6 @@ export default function PipelinePage({ session }: PipelinePageProps) {
     }
   }
 
-  // Filter history based on date filter
-  const getFilteredHistory = () => {
-    const now = new Date()
-    now.setHours(0, 0, 0, 0)
-    
-    let cutoffDate: Date | null = null
-    
-    if (dateFilter === 'today') {
-      cutoffDate = new Date(now)
-    } else if (dateFilter === '5days') {
-      cutoffDate = new Date(now)
-      cutoffDate.setDate(cutoffDate.getDate() - 4)
-    } else if (dateFilter === '15days') {
-      cutoffDate = new Date(now)
-      cutoffDate.setDate(cutoffDate.getDate() - 14)
-    }
-    
-    if (!cutoffDate) return history
-    
-    return history.filter(h => {
-      const hDate = new Date(h.date)
-      hDate.setHours(0, 0, 0, 0)
-      return hDate >= cutoffDate!
-    })
-  }
-
-  const filteredHistory = getFilteredHistory()
-
   if (loading) return (
     <div className={styles.loadingWrap}>
       <div className={styles.spinner} />
@@ -138,11 +204,11 @@ export default function PipelinePage({ session }: PipelinePageProps) {
     </div>
   )
 
-  const greenCount = filteredHistory.filter(h => h.status === 'GREEN').length
-  const redCount = filteredHistory.filter(h => h.status === 'RED').length
-  const avgPipeline = filteredHistory.length > 0
-    ? filteredHistory.reduce((a, b) => a + (b.pipeline_value || 0), 0) / filteredHistory.length
-    : 0
+  // Use filteredHistory for display
+  const displayHistory = filteredHistory
+  const greenCount = displayHistory.filter(h => h.status === 'GREEN').length
+  const redCount = displayHistory.filter(h => h.status === 'RED').length
+  const totalPipeline = displayHistory.reduce((sum, h) => sum + (h.pipeline_value || 0), 0)
 
   return (
     <div className={styles.page}>
@@ -230,72 +296,53 @@ export default function PipelinePage({ session }: PipelinePageProps) {
           <div className={styles.monthlyRows}>
             <div className={styles.monthlyRow}>
               <span className={styles.monthlyRowLabel}>Total Submissions</span>
-              <span className={styles.monthlyRowValue}>{filteredHistory.length}</span>
+              <span className={styles.monthlyRowValue}>{displayHistory.length}</span>
+            </div>
+            <div className={styles.monthlyDivider} />
+            <div className={styles.monthlyRow}>
+              <span className={styles.monthlyRowLabel}>Total Pipeline</span>
+              <span className={styles.monthlyRowValue} style={{color:'#C9A84C'}}>{fmt(totalPipeline)}</span>
             </div>
             <div className={styles.monthlyDivider} />
             <div className={styles.monthlyRow}>
               <span className={styles.monthlyRowLabel}>Green Days</span>
               <span className={`${styles.monthlyRowValue} ${styles.achievedVal}`}>{greenCount}</span>
             </div>
-            <div className={styles.monthlyDivider} />
-            <div className={styles.monthlyRow}>
-              <span className={styles.monthlyRowLabel}>Avg Pipeline</span>
-              <span className={styles.monthlyRowValue}>{fmt(avgPipeline)}</span>
-            </div>
           </div>
           <div className={styles.monthlyProgress}>
             <div className={styles.progressHeader}>
               <span className={styles.progressLabel}>Green Rate</span>
-              <span className={styles.progressPct}>{filteredHistory.length > 0 ? ((greenCount / filteredHistory.length) * 100).toFixed(0) : 0}%</span>
+              <span className={styles.progressPct}>{displayHistory.length > 0 ? ((greenCount / displayHistory.length) * 100).toFixed(0) : 0}%</span>
             </div>
             <div className={styles.progressTrack}>
-              <div className={styles.progressFill} style={{ width: `${filteredHistory.length > 0 ? (greenCount / filteredHistory.length) * 100 : 0}%` }} />
+              <div className={styles.progressFill} style={{ width: `${displayHistory.length > 0 ? (greenCount / displayHistory.length) * 100 : 0}%` }} />
             </div>
           </div>
         </div>
       </div>
 
+      {/* Stats Strip */}
       <div className={styles.statsStrip}>
-        <div className={styles.stat}><div className={styles.statVal}>{filteredHistory.length}</div><div className={styles.statLbl}>Total</div></div>
+        <div className={styles.stat}><div className={styles.statVal}>{displayHistory.length}</div><div className={styles.statLbl}>Total</div></div>
         <div className={styles.statDivider} />
         <div className={styles.stat}><div className={styles.statVal} style={{color:'#22C55E'}}>{greenCount}</div><div className={styles.statLbl}>Green</div></div>
         <div className={styles.statDivider} />
         <div className={styles.stat}><div className={styles.statVal} style={{color:'#EF4444'}}>{redCount}</div><div className={styles.statLbl}>Red</div></div>
         <div className={styles.statDivider} />
-        <div className={styles.stat}><div className={styles.statVal}>{fmt(avgPipeline)}</div><div className={styles.statLbl}>Avg Pipeline</div></div>
+        <div className={styles.stat}><div className={styles.statVal} style={{color:'#C9A84C'}}>{fmt(totalPipeline)}</div><div className={styles.statLbl}>Total Pipeline</div></div>
         <div className={styles.statDivider} />
-        <div className={styles.stat}><div className={styles.statVal} style={{color:'#22C55E'}}>{filteredHistory.length>0?((greenCount/filteredHistory.length)*100).toFixed(0):0}%</div><div className={styles.statLbl}>Green Rate</div></div>
+        <div className={styles.stat}><div className={styles.statVal} style={{color:'#22C55E'}}>{displayHistory.length>0?((greenCount/displayHistory.length)*100).toFixed(0):0}%</div><div className={styles.statLbl}>Green Rate</div></div>
       </div>
 
       {/* History */}
       <div className={styles.historySection}>
         <div className={styles.historyHeader}>
-          <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'12px',flexWrap:'wrap'}}>
             <h3 className={styles.sectionTitle}>Submission History</h3>
-            {/* Date Filter Toggle */}
-            <div style={{display:'flex',gap:'3px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'7px',padding:'2px'}}>
-              {[
-                { key: 'today', label: 'Today' },
-                { key: '5days', label: '5 Days' },
-                { key: '15days', label: '15 Days' },
-                { key: 'all', label: 'All' },
-              ].map(f => (
-                <button
-                  key={f.key}
-                  onClick={() => setDateFilter(f.key as any)}
-                  style={{
-                    padding:'5px 10px',border:'none',borderRadius:'5px',
-                    background: dateFilter === f.key ? 'rgba(244,99,30,0.15)' : 'transparent',
-                    color: dateFilter === f.key ? '#F4631E' : '#8A8278',
-                    cursor:'pointer',fontSize:'0.65rem',fontWeight:600,transition:'all 0.15s'
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
+            <span style={{fontSize:'0.65rem',color:'#8A8278'}}>
+              ({displayHistory.length} submissions)
+            </span>
           </div>
-          {/* View toggle for non-L1 managers */}
           {isManager && !isL1 && (
             <div className={styles.viewToggle}>
               <button className={`${styles.toggleBtn} ${view==='mine'?styles.toggleActive:''}`} onClick={()=>setView('mine')}>My Submissions</button>
@@ -307,8 +354,83 @@ export default function PipelinePage({ session }: PipelinePageProps) {
           )}
         </div>
 
-        {filteredHistory.length === 0 ? (
-          <div className={styles.emptyWrap}><p>No submissions found</p></div>
+        {/* Filters Row: Search + Date */}
+        <div style={{display:'flex',flexWrap:'wrap',gap:'8px',marginBottom:'12px',alignItems:'center'}}>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search seller..."
+            style={{
+              flex:1,minWidth:'150px',padding:'8px 12px',background:'#141414',
+              border:'1px solid #232323',borderRadius:'8px',color:'#F0EDE8',
+              fontSize:'0.75rem',outline:'none'
+            }}
+          />
+          
+          <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
+            <span style={{fontSize:'0.6rem',color:'#8A8278'}}>From:</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+              style={{
+                padding:'6px 8px',background:'#141414',border:'1px solid #232323',
+                borderRadius:'6px',color:'#F0EDE8',fontSize:'0.7rem',outline:'none',
+                width:'120px'
+              }}
+            />
+          </div>
+          
+          <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
+            <span style={{fontSize:'0.6rem',color:'#8A8278'}}>To:</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              style={{
+                padding:'6px 8px',background:'#141414',border:'1px solid #232323',
+                borderRadius:'6px',color:'#F0EDE8',fontSize:'0.7rem',outline:'none',
+                width:'120px'
+              }}
+            />
+          </div>
+          
+          {(dateFrom || dateTo) && (
+            <button onClick={clearDateRange} style={{
+              padding:'4px 10px',background:'rgba(239,68,68,0.1)',color:'#EF4444',
+              border:'1px solid rgba(239,68,68,0.15)',borderRadius:'6px',cursor:'pointer',
+              fontSize:'0.6rem',fontWeight:600
+            }}>
+              Clear Dates
+            </button>
+          )}
+          
+          <div style={{display:'flex',gap:'3px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'6px',padding:'2px'}}>
+            {[{k:'today',l:'Today'},{k:'5days',l:'5 Days'},{k:'15days',l:'15 Days'},{k:'all',l:'All'}].map(f => (
+              <button 
+                key={f.k} 
+                onClick={() => { setDateFilter(f.k as any); setDateFrom(''); setDateTo('') }} 
+                style={{
+                  padding:'4px 8px',border:'none',borderRadius:'4px',
+                  background: dateFilter===f.k && !dateFrom && !dateTo ? 'rgba(244,99,30,0.15)' : 'transparent',
+                  color: dateFilter===f.k && !dateFrom && !dateTo ? '#F4631E' : '#8A8278',
+                  cursor:'pointer',fontSize:'0.6rem',fontWeight:600,transition:'all 0.15s'
+                }}
+              >
+                {f.l}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {displayHistory.length === 0 ? (
+          <div className={styles.emptyWrap}>
+            <p>No submissions found</p>
+            <p style={{fontSize:'0.7rem',color:'#8A8278',marginTop:'4px'}}>
+              Try adjusting your search or date filters
+            </p>
+          </div>
         ) : (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
@@ -324,7 +446,7 @@ export default function PipelinePage({ session }: PipelinePageProps) {
                 </tr>
               </thead>
               <tbody>
-                {filteredHistory.map(row => {
+                {displayHistory.map(row => {
                   const diff = (row.pipeline_value || 0) - (row.required_daily || 0)
                   const above = diff >= 0
                   return (
