@@ -43,6 +43,12 @@ export default function AdminHygienePage() {
   const chartRef = useRef<HTMLCanvasElement>(null)
   const chartInstance = useRef<any>(null)
 
+  // 🔥 Get number of days passed in the month
+  const getDaysPassed = () => {
+    const today = new Date()
+    return today.getDate() // Returns 1-31
+  }
+
   useEffect(() => {
     fetch('/api/admin/hygiene')
       .then(r => r.json())
@@ -114,21 +120,21 @@ export default function AdminHygienePage() {
 
   const l1Data = data?.l1_data || []
   const summary = data?.summary || {}
-  const totalDays = data?.totalDays || 1
   
-  // 🔥 CORRECT: Calculate average per seller per day
+  // 🔥 Get days passed in the month
+  const daysPassed = getDaysPassed()
+  
+  // 🔥 Use summary data for TOP KPI CARDS - Calculate based on days passed
   const totalSellers = summary.totalSellers || 0
   const totalCalls = summary.totalCalls || 0
   const totalDuration = summary.totalDuration || 0
   
-  // Avg Calls/Day = Total Calls / (Total Sellers × Total Days)
-  const avgCallsPerDay = totalSellers > 0 && totalDays > 0 
-    ? Math.round(totalCalls / (totalSellers * totalDays)) 
+  // 🔥 Calculate averages based on days passed (not full month)
+  const avgCallsPerDay = totalSellers > 0 && daysPassed > 0 
+    ? Math.round(totalCalls / (totalSellers * daysPassed)) 
     : 0
-  
-  // Avg Duration/Day = Total Duration / (Total Sellers × Total Days)
-  const avgDurationPerDay = totalSellers > 0 && totalDays > 0 
-    ? Math.round(totalDuration / (totalSellers * totalDays)) 
+  const avgDurationPerDay = totalSellers > 0 && daysPassed > 0 
+    ? Math.round(totalDuration / (totalSellers * daysPassed)) 
     : 0
 
   // Flatten for table
@@ -160,13 +166,11 @@ export default function AdminHygienePage() {
         <p className={styles.heroSub}>All Teams · {monthName}</p>
       </div>
 
-      {/* 🔥 TOP 2 KPI CARDS - CORRECTLY CALCULATED */}
+      {/* TOP KPI CARDS - Calculated based on days passed */}
       <div className={styles.kpiGrid}>
         <div className={`${styles.kpiCard} ${styles.kpiPrimary}`}>
           <div className={styles.kpiIcon}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
-            </svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4631E" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
           </div>
           <div className={styles.kpiValue}>{avgCallsPerDay}</div>
           <div className={styles.kpiLabel}>Avg Calls/Day</div>
@@ -174,13 +178,11 @@ export default function AdminHygienePage() {
         </div>
         <div className={styles.kpiCard}>
           <div className={styles.kpiIcon}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
           <div className={styles.kpiValue}>{fmtDuration(avgDurationPerDay)}</div>
           <div className={styles.kpiLabel}>Avg Duration/Day</div>
-          <div className={styles.kpiTrend}>Per seller · {totalSellers} sellers</div>
+          <div className={styles.kpiTrend}>Per seller · {daysPassed} days</div>
         </div>
       </div>
 
@@ -247,13 +249,12 @@ export default function AdminHygienePage() {
                   </div>
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
-                  {/* 🔥 CHANGED: "Avg Calls" → "Total Calls" */}
                   <div style={{background:'rgba(255,255,255,0.02)',borderRadius:'8px',padding:'8px',textAlign:'center'}}>
                     <div style={{fontSize:'0.55rem',color:'#8A8278',textTransform:'uppercase'}}>Total Calls</div>
                     <div style={{fontSize:'0.85rem',fontWeight:700,color:'#F4631E'}}><CallIcon />{totalCalls}</div>
                   </div>
                   <div style={{background:'rgba(255,255,255,0.02)',borderRadius:'8px',padding:'8px',textAlign:'center'}}>
-                    <div style={{fontSize:'0.55rem',color:'#8A8278',textTransform:'uppercase'}}>Avg Duration</div>
+                    <div style={{fontSize:'0.55rem',color:'#8A8278',textTransform:'uppercase'}}>Total Duration</div>
                     <div style={{fontSize:'0.85rem',fontWeight:700,color:'#22C55E'}}><ClockIcon />{fmtDuration(totalDuration)}</div>
                   </div>
                   <div style={{background:'rgba(255,255,255,0.02)',borderRadius:'8px',padding:'8px',textAlign:'center'}}>
@@ -279,8 +280,8 @@ export default function AdminHygienePage() {
         <PopupModal title={`${selectedL1.l1_name} — Hygiene`} onClose={() => setSelectedL1(null)}>
           <div style={{height:'200px',marginBottom:'16px'}}><canvas ref={chartRef} style={{width:'100%',height:'100%'}}/></div>
           <div style={{display:'flex',gap:'12px',marginBottom:'12px',fontSize:'0.7rem',color:'#8A8278'}}>
-            <span>Avg Calls: <strong style={{color:'#F4631E'}}>{selectedL1.total_calls}</strong></span>
-            <span>Avg Duration: <strong style={{color:'#22C55E'}}>{fmtDuration(selectedL1.total_duration)}</strong></span>
+            <span>Total Calls: <strong style={{color:'#F4631E'}}>{selectedL1.total_calls}</strong></span>
+            <span>Total Duration: <strong style={{color:'#22C55E'}}>{fmtDuration(selectedL1.total_duration)}</strong></span>
             <span>Avg/Day: <strong>{selectedL1.avg_calls_per_seller_per_day}</strong></span>
           </div>
           <h3 style={{fontSize:'0.8rem',fontWeight:700,color:'#C9A84C',marginBottom:'10px'}}>L1 Managers ({selectedL1.l2_groups.length})</h3>
