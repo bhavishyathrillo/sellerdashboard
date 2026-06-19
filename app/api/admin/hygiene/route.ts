@@ -1,15 +1,84 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { cleanEmail, calculateHygieneStats } from '@/lib/hygiene-utils'
+import { cleanEmail } from '@/lib/hygiene-utils'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// 🔥 Helper function to calculate stats matching L1 login calculation
+function calculateHygieneStatsForAdmin(sellerData: any[], dateList: string[]) {
+  const totalDays = dateList.length
+  let totalCalls = 0
+  let totalDuration = 0
+  let totalSellers = 0
+
+  const processedSellers = sellerData.map((seller: any) => {
+    const filteredEffRows = seller.effRows || []
+    
+    const calls = filteredEffRows.reduce((sum: number, e: any) => sum + (e.call_dials || 0), 0)
+    const duration = filteredEffRows.reduce((sum: number, e: any) => sum + Math.round(parseFloat(e.call_duration || '0') || 0), 0)
+    const daysWithCalls = filteredEffRows.filter((e: any) => e.call_dials > 0).length
+
+    if (calls > 0 || duration > 0) {
+      totalCalls += calls
+      totalDuration += duration
+      totalSellers++
+    }
+
+    const dailyData = dateList.map((dateStr: string) => {
+      const found = filteredEffRows.find((e: any) => (e.date || '').split('T')[0] === dateStr)
+      const d = new Date(dateStr + 'T00:00:00')
+      return {
+        date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+        dateRaw: dateStr,
+        call_dials: found ? (found.call_dials || 0) : 0,
+        call_duration: found ? Math.round(parseFloat(found.call_duration || '0')) || 0 : 0
+      }
+    })
+
+    return {
+      seller_name: seller.seller_name,
+      seller_email: seller.seller_email,
+      total_calls: calls,
+      total_duration: duration,
+      days_with_calls: daysWithCalls,
+      dailyData
+    }
+  })
+
+  // 🔥 Team daily averages
+  const teamDailyData = dateList.map((dateStr: string, idx: number) => {
+    let totalDials = 0
+    let totalDur = 0
+    let count = 0
+    processedSellers.forEach((s: any) => {
+      const dd = s.dailyData[idx]
+      if (dd && dd.call_dials > 0) {
+        totalDials += dd.call_dials
+        totalDur += dd.call_duration
+        count++
+      }
+    })
+    return {
+      date: new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+      call_dials: count > 0 ? Math.round(totalDials / count) : 0,
+      call_duration: count > 0 ? Math.round(totalDur / count) : 0
+    }
+  })
+
+  return {
+    totalCalls,
+    totalDuration,
+    totalSellers,
+    processedSellers,
+    teamDailyData
+  }
+}
+
 export async function GET() {
   try {
-    // Get all srs_raw for hierarchy
     const { data: srsData } = await supabase.from('srs_raw').select('*')
 
     if (!srsData) return NextResponse.json({ l1_data: [] })
@@ -34,7 +103,7 @@ export async function GET() {
     const dateTo = dateList[dateList.length - 1]
     const totalDays = dateList.length
 
-    // Get ALL efficiency data with pagination
+    // Get ALL efficiency data
     let allEfficiency: any[] = []
     let page = 0
     const pageSize = 1000
@@ -52,7 +121,6 @@ export async function GET() {
         .range(start, end)
 
       if (error) {
-        console.error('Error fetching efficiency:', error)
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
 
@@ -68,8 +136,6 @@ export async function GET() {
       }
     }
 
-    console.log(`Total efficiency rows loaded: ${allEfficiency.length}`)
-
     // Index efficiency by email
     const effByEmail: Record<string, any[]> = {}
     if (allEfficiency) {
@@ -82,8 +148,12 @@ export async function GET() {
       })
     }
 
-    // Build L1 map
-    const l1Map = new Map<string, { name: string; sellerEmails: Set<string> }>()
+    // 🔥 Build L1 map - EXCLUDE L1's own email
+    const l1Map = new Map<string, { 
+      name: string; 
+      sellerEmails: Set<string>;
+      l1Email: string;
+    }>()
 
     srsData.forEach((row: any) => {
       const l1Email = cleanEmail(row.l1_email || '')
@@ -92,7 +162,8 @@ export async function GET() {
       if (!l1Map.has(l1Email)) {
         l1Map.set(l1Email, {
           name: row.l1_name || l1Email.split('@')[0],
-          sellerEmails: new Set()
+          sellerEmails: new Set(),
+          l1Email: l1Email
         })
       }
 
@@ -102,36 +173,7 @@ export async function GET() {
       }
     })
 
-    // Calculate global totals for summary
-    const allSellerEmails = new Set<string>()
-    for (const [, data] of l1Map) {
-      for (const email of data.sellerEmails) {
-        allSellerEmails.add(email)
-      }
-    }
-
-    let grandTotalCalls = 0
-    let grandTotalDuration = 0
-    let sellerWithCalls = 0
-
-    for (const email of allSellerEmails) {
-      const effRows = effByEmail[email] || []
-      const filteredEffRows = effRows.filter(e => {
-        const d = (e.date || '').split('T')[0]
-        return d >= dateFrom && d <= dateTo
-      })
-      const totalCalls = filteredEffRows.reduce((sum, e) => sum + (e.call_dials || 0), 0)
-      const totalDuration = filteredEffRows.reduce((sum, e) => sum + Math.round(parseFloat(e.call_duration || '0') || 0), 0)
-      if (totalCalls > 0 || totalDuration > 0) {
-        sellerWithCalls++
-        grandTotalCalls += totalCalls
-        grandTotalDuration += totalDuration
-      }
-    }
-
-    const totalSellers = allSellerEmails.size
-
-    // Build L1 data using shared utility
+    // Build L1 data
     const l1Data: any[] = []
 
     for (const [l1Email, data] of l1Map) {
@@ -144,9 +186,10 @@ export async function GET() {
         }
       })
 
-      const stats = calculateHygieneStats(sellerData, dateList)
+      // 🔥 Use the admin-specific calculation
+      const stats = calculateHygieneStatsForAdmin(sellerData, dateList)
 
-      // Build L2 groups for drill-down
+      // Build L2 groups
       const l2Groups: any[] = []
       const l2Emails = new Set<string>()
 
@@ -170,7 +213,7 @@ export async function GET() {
 
         for (const seller of l2Sellers) {
           const sellerEmail = cleanEmail(seller.seller_email)
-          if (sellerEmail === l1Email || sellerEmail === l2Email) continue
+          if (sellerEmail === l1Email) continue
 
           const effRows = effByEmail[sellerEmail] || []
           const filteredEffRows = effRows.filter(e => {
@@ -211,13 +254,23 @@ export async function GET() {
         }
       }
 
+      // 🔥 Calculate avg_calls_per_seller_per_day matching L1 login
+      // Formula: totalCalls / (totalSellers × daysPassed)
+      const daysPassed = today.getDate()
+      const avgCallsPerDay = stats.totalSellers > 0 && daysPassed > 0 
+        ? Math.round(stats.totalCalls / (stats.totalSellers * daysPassed)) 
+        : 0
+      const avgDurationPerDay = stats.totalSellers > 0 && daysPassed > 0 
+        ? Math.round(stats.totalDuration / (stats.totalSellers * daysPassed)) 
+        : 0
+
       l1Data.push({
         l1_name: data.name,
         l1_email: l1Email,
         total_calls: stats.totalCalls,
         total_duration: stats.totalDuration,
-        avg_calls_per_seller_per_day: stats.avgCallsPerSellerPerDay,
-        avg_duration_per_seller_per_day: stats.avgDurationPerSellerPerDay,
+        avg_calls_per_seller_per_day: avgCallsPerDay,  // 🔥 Matching L1 login
+        avg_duration_per_seller_per_day: avgDurationPerDay,  // 🔥 Matching L1 login
         total_sellers: stats.totalSellers,
         total_days: totalDays,
         l2_count: l2Groups.length,
@@ -226,24 +279,38 @@ export async function GET() {
       })
     }
 
-    // Global averages
-    const globalAvgCalls = totalSellers > 0 ? Math.round(grandTotalCalls / totalSellers) : 0
-    const globalAvgDuration = totalSellers > 0 ? Math.round(grandTotalDuration / totalSellers) : 0
+    // 🔥 Calculate global averages using the same formula
+    let globalTotalCalls = 0
+    let globalTotalDuration = 0
+    let globalTotalSellers = 0
+
+    l1Data.forEach((l1: any) => {
+      globalTotalCalls += l1.total_calls || 0
+      globalTotalDuration += l1.total_duration || 0
+      globalTotalSellers += l1.total_sellers || 0
+    })
+
+    const daysPassed = today.getDate()
+    const globalAvgCalls = globalTotalSellers > 0 && daysPassed > 0 
+      ? Math.round(globalTotalCalls / (globalTotalSellers * daysPassed)) 
+      : 0
+    const globalAvgDuration = globalTotalSellers > 0 && daysPassed > 0 
+      ? Math.round(globalTotalDuration / (globalTotalSellers * daysPassed)) 
+      : 0
+
+    const monthName = today.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
     return NextResponse.json({
       l1_data: l1Data,
-      month: today.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
+      month: monthName,
       totalDays: totalDays,
+      daysPassed: daysPassed,
       summary: {
-        totalSellers: totalSellers,
-        totalCalls: grandTotalCalls,
-        totalDuration: grandTotalDuration,
+        totalSellers: globalTotalSellers,
+        totalCalls: globalTotalCalls,
+        totalDuration: globalTotalDuration,
         avgCallsPerSellerPerDay: globalAvgCalls,
-        avgDurationPerSellerPerDay: globalAvgDuration,
-        sellerWithCalls: sellerWithCalls,
-        totalDays: totalDays,
-        efficiencyRows: allEfficiency.length,
-        pagesFetched: page + 1
+        avgDurationPerSellerPerDay: globalAvgDuration
       }
     })
   } catch (error: any) {

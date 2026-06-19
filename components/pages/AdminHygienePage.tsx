@@ -43,12 +43,6 @@ export default function AdminHygienePage() {
   const chartRef = useRef<HTMLCanvasElement>(null)
   const chartInstance = useRef<any>(null)
 
-  // 🔥 Get number of days passed in the month
-  const getDaysPassed = () => {
-    const today = new Date()
-    return today.getDate() // Returns 1-31
-  }
-
   useEffect(() => {
     fetch('/api/admin/hygiene')
       .then(r => r.json())
@@ -120,22 +114,13 @@ export default function AdminHygienePage() {
 
   const l1Data = data?.l1_data || []
   const summary = data?.summary || {}
-  
-  // 🔥 Get days passed in the month
-  const daysPassed = getDaysPassed()
-  
-  // 🔥 Use summary data for TOP KPI CARDS - Calculate based on days passed
-  const totalSellers = summary.totalSellers || 0
+  const daysPassed = data?.daysPassed || 19
+
+  // 🔥 Use summary data from API (calculated using the SAME function as L1 login)
   const totalCalls = summary.totalCalls || 0
-  const totalDuration = summary.totalDuration || 0
-  
-  // 🔥 Calculate averages based on days passed (not full month)
-  const avgCallsPerDay = totalSellers > 0 && daysPassed > 0 
-    ? Math.round(totalCalls / (totalSellers * daysPassed)) 
-    : 0
-  const avgDurationPerDay = totalSellers > 0 && daysPassed > 0 
-    ? Math.round(totalDuration / (totalSellers * daysPassed)) 
-    : 0
+  const totalSellers = summary.totalSellers || 0
+  const avgCallsPerDay = summary.avgCallsPerSellerPerDay || 0
+  const avgDurationPerDay = summary.avgDurationPerSellerPerDay || 0
 
   // Flatten for table
   const allFlat: any[] = []
@@ -166,11 +151,19 @@ export default function AdminHygienePage() {
         <p className={styles.heroSub}>All Teams · {monthName}</p>
       </div>
 
-      {/* TOP KPI CARDS - Calculated based on days passed */}
+      {/* 🔥 TOP KPI CARDS - Global averages across ALL L1 managers */}
       <div className={styles.kpiGrid}>
         <div className={`${styles.kpiCard} ${styles.kpiPrimary}`}>
           <div className={styles.kpiIcon}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4631E" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <div className={styles.kpiValue}>{totalCalls}</div>
+          <div className={styles.kpiLabel}>Total Calls</div>
+          <div className={styles.kpiTrend}>Per seller · {monthName}</div>
+        </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiIcon}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
           </div>
           <div className={styles.kpiValue}>{avgCallsPerDay}</div>
           <div className={styles.kpiLabel}>Avg Calls/Day</div>
@@ -224,10 +217,11 @@ export default function AdminHygienePage() {
         </div>
       )}
 
-      {/* CARDS VIEW - Category Manager Cards */}
+      {/* 🔥 CARDS VIEW - Now shows L1's TEAM average, not personal average */}
       {viewMode === 'cards' && !search.trim() && (
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:'12px'}}>
           {l1Data.map((l1: any) => {
+            // 🔥 These are already TEAM averages from calculateHygieneStats
             const totalCalls = l1.total_calls || 0
             const totalDuration = l1.total_duration || 0
             const avgCalls = l1.avg_calls_per_seller_per_day || 0

@@ -18,10 +18,10 @@ export async function GET(req: Request) {
   const trimmedEmail = cleanEmail(email)
 
   try {
-    // ⭐ CHANGED: Get all sellers under this L1 - NOW INCLUDING defined_goal
+    // Get all sellers under this L1
     const { data: sellers, error: sellersError } = await supabase
       .from('srs_raw')
-      .select('seller_email, seller_name, defined_goal')  // ⭐ Added defined_goal
+      .select('seller_email, seller_name')
       .eq('l1_email', trimmedEmail)
 
     if (sellersError) {
@@ -51,19 +51,13 @@ export async function GET(req: Request) {
     const dateFrom = dateList[0]
     const dateTo = dateList[dateList.length - 1]
 
-    // Get seller emails
+    // 🔥 Get seller emails - Include ALL sellers under this L1
+    // EXCLUDE only the L1's own email (L1 is NOT a seller)
     const sellerEmails = sellers
       .map((s: any) => cleanEmail(s.seller_email))
-      .filter((e: string) => e !== trimmedEmail)
-
-    // ⭐ NEW: Create a map of seller email -> defined_goal
-    const sellerGoalMap: Record<string, string> = {}
-    sellers.forEach((s: any) => {
-      const email = cleanEmail(s.seller_email)
-      if (email !== trimmedEmail && s.defined_goal) {
-        sellerGoalMap[email] = s.defined_goal
-      }
-    })
+      .filter((e: string, index: number, self: string[]) => 
+        e !== trimmedEmail && self.indexOf(e) === index
+      )
 
     // Fetch ALL efficiency data with pagination
     let allEfficiency: any[] = []
@@ -111,31 +105,19 @@ export async function GET(req: Request) {
       })
     }
 
-    // ⭐ CHANGED: Build seller data WITH defined_goal
-    const sellerData = sellers
-      .filter((s: any) => cleanEmail(s.seller_email) !== trimmedEmail)
-      .map((s: any) => {
-        const sellerEmail = cleanEmail(s.seller_email)
-        const effRows = effByEmail[sellerEmail] || []
-        return {
-          seller_name: s.seller_name,
-          seller_email: sellerEmail,
-          effRows: effRows,
-          defined_goal: sellerGoalMap[sellerEmail] || null  // ⭐ Add defined_goal
-        }
-      })
+    // Build seller data
+    const sellerData = sellerEmails.map((email) => {
+      const effRows = effByEmail[email] || []
+      const sellerInfo = sellers.find((s: any) => cleanEmail(s.seller_email) === email)
+      return {
+        seller_name: sellerInfo?.seller_name || email.split('@')[0],
+        seller_email: email,
+        effRows: effRows
+      }
+    })
 
     // Use shared utility to calculate stats
     const stats = calculateHygieneStats(sellerData, dateList)
-
-    // ⭐ NEW: Make sure processedSellers includes defined_goal
-    const processedSellersWithGoal = stats.processedSellers.map((seller: any) => {
-      const goal = sellerGoalMap[seller.seller_email] || null
-      return {
-        ...seller,
-        defined_goal: goal
-      }
-    })
 
     return NextResponse.json({
       teamAverage: {
@@ -146,7 +128,7 @@ export async function GET(req: Request) {
         total_sellers: stats.totalSellers,
         dailyData: stats.teamDailyData
       },
-      sellers: processedSellersWithGoal,  // ⭐ Now includes defined_goal
+      sellers: stats.processedSellers,
       dateRange: { from: dateFrom, to: dateTo, count: dateList.length }
     })
   } catch (error: any) {
