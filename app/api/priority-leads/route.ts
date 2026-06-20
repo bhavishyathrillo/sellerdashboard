@@ -158,11 +158,17 @@ function calcMetrics(leads: any[]) {
   const totalLeads = leads.length
   const calledLeads = leads.filter((l: any) => (l.dials_today || 0) > 0).length
   const notCalledLeads = totalLeads - calledLeads
-  const mishandledLeads = leads.filter((l: any) => (l.answered_seconds_today || 0) === 0 && (l.dials_today || 0) < 2).length
+  
+  // 🔥 Mishandled: count where final_status = 'Mishandled' (case-insensitive)
+  const mishandledLeads = leads.filter(
+    (l: any) => (l.final_status || '').toLowerCase() === 'mishandled'
+  ).length
   const mishandledPct = totalLeads > 0 ? Math.round((mishandledLeads / totalLeads) * 100 * 10) / 10 : 0
+
   const calledLeadsData = leads.filter((l: any) => (l.dials_today || 0) > 0)
   const totalDuration = calledLeadsData.reduce((sum: number, l: any) => sum + (l.answered_seconds_today || 0), 0)
   const avgDurationSeconds = calledLeadsData.length > 0 ? Math.round(totalDuration / calledLeadsData.length) : 0
+
   return { totalLeads, calledLeads, notCalledLeads, mishandledLeads, mishandledPct, avgDurationSeconds, avgDurationFormatted: fmtDuration(avgDurationSeconds) }
 }
 

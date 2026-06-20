@@ -96,9 +96,6 @@ function LeadsTable({ leads, search, setSearch }: { leads: PriorityLead[]; searc
       )
     : leads
 
-  const isMishandled = (l: PriorityLead) =>
-    (l.answered_seconds_today || 0) === 0 && (l.dials_today || 0) < 2
-
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
@@ -132,12 +129,12 @@ function LeadsTable({ leads, search, setSearch }: { leads: PriorityLead[]; searc
                 <th>Region</th>
                 <th>Dials</th>
                 <th>Duration</th>
-                <th>Mishandled</th>
+                <th>Final Status</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((lead, i) => {
-                const mishandled = isMishandled(lead)
+                const isMishandled = (lead.final_status || '').toLowerCase() === 'mishandled'
                 const sc = lead.lead_status === 'open' ? '#22C55E' : lead.lead_status === 'closed' ? '#8A8278' : '#F59E0B'
                 return (
                   <tr key={lead.lead_id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
@@ -152,8 +149,13 @@ function LeadsTable({ leads, search, setSearch }: { leads: PriorityLead[]; searc
                     <td style={{ padding: '10px 14px', fontWeight: 600 }}>{lead.dials_today || 0}</td>
                     <td style={{ padding: '10px 14px' }}>{fmtDuration(lead.answered_seconds_today || 0)}</td>
                     <td style={{ padding: '10px 14px' }}>
-                      <span style={{ padding: '2px 10px', borderRadius: '10px', fontSize: '0.62rem', fontWeight: 700, background: mishandled ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.08)', color: mishandled ? '#EF4444' : '#22C55E', border: mishandled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(34,197,94,0.15)' }}>
-                        {mishandled ? 'Yes' : 'No'}
+                      <span style={{
+                        padding: '2px 10px', borderRadius: '10px', fontSize: '0.62rem', fontWeight: 700,
+                        background: isMishandled ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.08)',
+                        color: isMishandled ? '#EF4444' : '#22C55E',
+                        border: isMishandled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(34,197,94,0.15)'
+                      }}>
+                        {lead.final_status || '—'}
                       </span>
                     </td>
                   </tr>
@@ -222,9 +224,7 @@ export default function PriorityPage({ session }: Props) {
   const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session.role)
   const isL1 = session.role === 'L1'
   const isL2 = session.role === 'L2'
-  const lastUpdatedTime = data?.lastUpdated 
-  ? new Date(data.lastUpdated).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-  : '—'
+
   useEffect(() => {
     if (isL1 || isAdmin) setViewMode('team')
     loadData()
@@ -306,31 +306,16 @@ export default function PriorityPage({ session }: Props) {
             <p style={{ fontSize: '0.72rem', color: '#8A8278', marginTop: '2px' }}>
               {l1Groups.length} Category Managers · {data.totalSellers} sellers
             </p>
-            <p style={{ fontSize: '0.6rem', color: '#5A5650', marginTop: '2px' }}>
-              Last updated: {lastUpdatedTime} · Updates every 40 min
-            </p>
+            <p style={{ fontSize: '0.6rem', color: '#5A5650', marginTop: '2px' }}>Updates every 40 min</p>
           </div>
           <div style={{ display: 'flex', gap: '3px', background: '#141414', border: '1px solid #232323', borderRadius: '8px', padding: '3px' }}>
-            <button onClick={() => setTableView(false)} style={{
-              padding: '7px 16px', border: 'none', borderRadius: '6px',
-              background: !tableView ? 'rgba(244,99,30,0.15)' : 'transparent',
-              color: !tableView ? '#F4631E' : '#8A8278',
-              cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600
-            }}>Cards</button>
-            <button onClick={() => setTableView(true)} style={{
-              padding: '7px 16px', border: 'none', borderRadius: '6px',
-              background: tableView ? 'rgba(244,99,30,0.15)' : 'transparent',
-              color: tableView ? '#F4631E' : '#8A8278',
-              cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600
-            }}>Table</button>
+            <button onClick={() => setTableView(false)} style={{ padding: '7px 16px', border: 'none', borderRadius: '6px', background: !tableView ? 'rgba(244,99,30,0.15)' : 'transparent', color: !tableView ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>Cards</button>
+            <button onClick={() => setTableView(true)} style={{ padding: '7px 16px', border: 'none', borderRadius: '6px', background: tableView ? 'rgba(244,99,30,0.15)' : 'transparent', color: tableView ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>Table</button>
           </div>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by Category Manager, L1 Manager, or Seller..."
-            style={{ width: '100%', padding: '10px 14px', background: '#141414', border: '1px solid #232323', borderRadius: '10px', color: '#F0EDE8', fontSize: '0.8rem', outline: 'none', maxWidth: '500px' }}
-          />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by Category Manager, L1 Manager, or Seller..." style={{ width: '100%', padding: '10px 14px', background: '#141414', border: '1px solid #232323', borderRadius: '10px', color: '#F0EDE8', fontSize: '0.8rem', outline: 'none', maxWidth: '500px' }} />
         </div>
 
         <KpiCards metrics={teamMetrics} />
@@ -457,9 +442,7 @@ export default function PriorityPage({ session }: Props) {
             <p style={{ fontSize: '0.72rem', color: '#8A8278', marginTop: '2px' }}>
               {l2Groups.length} L1 Managers · {data.totalSellers} sellers
             </p>
-            <p style={{ fontSize: '0.6rem', color: '#5A5650', marginTop: '2px' }}>
-              Last updated: {lastUpdatedTime} · Updates every 40 min
-            </p>
+            <p style={{ fontSize: '0.6rem', color: '#5A5650', marginTop: '2px' }}>Updates every 40 min</p>
           </div>
           <div style={{ display: 'flex', gap: '3px', background: '#141414', border: '1px solid #232323', borderRadius: '8px', padding: '3px' }}>
             <button onClick={() => setTableView(false)} style={{ padding: '7px 16px', border: 'none', borderRadius: '6px', background: !tableView ? 'rgba(244,99,30,0.15)' : 'transparent', color: !tableView ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>Cards</button>
@@ -468,10 +451,7 @@ export default function PriorityPage({ session }: Props) {
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by L1 Manager or Seller..."
-            style={{ width: '100%', padding: '10px 14px', background: '#141414', border: '1px solid #232323', borderRadius: '10px', color: '#F0EDE8', fontSize: '0.8rem', outline: 'none', maxWidth: '500px' }}
-          />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by L1 Manager or Seller..." style={{ width: '100%', padding: '10px 14px', background: '#141414', border: '1px solid #232323', borderRadius: '10px', color: '#F0EDE8', fontSize: '0.8rem', outline: 'none', maxWidth: '500px' }} />
         </div>
 
         <KpiCards metrics={teamMetrics} />
@@ -555,9 +535,7 @@ export default function PriorityPage({ session }: Props) {
             <p style={{ fontSize: '0.72rem', color: '#8A8278', marginTop: '2px' }}>
               {sellers.length} seller{sellers.length !== 1 ? 's' : ''} · Team View
             </p>
-            <p style={{ fontSize: '0.6rem', color: '#5A5650', marginTop: '2px' }}>
-              Last updated: {lastUpdatedTime} · Updates every 40 min
-            </p>
+            <p style={{ fontSize: '0.6rem', color: '#5A5650', marginTop: '2px' }}>Updates every 40 min</p>
           </div>
           <div style={{ display: 'flex', gap: '3px', background: '#141414', border: '1px solid #232323', borderRadius: '8px', padding: '3px' }}>
             <button onClick={() => setViewMode('my')} style={{ padding: '7px 16px', border: 'none', borderRadius: '6px', background: viewMode === 'my' ? 'rgba(244,99,30,0.15)' : 'transparent', color: viewMode === 'my' ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>My Priority</button>
@@ -568,10 +546,7 @@ export default function PriorityPage({ session }: Props) {
         <KpiCards metrics={teamMetrics} />
 
         <div style={{ marginBottom: '16px' }}>
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search seller name..."
-            style={{ width: '100%', padding: '10px 14px', background: '#141414', border: '1px solid #232323', borderRadius: '10px', color: '#F0EDE8', fontSize: '0.8rem', outline: 'none', maxWidth: '400px' }}
-          />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search seller name..." style={{ width: '100%', padding: '10px 14px', background: '#141414', border: '1px solid #232323', borderRadius: '10px', color: '#F0EDE8', fontSize: '0.8rem', outline: 'none', maxWidth: '400px' }} />
           {search && <span style={{ fontSize: '0.65rem', color: '#8A8278', marginLeft: '8px' }}>{filteredSellers.length} of {sellers.length} sellers</span>}
         </div>
 
@@ -619,9 +594,7 @@ export default function PriorityPage({ session }: Props) {
         <div>
           <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#C9A84C' }}>Priority Leads</h1>
           <p style={{ fontSize: '0.72rem', color: '#8A8278', marginTop: '2px' }}>Your high-priority inquiry pipeline</p>
-          <p style={{ fontSize: '0.6rem', color: '#5A5650', marginTop: '2px' }}>
-            Last updated: {lastUpdatedTime} · Updates every 40 min
-          </p>
+          <p style={{ fontSize: '0.6rem', color: '#5A5650', marginTop: '2px' }}>Updates every 40 min</p>
         </div>
         {isL2 && (
           <div style={{ display: 'flex', gap: '3px', background: '#141414', border: '1px solid #232323', borderRadius: '8px', padding: '3px' }}>
