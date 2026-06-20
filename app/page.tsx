@@ -76,10 +76,12 @@ export default function Home() {
 
   const handleIntroComplete = () => setState('login')
 
-  const handleLogin = async (email: string, name: string, role: string) => {
+ const handleLogin = async (email: string, name: string, role: string) => {
     saveSession(email, name, role)
     const s = getSession()
     setSession(s)
+    localStorage.setItem('activeTab', 'home')
+    setActivePage('home')
     if (GATED_ROLES.includes(role) && !['ADMIN', 'SUPERADMIN'].includes(role)) {
       await checkPipelineAndRoute(s!)
     } else {
@@ -134,31 +136,25 @@ export default function Home() {
           activePage={activePage}
           onNavigate={handleNavigate}
         >
-          {/* ThrillNews - only for non-admin */}
           {!isAdmin && <ThrillNews email={session.email} role={session.role} />}
           <AutoRefresh interval={300000} />
-          
-          {/* Admin: Select Persona */}
+
           {activePage === 'selectPersona' && isAdmin && (
             <SelectPersonaPage session={session} />
           )}
 
-          {/* Admin: Overview */}
           {activePage === 'home' && isAdmin && (
             <AdminOverviewPage />
           )}
 
-          {/* L1 Manager */}
           {activePage === 'home' && !isAdmin && session.role === 'L1' && (
             <L1HomePage session={session} />
           )}
 
-          {/* L2 / Seller */}
           {activePage === 'home' && !isAdmin && session.role !== 'L1' && (
             <HomePage session={session} />
           )}
 
-          {/* Admin: Performance */}
           {activePage === 'performance' && isAdmin && (
             <AdminPerformancePage />
           )}
@@ -166,7 +162,6 @@ export default function Home() {
             <PerformancePage session={session} />
           )}
 
-          {/* Admin: MHL/MHO */}
           {activePage === 'mhl' && isAdmin && (
             <AdminMHLPage />
           )}
@@ -174,7 +169,6 @@ export default function Home() {
             <MHLPage session={session} />
           )}
 
-          {/* Admin: Pipeline */}
           {activePage === 'pipeline' && isAdmin && (
             <AdminPipelinePage />
           )}
@@ -182,7 +176,6 @@ export default function Home() {
             <PipelinePage session={session} />
           )}
 
-          {/* Admin: Hygiene */}
           {activePage === 'hygiene' && isAdmin && (
             <AdminHygienePage />
           )}
@@ -190,13 +183,15 @@ export default function Home() {
             <HygienePage session={session} />
           )}
 
-          {/* All other tabs */}
+          {activePage === 'priority' && (
+            <PriorityPage session={session} />
+          )}
+
           {activePage === 'leaderboard' && <LeaderboardPage session={session} />}
           {activePage === 'roadmap'     && <RoadmapPage session={session} />}
           {activePage === 'rewards'     && <RewardsPage session={session} />}
           {activePage === 'calendar'    && <CalendarPage session={session} />}
           {activePage === 'ttk'         && <TTKPage session={session} />}
-          {activePage === 'priority'    && <PriorityPage session={session} />}
           {activePage === 'team'        && <TeamPage session={session} />}
         </DashboardLayout>
       )}

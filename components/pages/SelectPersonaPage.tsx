@@ -5,6 +5,7 @@ import { UserSession } from '@/lib/session'
 import HomePage from '@/components/pages/HomePage'
 import L1HomePage from '@/components/pages/L1HomePage'
 import PipelinePage from '@/components/pages/PipelinePage'
+import PriorityPage from '@/components/pages/PriorityPage'
 import MHLPage from '@/components/pages/MHLPage'
 import LeaderboardPage from '@/components/pages/LeaderboardPage'
 import RoadmapPage from '@/components/pages/RoadmapPage'
@@ -27,6 +28,7 @@ function getCosmeticRole(role: string): string {
 const personaTabs = [
   { id: 'home', label: 'Overview' },
   { id: 'pipeline', label: 'Pipeline' },
+  { id: 'priority', label: 'Priority' },
   { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'performance', label: 'Performance' },
   { id: 'rewards', label: 'Rewards' },
@@ -289,6 +291,7 @@ export default function SelectPersonaPage({ session }: Props) {
               {activePersonaTab === 'home' && personaSession.role === 'L1' && <L1HomePage session={personaSession} />}
               {activePersonaTab === 'home' && personaSession.role !== 'L1' && <HomePage session={personaSession} />}
               {activePersonaTab === 'pipeline' && <PipelinePage session={personaSession} />}
+              {activePersonaTab === 'priority' && <PriorityPage session={personaSession} />}
               {activePersonaTab === 'leaderboard' && <LeaderboardPage session={personaSession} />}
               {activePersonaTab === 'performance' && <PerformancePage session={personaSession} />}
               {activePersonaTab === 'rewards' && <RewardsPage session={personaSession} />}

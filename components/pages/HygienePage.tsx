@@ -75,10 +75,9 @@ export default function HygienePage({ session }: Props) {
 
   const isL1 = session.role === 'L1'
 
-  // 🔥 Get number of days passed in the month
   const getDaysPassed = () => {
     const today = new Date()
-    return today.getDate() // Returns 1-31
+    return today.getDate()
   }
 
   useEffect(() => {
@@ -240,7 +239,6 @@ export default function HygienePage({ session }: Props) {
     })
   }
 
-  // Load Chart.js
   useEffect(() => {
     import('chart.js/auto').then(mod => {
       ChartLib.current = mod.default || mod
@@ -265,7 +263,9 @@ export default function HygienePage({ session }: Props) {
 
   if (!data) return <div className={styles.empty}>No hygiene data found</div>
 
-  // L1 View - Team Hygiene
+  const lastUpdatedTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+
+  // ========== L1 VIEW ==========
   if (isL1) {
     const teamData = data.teamAverage
     const sellers = data.sellers || []
@@ -276,10 +276,7 @@ export default function HygienePage({ session }: Props) {
     const avgDurationPerDay = teamData?.avg_duration_per_day || 0
     const totalSellers = teamData?.total_sellers || 0
 
-    // 🔥 Calculate days passed in the month
     const daysPassed = getDaysPassed()
-    
-    // 🔥 Calculate averages based on days passed (not full month)
     const avgCalls = totalSellers > 0 && daysPassed > 0 ? Math.round(totalCalls / (totalSellers * daysPassed)) : 0
     const avgDuration = totalSellers > 0 && daysPassed > 0 ? Math.round(totalDuration / (totalSellers * daysPassed)) : 0
 
@@ -304,9 +301,11 @@ export default function HygienePage({ session }: Props) {
           </span>
           <h1 className={styles.heroTitle}>Performance Hygiene</h1>
           <p className={styles.heroSub}>Team average call metrics · {monthName}</p>
+          <p style={{ fontSize: '0.6rem', color: '#5A5650', marginTop: '4px' }}>
+            Last updated: {lastUpdatedTime} · Updates every 40 min
+          </p>
         </div>
 
-        {/* KPI Grid */}
         <div className={styles.kpiGrid}>
           <div className={`${styles.kpiCard} ${styles.kpiPrimary}`}>
             <div className={styles.kpiIcon}>
@@ -340,7 +339,6 @@ export default function HygienePage({ session }: Props) {
           </div>
         </div>
 
-        {/* Chart */}
         <div className={styles.chartCard}>
           <div className={styles.chartHeader}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:8}}>
@@ -360,7 +358,6 @@ export default function HygienePage({ session }: Props) {
           <div className={styles.chartWrap}><canvas ref={chartRef} /></div>
         </div>
 
-        {/* Seller Breakdown */}
         <div className={styles.tableCard}>
           <div className={styles.chartHeader}>
             <h3>Seller Breakdown · {monthName} ({totalSellers} sellers)</h3>
@@ -427,11 +424,7 @@ export default function HygienePage({ session }: Props) {
 
   const totalCalls = dailyData.reduce((s: number, d: any) => s + d.call_dials, 0)
   const totalDuration = dailyData.reduce((s: number, d: any) => s + d.call_duration, 0)
-  
-  // 🔥 Calculate days passed in the month
   const daysPassed = getDaysPassed()
-  
-  // 🔥 Calculate averages based on days passed (not full month)
   const avgCalls = daysPassed > 0 ? Math.round(totalCalls / daysPassed) : 0
   const avgDuration = daysPassed > 0 ? Math.round(totalDuration / daysPassed) : 0
 
@@ -448,6 +441,9 @@ export default function HygienePage({ session }: Props) {
         </span>
         <h1 className={styles.heroTitle}>Performance Hygiene</h1>
         <p className={styles.heroSub}>Your daily discipline. Your success story.</p>
+        <p style={{ fontSize: '0.6rem', color: '#5A5650', marginTop: '4px' }}>
+          Last updated: {lastUpdatedTime} · Updates every 40 min
+        </p>
       </div>
 
       <div className={styles.kpiGrid}>

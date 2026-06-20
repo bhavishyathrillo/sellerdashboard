@@ -15,6 +15,7 @@ interface DashboardLayoutProps {
 
 const navItems = [
   { id: 'home',        label: 'Overview',    icon: '◈' },
+  { id: 'priority',    label: 'Priority',    icon: '⭐' },
   { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
   { id: 'performance', label: 'Performance', icon: '↗', adminOnly: false },
   { id: 'rewards',     label: 'Rewards',     icon: '🎰', adminOnly: false },
