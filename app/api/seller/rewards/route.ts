@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { cleanEmail } from '@/lib/hygiene-utils'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,54 +8,72 @@ const supabase = createClient(
 )
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const email = searchParams.get('email')
-
-  if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
-
   try {
-    const { data: srsData } = await supabase
-      .from('srs_raw')
-      .select('goal_achieved_percent, goal_achieved_date')
-      .eq('seller_email', email.toLowerCase().trim())
-      .single()
+    const { searchParams } = new URL(req.url)
+    const email = searchParams.get('email')
 
-    if (!srsData) return NextResponse.json({ error: 'Seller not found' }, { status: 404 })
-
-    const { data: spins } = await supabase
-      .from('spin_results')
-      .select('*')
-      .eq('email', email.toLowerCase().trim())
-      .order('created_at', { ascending: false })
-      .limit(50)
-
-    const pct = srsData.goal_achieved_percent || 0
-    const goalDone = pct >= 100 || !!srsData.goal_achieved_date
-    const now = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-    const premiumUsed = spins?.filter(s => s.spin_type === 'PREMIUM' && s.created_at >= monthStart).length || 0
-    const standardUsed = spins?.filter(s => s.spin_type === 'STANDARD' && s.created_at >= monthStart).length || 0
-
-    const milestones = [
-      { by: 5, label: 'By 5th', reward: '2 Comp-Offs + 2 WFH + 2 Premium Spins', premiumSpins: 2, standardSpins: 0 },
-      { by: 10, label: 'By 10th', reward: '2 Comp-Offs + 1 WFH + 1 Premium Spin', premiumSpins: 1, standardSpins: 0 },
-      { by: 15, label: 'By 15th', reward: '1 Comp-Off + 1 WFH + 1 Standard Spin', premiumSpins: 0, standardSpins: 1 },
-      { by: 20, label: 'By 20th', reward: '1 WFH + 1 Standard Spin', premiumSpins: 0, standardSpins: 1 },
-    ]
-
-    let achieved = null
-    if (goalDone) {
-      const day = srsData.goal_achieved_date ? new Date(srsData.goal_achieved_date).getDate() : now.getDate()
-      for (const m of milestones) { if (day <= m.by) { achieved = m; break } }
+    if (!email) {
+      return NextResponse.json({ error: 'Email required' }, { status: 400 })
     }
 
+    const trimmedEmail = cleanEmail(email)
+
+    // 🔥 Fetch user's rewards data
+    const { data: rewards, error: rewardsError } = await supabase
+      .from('rewards')
+      .select('*')
+      .eq('seller_email', trimmedEmail)
+      .single()
+
+    if (rewardsError && rewardsError.code !== 'PGRST116') {
+      console.error('Rewards fetch error:', rewardsError)
+      return NextResponse.json({ error: rewardsError.message }, { status: 500 })
+    }
+
+    // 🔥 Fetch user's spin history
+    const { data: spinHistory, error: historyError } = await supabase
+      .from('spin_results')
+      .select('*')
+      .eq('email', trimmedEmail)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    if (historyError) {
+      console.error('Spin history fetch error:', historyError)
+    }
+
+    // 🔥 Calculate milestones based on goal completion
+    // These are the timeline rewards shown in the UI
+    const milestones = [
+      { by: 5, label: 'By 5th', reward: '2 Comp-Offs + 2 WFH + 2 Premium Spins' },
+      { by: 10, label: 'By 10th', reward: '2 Comp-Offs + 1 WFH + 1 Premium Spin' },
+      { by: 15, label: 'By 15th', reward: '1 Comp-Off + 1 WFH + 1 Standard Spin' },
+      { by: 20, label: 'By 20th', reward: '1 WFH + 1 Standard Spin' }
+    ]
+
+    // Determine which milestones were achieved
+    const completionDay = rewards?.completion_day || 0
+    const achieved = {
+      by: completionDay
+    }
+
+    // 🔥 Return the response
     return NextResponse.json({
-      pct, goalDone, achieved, premiumUsed, standardUsed,
-      premiumAvailable: achieved ? achieved.premiumSpins - premiumUsed : 0,
-      standardAvailable: achieved ? achieved.standardSpins - standardUsed : 0,
-      spinHistory: spins || [], milestones
+      premiumAvailable: rewards?.premium_available || 0,
+      standardAvailable: rewards?.standard_available || 0,
+      maxPremium: rewards?.max_premium || 0,
+      maxStandard: rewards?.max_standard || 0,
+      isPremium: rewards?.is_premium || false,
+      goalDone: rewards?.goal_done || false,
+      pct: rewards?.pct || 0,
+      completionDay: rewards?.completion_day || 0,
+      milestones: milestones,
+      achieved: achieved,
+      spinHistory: spinHistory || []
     })
+
   } catch (error: any) {
+    console.error('Rewards API Error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
