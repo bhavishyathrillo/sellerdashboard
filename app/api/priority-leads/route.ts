@@ -6,6 +6,18 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+function filterFollowUp(leads: any[]) {
+  return leads.filter((l: any) => {
+    const stage = (l.stage || '').toLowerCase().trim()
+    const leadStatus = (l.lead_status || '').toLowerCase().trim()
+    const finalStatus = (l.final_status || '').toLowerCase().trim()
+    if (stage === 'follow up') return false
+    if (leadStatus === 'follow up') return false
+    if (finalStatus === 'follow up') return false
+    return true
+  })
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const email = searchParams.get('email')
@@ -19,49 +31,126 @@ export async function GET(req: Request) {
   try {
     // ========== ADMIN VIEW ==========
     if (role === 'ADMIN' || role === 'SUPERADMIN') {
-      const { data: allSellers } = await supabase
+      // Get ALL srs_raw data for mapping
+      const { data: allSrs } = await supabase
         .from('srs_raw')
         .select('seller_email, seller_name, l1_email, l1_name, l2_email, l2_name')
 
-      if (!allSellers || allSellers.length === 0) {
-        return NextResponse.json({ admin: true, teamMetrics: null, l1Groups: [], lastUpdated: null })
-      }
-
-      const l1Emails = [...new Set(allSellers.map((s: any) => s.l1_email).filter(Boolean))]
-      const sellerEmails = allSellers.map((s: any) => s.seller_email?.toLowerCase().trim()).filter(Boolean)
-
+      // Get ALL priority leads
       const { data: allLeads } = await supabase
         .from('priority_leads')
         .select('*')
-        .in('seller_email', sellerEmails)
         .order('updated_at', { ascending: false })
 
-      const leads = allLeads || []
+      const leads = filterFollowUp(allLeads || [])
       const lastUpdated = leads.length > 0 ? leads[0].updated_at : null
 
-      const l1Groups = l1Emails.map((l1Email: string) => {
-        const l1Key = l1Email.toLowerCase().trim()
-        const l1Sellers = allSellers.filter((s: any) => s.l1_email?.toLowerCase().trim() === l1Key)
-        const l1Name = l1Sellers[0]?.l1_name || l1Email.split('@')[0]
-        const l2Emails = [...new Set(l1Sellers.map((s: any) => s.l2_email).filter(Boolean))]
+      // Build SRS lookup: seller_email → { l1_email, l1_name, l2_email, l2_name }
+      const srsMap: Record<string, any> = {}
+      const srsEmailSet = new Set<string>()
+      ;(allSrs || []).forEach((s: any) => {
+        const key = (s.seller_email || '').toLowerCase().trim()
+        if (key) {
+          srsMap[key] = s
+          srsEmailSet.add(key)
+        }
+      })
 
-        const l2Groups = l2Emails.map((l2Email: string) => {
-          const l2Key = l2Email.toLowerCase().trim()
-          const l2Sellers = l1Sellers.filter((s: any) => s.l2_email?.toLowerCase().trim() === l2Key && s.seller_email?.toLowerCase().trim() !== l1Key && s.seller_email?.toLowerCase().trim() !== l2Key)
-          const l2Name = l2Sellers[0]?.l2_name || l2Email.split('@')[0]
-          const sellers = l2Sellers.map((s: any) => {
-            const sellerLeads = leads.filter((l: any) => l.seller_email?.toLowerCase().trim() === s.seller_email?.toLowerCase().trim())
-            return buildSellerData(s, sellerLeads)
-          })
-          const allL2Leads = sellers.flatMap((s: any) => s.leads)
-          return { l2_name: l2Name, l2_email: l2Email, metrics: calcMetrics(allL2Leads), seller_count: sellers.length, sellers }
+      // Index leads by seller
+      const leadsBySeller: Record<string, any[]> = {}
+      leads.forEach((l: any) => {
+        const key = (l.seller_email || '').toLowerCase().trim()
+        if (!leadsBySeller[key]) leadsBySeller[key] = []
+        leadsBySeller[key].push(l)
+      })
+
+      // Get all unique seller emails from priority_leads
+      const allSellerEmails = Object.keys(leadsBySeller)
+
+      // Group by L1
+      const l1GroupsMap: Record<string, any> = {}
+
+      allSellerEmails.forEach((sellerEmail: string) => {
+        const srsData = srsMap[sellerEmail]
+        const sellerLeads = leadsBySeller[sellerEmail] || []
+        const sellerName = srsData?.seller_name || sellerEmail.split('@')[0]
+
+        let l1Email: string
+        let l1Name: string
+        let l2Email: string
+        let l2Name: string
+
+        if (srsData) {
+          l1Email = (srsData.l1_email || '').toLowerCase().trim()
+          l1Name = srsData.l1_name || l1Email.split('@')[0]
+          l2Email = (srsData.l2_email || '').toLowerCase().trim()
+          l2Name = srsData.l2_name || l2Email.split('@')[0]
+
+          // If no L2 or L2 = L1, seller reports directly to L1
+          if (!l2Email || l2Email === l1Email) {
+            l2Email = l1Email
+            l2Name = l1Name
+          }
+        } else {
+          // Not in SRS → unmapped
+          l1Email = 'unmapped'
+          l1Name = 'Not Mapped'
+          l2Email = 'unknown'
+          l2Name = 'Unknown'
+        }
+
+        // Initialize L1 group
+        if (!l1GroupsMap[l1Email]) {
+          l1GroupsMap[l1Email] = {
+            l1_name: l1Name,
+            l1_email: l1Email,
+            l2GroupsMap: {}
+          }
+        }
+
+        // Initialize L2 group
+        if (!l1GroupsMap[l1Email].l2GroupsMap[l2Email]) {
+          l1GroupsMap[l1Email].l2GroupsMap[l2Email] = {
+            l2_name: l2Name,
+            l2_email: l2Email,
+            sellers: []
+          }
+        }
+
+        // Add seller
+        l1GroupsMap[l1Email].l2GroupsMap[l2Email].sellers.push(
+          buildSellerData({ seller_name: sellerName, seller_email: sellerEmail }, sellerLeads)
+        )
+      })
+
+      // Convert maps to arrays
+      const l1Groups = Object.values(l1GroupsMap).map((l1: any) => {
+        const l2Groups = Object.values(l1.l2GroupsMap).map((l2: any) => {
+          const allL2Leads = l2.sellers.flatMap((s: any) => s.leads)
+          return {
+            l2_name: l2.l2_name,
+            l2_email: l2.l2_email,
+            metrics: calcMetrics(allL2Leads),
+            seller_count: l2.sellers.length,
+            sellers: l2.sellers
+          }
         })
 
         const allL1Leads = l2Groups.flatMap((g: any) => g.sellers.flatMap((s: any) => s.leads))
-        return { l1_name: l1Name, l1_email: l1Email, metrics: calcMetrics(allL1Leads), l2_count: l2Groups.length, seller_count: l2Groups.reduce((sum, g) => sum + g.seller_count, 0), l2_groups: l2Groups }
+        return {
+          l1_name: l1.l1_name,
+          l1_email: l1.l1_email,
+          metrics: calcMetrics(allL1Leads),
+          l2_count: l2Groups.length,
+          seller_count: l2Groups.reduce((sum: number, g: any) => sum + g.seller_count, 0),
+          l2_groups: l2Groups
+        }
       })
 
-      return NextResponse.json({ admin: true, teamMetrics: calcMetrics(leads), l1Groups, totalL1: l1Groups.length, totalSellers: sellerEmails.length, lastUpdated })
+      const teamMetrics = calcMetrics(leads)
+      const totalSellers = allSellerEmails.length
+
+      return NextResponse.json({ admin: true, teamMetrics, l1Groups, totalL1: l1Groups.length, totalSellers, lastUpdated })
     }
 
     // ========== L1 VIEW ==========
@@ -72,11 +161,12 @@ export async function GET(req: Request) {
         .eq('l1_email', email.toLowerCase().trim())
 
       if (!allSellers || allSellers.length === 0) {
-        return NextResponse.json({ team: true, isL1: true, teamMetrics: null, l2Groups: [], lastUpdated: null })
+        return NextResponse.json({ team: true, isL1: true, teamMetrics: calcMetrics([]), l2Groups: [], lastUpdated: null, totalSellers: 0 })
       }
 
-      const l2Emails = [...new Set(allSellers.map((s: any) => s.l2_email).filter(Boolean))]
-      const sellerEmails = allSellers.map((s: any) => s.seller_email?.toLowerCase().trim()).filter((e: string) => e && e !== email.toLowerCase().trim())
+      const sellerEmails = allSellers
+        .map((s: any) => s.seller_email?.toLowerCase().trim())
+        .filter((e: string) => e && e !== email.toLowerCase().trim())
 
       const { data: allLeads } = await supabase
         .from('priority_leads')
@@ -84,22 +174,51 @@ export async function GET(req: Request) {
         .in('seller_email', sellerEmails)
         .order('updated_at', { ascending: false })
 
-      const leads = allLeads || []
+      const leads = filterFollowUp(allLeads || [])
       const lastUpdated = leads.length > 0 ? leads[0].updated_at : null
 
-      const l2Groups = l2Emails.map((l2Email: string) => {
-        const l2Key = l2Email.toLowerCase().trim()
-        const sellersUnderL2 = allSellers.filter((s: any) => s.l2_email?.toLowerCase().trim() === l2Key && s.seller_email?.toLowerCase().trim() !== l2Key && s.seller_email?.toLowerCase().trim() !== email.toLowerCase().trim())
-        const l2Name = sellersUnderL2[0]?.l2_name || l2Email.split('@')[0]
-        const sellers = sellersUnderL2.map((s: any) => {
-          const sellerLeads = leads.filter((l: any) => l.seller_email?.toLowerCase().trim() === s.seller_email?.toLowerCase().trim())
-          return buildSellerData(s, sellerLeads)
-        })
-        const allL2Leads = sellers.flatMap((s: any) => s.leads)
-        return { l2_name: l2Name, l2_email: l2Email, metrics: calcMetrics(allL2Leads), seller_count: sellers.length, sellers }
+      const leadsBySeller: Record<string, any[]> = {}
+      leads.forEach((l: any) => {
+        const key = (l.seller_email || '').toLowerCase().trim()
+        if (!leadsBySeller[key]) leadsBySeller[key] = []
+        leadsBySeller[key].push(l)
       })
 
-      return NextResponse.json({ team: true, isL1: true, teamMetrics: calcMetrics(leads), l2Groups, totalSellers: sellerEmails.length, lastUpdated })
+      // Group by L2
+      const l2GroupsMap: Record<string, any> = {}
+
+      allSellers.forEach((s: any) => {
+        const sKey = (s.seller_email || '').toLowerCase().trim()
+        if (sKey === email.toLowerCase().trim()) return
+
+        let l2Email = (s.l2_email || '').toLowerCase().trim()
+        let l2Name = s.l2_name || l2Email.split('@')[0]
+
+        if (!l2Email || l2Email === email.toLowerCase().trim()) {
+          l2Email = email.toLowerCase().trim()
+          l2Name = 'Direct'
+        }
+
+        if (!l2GroupsMap[l2Email]) {
+          l2GroupsMap[l2Email] = { l2_name: l2Name, l2_email: l2Email, sellers: [] }
+        }
+
+        const sellerLeads = leadsBySeller[sKey] || []
+        if (sellerLeads.length > 0) {
+          l2GroupsMap[l2Email].sellers.push(
+            buildSellerData({ seller_name: s.seller_name || sKey.split('@')[0], seller_email: sKey }, sellerLeads)
+          )
+        }
+      })
+
+      const l2Groups = Object.values(l2GroupsMap).map((l2: any) => {
+        const allL2Leads = l2.sellers.flatMap((s: any) => s.leads)
+        return { ...l2, metrics: calcMetrics(allL2Leads), seller_count: l2.sellers.length }
+      })
+
+      const teamMetrics = calcMetrics(leads)
+
+      return NextResponse.json({ team: true, isL1: true, teamMetrics, l2Groups, totalSellers: sellerEmails.length, lastUpdated })
     }
 
     // ========== L2 TEAM VIEW ==========
@@ -110,10 +229,12 @@ export async function GET(req: Request) {
         .eq('l2_email', email.toLowerCase().trim())
 
       if (!teamSellers || teamSellers.length === 0) {
-        return NextResponse.json({ team: true, isL2: true, sellers: [], metrics: null, lastUpdated: null })
+        return NextResponse.json({ team: true, isL2: true, sellers: [], teamMetrics: calcMetrics([]), lastUpdated: null })
       }
 
-      const sellerEmails = teamSellers.map((s: any) => s.seller_email?.toLowerCase().trim()).filter((e: string) => e && e !== email.toLowerCase().trim())
+      const sellerEmails = teamSellers
+        .map((s: any) => s.seller_email?.toLowerCase().trim())
+        .filter((e: string) => e && e !== email.toLowerCase().trim())
 
       const { data: allLeads } = await supabase
         .from('priority_leads')
@@ -121,15 +242,28 @@ export async function GET(req: Request) {
         .in('seller_email', sellerEmails)
         .order('updated_at', { ascending: false })
 
-      const leads = allLeads || []
+      const leads = filterFollowUp(allLeads || [])
       const lastUpdated = leads.length > 0 ? leads[0].updated_at : null
 
-      const sellers = teamSellers.filter((s: any) => s.seller_email?.toLowerCase().trim() !== email.toLowerCase().trim()).map((s: any) => {
-        const sellerLeads = leads.filter((l: any) => l.seller_email?.toLowerCase().trim() === s.seller_email?.toLowerCase().trim())
-        return buildSellerData(s, sellerLeads)
+      const leadsBySeller: Record<string, any[]> = {}
+      leads.forEach((l: any) => {
+        const key = (l.seller_email || '').toLowerCase().trim()
+        if (!leadsBySeller[key]) leadsBySeller[key] = []
+        leadsBySeller[key].push(l)
       })
 
-      return NextResponse.json({ team: true, isL2: true, teamMetrics: calcMetrics(leads), sellers, lastUpdated })
+      const sellers = teamSellers
+        .filter((s: any) => s.seller_email?.toLowerCase().trim() !== email.toLowerCase().trim())
+        .map((s: any) => {
+          const key = (s.seller_email || '').toLowerCase().trim()
+          const sellerLeads = leadsBySeller[key] || []
+          return buildSellerData(s, sellerLeads)
+        })
+        .filter((s: any) => s.metrics.totalLeads > 0)
+
+      const teamMetrics = calcMetrics(leads)
+
+      return NextResponse.json({ team: true, isL2: true, teamMetrics, sellers, lastUpdated })
     }
 
     // ========== PERSONAL VIEW ==========
@@ -141,7 +275,7 @@ export async function GET(req: Request) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    const allLeads = leads || []
+    const allLeads = filterFollowUp(leads || [])
     const lastUpdated = allLeads.length > 0 ? allLeads[0].updated_at : null
 
     return NextResponse.json({ team: false, leads: allLeads, metrics: calcMetrics(allLeads), lastUpdated })
@@ -158,17 +292,11 @@ function calcMetrics(leads: any[]) {
   const totalLeads = leads.length
   const calledLeads = leads.filter((l: any) => (l.dials_today || 0) > 0).length
   const notCalledLeads = totalLeads - calledLeads
-  
-  // 🔥 Mishandled: count where final_status = 'Mishandled' (case-insensitive)
-  const mishandledLeads = leads.filter(
-    (l: any) => (l.final_status || '').toLowerCase() === 'mishandled'
-  ).length
+  const mishandledLeads = leads.filter((l: any) => (l.final_status || '').toLowerCase() === 'mishandled').length
   const mishandledPct = totalLeads > 0 ? Math.round((mishandledLeads / totalLeads) * 100 * 10) / 10 : 0
-
   const calledLeadsData = leads.filter((l: any) => (l.dials_today || 0) > 0)
   const totalDuration = calledLeadsData.reduce((sum: number, l: any) => sum + (l.answered_seconds_today || 0), 0)
   const avgDurationSeconds = calledLeadsData.length > 0 ? Math.round(totalDuration / calledLeadsData.length) : 0
-
   return { totalLeads, calledLeads, notCalledLeads, mishandledLeads, mishandledPct, avgDurationSeconds, avgDurationFormatted: fmtDuration(avgDurationSeconds) }
 }
 
