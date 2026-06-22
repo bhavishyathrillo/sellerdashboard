@@ -43,7 +43,7 @@ function LeadIdLink({ leadId }: { leadId: string }) {
 function ChevronDown() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <polyline points="6 9 12 15 18 9"/>
+      <polyline points="6 9 12 15 18 9" />
     </svg>
   )
 }
@@ -51,7 +51,7 @@ function ChevronDown() {
 function ChevronRight() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <polyline points="9 18 15 12 9 6"/>
+      <polyline points="9 18 15 12 9 6" />
     </svg>
   )
 }
@@ -86,14 +86,15 @@ function KpiCards({ metrics }: { metrics: any }) {
   )
 }
 
-function LeadsTable({ leads, search, setSearch }: { leads: PriorityLead[]; search: string; setSearch: (v: string) => void }) {
+function LeadsTable({ leads }: { leads: PriorityLead[] }) {
+  const [search, setSearch] = useState('')
   const filtered = search.trim()
     ? leads.filter(l =>
-        l.lead_id?.toLowerCase().includes(search.toLowerCase()) ||
-        l.lead_status?.toLowerCase().includes(search.toLowerCase()) ||
-        l.stage?.toLowerCase().includes(search.toLowerCase()) ||
-        l.planned_region?.toLowerCase().includes(search.toLowerCase())
-      )
+      l.lead_id?.toLowerCase().includes(search.toLowerCase()) ||
+      l.lead_status?.toLowerCase().includes(search.toLowerCase()) ||
+      l.stage?.toLowerCase().includes(search.toLowerCase()) ||
+      l.planned_region?.toLowerCase().includes(search.toLowerCase())
+    )
     : leads
 
   return (
@@ -169,44 +170,383 @@ function LeadsTable({ leads, search, setSearch }: { leads: PriorityLead[]; searc
   )
 }
 
-function SellersFlatTable({ sellers, l1Name, l2Name }: { sellers: any[]; l1Name?: string; l2Name?: string }) {
+interface HierarchicalTableViewProps {
+  viewType: 'admin' | 'l1'
+  l1Groups?: any[]
+  l2Groups?: any[]
+  search: string
+}
+
+function HierarchicalTableView({ viewType, l1Groups = [], l2Groups = [], search }: HierarchicalTableViewProps) {
+  const isL1View = viewType === 'l1'
+  const [activeTab, setActiveTab] = useState<'l1' | 'l2' | 'seller'>(isL1View ? 'l2' : 'l1')
+  const [sortField, setSortField] = useState<string>('total')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+
+  // Flatten Category Managers (L1)
+  const l1Data = !isL1View ? l1Groups.map((l1: any) => {
+    const total = l1.metrics.totalLeads || 0
+    const called = l1.metrics.calledLeads || 0
+    return {
+      name: l1.l1_name || 'Not Mapped',
+      email: l1.l1_email,
+      l2_count: l1.l2_count,
+      seller_count: l1.seller_count,
+      total,
+      called,
+      notCalled: l1.metrics.notCalledLeads,
+      avgDuration: l1.metrics.avgDurationSeconds,
+      avgDurationFormatted: l1.metrics.avgDurationFormatted,
+      mishandledPct: l1.metrics.mishandledPct,
+      callRate: total > 0 ? Math.round((called / total) * 100) : 0,
+    }
+  }) : []
+
+  // Flatten L1 Managers (L2)
+  const l2Data: any[] = []
+  if (isL1View) {
+    l2Groups.forEach((l2: any) => {
+      const total = l2.metrics.totalLeads || 0
+      const called = l2.metrics.calledLeads || 0
+      l2Data.push({
+        name: l2.l2_name || 'Unknown',
+        email: l2.l2_email,
+        seller_count: l2.seller_count,
+        total,
+        called,
+        notCalled: l2.metrics.notCalledLeads,
+        avgDuration: l2.metrics.avgDurationSeconds,
+        avgDurationFormatted: l2.metrics.avgDurationFormatted,
+        mishandledPct: l2.metrics.mishandledPct,
+        callRate: total > 0 ? Math.round((called / total) * 100) : 0,
+      })
+    })
+  } else {
+    l1Groups.forEach((l1: any) => {
+      l1.l2_groups?.forEach((l2: any) => {
+        const total = l2.metrics.totalLeads || 0
+        const called = l2.metrics.calledLeads || 0
+        l2Data.push({
+          name: l2.l2_name || 'Unknown',
+          email: l2.l2_email,
+          l1_name: l1.l1_name || 'Not Mapped',
+          seller_count: l2.seller_count,
+          total,
+          called,
+          notCalled: l2.metrics.notCalledLeads,
+          avgDuration: l2.metrics.avgDurationSeconds,
+          avgDurationFormatted: l2.metrics.avgDurationFormatted,
+          mishandledPct: l2.metrics.mishandledPct,
+          callRate: total > 0 ? Math.round((called / total) * 100) : 0,
+        })
+      })
+    })
+  }
+
+  // Flatten Sellers
+  const sellerData: any[] = []
+  if (isL1View) {
+    l2Groups.forEach((l2: any) => {
+      l2.sellers?.forEach((s: any) => {
+        const total = s.metrics.totalLeads || 0
+        const called = s.metrics.calledLeads || 0
+        sellerData.push({
+          name: s.seller_name || s.seller_email?.split('@')[0],
+          email: s.seller_email,
+          l2_name: l2.l2_name || 'Unknown',
+          total,
+          called,
+          notCalled: s.metrics.notCalledLeads,
+          avgDuration: s.metrics.avgDurationSeconds,
+          avgDurationFormatted: s.metrics.avgDurationFormatted,
+          mishandledPct: s.metrics.mishandledPct,
+          callRate: total > 0 ? Math.round((called / total) * 100) : 0,
+        })
+      })
+    })
+  } else {
+    l1Groups.forEach((l1: any) => {
+      l1.l2_groups?.forEach((l2: any) => {
+        l2.sellers?.forEach((s: any) => {
+          const total = s.metrics.totalLeads || 0
+          const called = s.metrics.calledLeads || 0
+          sellerData.push({
+            name: s.seller_name || s.seller_email?.split('@')[0],
+            email: s.seller_email,
+            l1_name: l1.l1_name || 'Not Mapped',
+            l2_name: l2.l2_name || 'Unknown',
+            total,
+            called,
+            notCalled: s.metrics.notCalledLeads,
+            avgDuration: s.metrics.avgDurationSeconds,
+            avgDurationFormatted: s.metrics.avgDurationFormatted,
+            mishandledPct: s.metrics.mishandledPct,
+            callRate: total > 0 ? Math.round((called / total) * 100) : 0,
+          })
+        })
+      })
+    })
+  }
+
+  // Determine active dataset
+  let rawData = l1Data
+  if (activeTab === 'l2') rawData = l2Data
+  if (activeTab === 'seller') rawData = sellerData
+
+  // Apply search query
+  const query = search.toLowerCase().trim()
+  const filteredData = query
+    ? rawData.filter((item: any) => {
+      return (
+        item.name?.toLowerCase().includes(query) ||
+        item.email?.toLowerCase().includes(query) ||
+        (item.l1_name && item.l1_name.toLowerCase().includes(query)) ||
+        (item.l2_name && item.l2_name.toLowerCase().includes(query))
+      )
+    })
+    : rawData
+
+  // Apply sorting
+  const sortedData = [...filteredData].sort((a: any, b: any) => {
+    let aVal = a[sortField]
+    let bVal = b[sortField]
+
+    if (typeof aVal === 'string') {
+      return sortDirection === 'asc'
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal)
+    }
+
+    // Numbers
+    aVal = aVal || 0
+    bVal = bVal || 0
+    return sortDirection === 'asc' ? aVal - bVal : bVal - aVal
+  })
+
+  const requestSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(field)
+      setSortDirection('desc') // default sorting high to low (desc) for metrics
+    }
+  }
+
+  const renderSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <span style={{ marginLeft: '4px', opacity: 0.3 }}>↕</span>
+    }
+    return sortDirection === 'asc'
+      ? <span style={{ marginLeft: '4px', color: '#F4631E' }}>↑</span>
+      : <span style={{ marginLeft: '4px', color: '#F4631E' }}>↓</span>
+  }
+
   return (
-    <div className={styles.tableWrap} style={{ marginTop: '8px' }}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            {l1Name && <th>Category Mgr</th>}
-            {l2Name && <th>L1 Manager</th>}
-            <th>Seller</th>
-            <th>Total</th>
-            <th>Called</th>
-            <th>Not Called</th>
-            <th>Avg Duration</th>
-            <th>Mishandled %</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sellers.map((s: any) => {
-            const m = s.metrics
-            return (
-              <tr key={s.seller_email} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                {l1Name && <td style={{ padding: '10px 14px', fontSize: '0.7rem', color: '#C9A84C' }}>{s.l1_name || l1Name}</td>}
-                {l2Name && <td style={{ padding: '10px 14px', fontSize: '0.7rem', color: '#C9A84C' }}>{s.l2_name || l2Name}</td>}
-                <td style={{ padding: '10px 14px', fontWeight: 600, fontSize: '0.8rem' }}>{s.seller_name}</td>
-                <td style={{ padding: '10px 14px', fontWeight: 600 }}>{m.totalLeads}</td>
-                <td style={{ padding: '10px 14px', color: '#22C55E', fontWeight: 600 }}>{m.calledLeads}</td>
-                <td style={{ padding: '10px 14px', color: '#EF4444', fontWeight: 600 }}>{m.notCalledLeads}</td>
-                <td style={{ padding: '10px 14px' }}>{m.avgDurationFormatted}</td>
-                <td style={{ padding: '10px 14px' }}>
-                  <span style={{ fontWeight: 700, color: m.mishandledPct > 20 ? '#EF4444' : '#22C55E' }}>
-                    {m.mishandledPct}%
-                  </span>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Sub-tabs inside Table View */}
+      <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #232323', paddingBottom: '8px' }}>
+        {!isL1View && (
+          <button
+            onClick={() => { setActiveTab('l1'); setSortField('total'); setSortDirection('desc'); }}
+            style={{
+              background: 'none', border: 'none', color: activeTab === 'l1' ? '#C9A84C' : '#8A8278',
+              fontSize: '0.8rem', fontWeight: 600, padding: '4px 8px', cursor: 'pointer',
+              borderBottom: activeTab === 'l1' ? '2px solid #C9A84C' : 'none'
+            }}
+          >
+            Category Managers ({l1Data.length})
+          </button>
+        )}
+        <button
+          onClick={() => { setActiveTab('l2'); setSortField('total'); setSortDirection('desc'); }}
+          style={{
+            background: 'none', border: 'none', color: activeTab === 'l2' ? '#C9A84C' : '#8A8278',
+            fontSize: '0.8rem', fontWeight: 600, padding: '4px 8px', cursor: 'pointer',
+            borderBottom: activeTab === 'l2' ? '2px solid #C9A84C' : 'none'
+          }}
+        >
+          L1 Managers ({l2Data.length})
+        </button>
+        <button
+          onClick={() => { setActiveTab('seller'); setSortField('total'); setSortDirection('desc'); }}
+          style={{
+            background: 'none', border: 'none', color: activeTab === 'seller' ? '#C9A84C' : '#8A8278',
+            fontSize: '0.8rem', fontWeight: 600, padding: '4px 8px', cursor: 'pointer',
+            borderBottom: activeTab === 'seller' ? '2px solid #C9A84C' : 'none'
+          }}
+        >
+          Sellers ({sellerData.length})
+        </button>
+      </div>
+
+      <div className={styles.leaderboardWrap}>
+        <div className={styles.leaderboardContainer}>
+          {/* Header Row */}
+          <div className={styles.leaderboardHeader}>
+            <div className={styles.headerCell} style={{ justifyContent: 'center' }}>#</div>
+
+            <div
+              className={`${styles.headerCell} ${styles.sortable}`}
+              onClick={() => requestSort('name')}
+            >
+              {activeTab === 'l1' ? 'Category Manager' : activeTab === 'l2' ? 'L1 Manager' : 'Seller'}
+              {renderSortIcon('name')}
+            </div>
+
+            <div
+              className={`${styles.headerCell} ${styles.sortable}`}
+              onClick={() => requestSort('total')}
+            >
+              Leads {renderSortIcon('total')}
+            </div>
+
+            <div
+              className={`${styles.headerCell} ${styles.sortable}`}
+              onClick={() => requestSort('callRate')}
+            >
+              Call Rate {renderSortIcon('callRate')}
+            </div>
+
+            <div
+              className={`${styles.headerCell} ${styles.sortable}`}
+              onClick={() => requestSort('avgDuration')}
+            >
+              Avg Dur {renderSortIcon('avgDuration')}
+            </div>
+
+            <div
+              className={`${styles.headerCell} ${styles.sortable}`}
+              onClick={() => requestSort('mishandledPct')}
+            >
+              Mishandled {renderSortIcon('mishandledPct')}
+            </div>
+          </div>
+
+          {/* Data Rows */}
+          {sortedData.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#8A8278', background: '#141414', border: '1px solid #232323', borderRadius: '12px' }}>
+              No matches found for "{search}"
+            </div>
+          ) : (
+            sortedData.map((row: any, i) => {
+              // Determine pill color class based on mishandled rate
+              let pillClass = styles.pillSuccess
+              if (row.mishandledPct > 50) {
+                pillClass = styles.pillDanger
+              } else if (row.mishandledPct > 20) {
+                pillClass = styles.pillWarning
+              }
+
+              // Determine secondary text
+              let subText = ''
+              if (activeTab === 'l1') {
+                subText = `${row.seller_count} sellers`
+              } else if (activeTab === 'l2') {
+                const parts = []
+                if (row.l1_name && row.l1_name !== 'Not Mapped') {
+                  parts.push(`Cat Mgr: ${row.l1_name}`)
+                }
+                parts.push(`${row.seller_count} sellers`)
+                subText = parts.join(' · ')
+              } else {
+                const parts = []
+                if (row.l2_name && row.l2_name !== 'Unknown') {
+                  parts.push(`L1 Mgr: ${row.l2_name}`)
+                }
+                if (row.l1_name && row.l1_name !== 'Not Mapped') {
+                  parts.push(`Cat Mgr: ${row.l1_name}`)
+                }
+                subText = parts.join(' · ')
+              }
+
+              return (
+                <div key={row.email || i} className={styles.leaderboardRow}>
+                  {/* Rank */}
+                  <div className={styles.rankCell}>{i + 1}</div>
+
+                  {/* Name and SubText */}
+                  <div className={styles.nameCell}>
+                    <span className={styles.nameText}>{row.name}</span>
+                    {subText && <span className={styles.subText}>{subText}</span>}
+                  </div>
+
+                  {/* Leads */}
+                  <div className={styles.metricCell}>{row.total}</div>
+
+                  {/* Call Rate */}
+                  <div className={styles.callRateCell}>
+                    <div className={styles.progressBarTrack}>
+                      <div
+                        className={styles.progressBarFill}
+                        style={{ width: `${row.callRate}%` }}
+                      />
+                    </div>
+                    <span className={styles.progressText}>{row.callRate}%</span>
+                  </div>
+
+                  {/* Avg Duration */}
+                  <div className={styles.metricCell}>{row.avgDurationFormatted || '0s'}</div>
+
+                  {/* Mishandled % */}
+                  <div>
+                    <span className={`${styles.mishandledPill} ${pillClass}`}>
+                      {row.mishandledPct}%
+                    </span>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CardHeaderStats({ metrics }: { metrics: any }) {
+  if (!metrics) return null
+  const total = metrics.totalLeads || 0
+  const called = metrics.calledLeads || 0
+  const callRate = total > 0 ? Math.round((called / total) * 100) : 0
+  const mishandledPct = metrics.mishandledPct || 0
+
+  let pillClass = styles.pillSuccess
+  if (mishandledPct > 50) {
+    pillClass = styles.pillDanger
+  } else if (mishandledPct > 20) {
+    pillClass = styles.pillWarning
+  }
+
+  // Choose progress bar color based on call rate
+  let progressFillColor = '#22C55E' // green
+  if (callRate < 30) {
+    progressFillColor = '#EF4444' // red
+  } else if (callRate < 70) {
+    progressFillColor = '#C9A84C' // warning gold
+  }
+
+  return (
+    <div className={styles.cardHeaderMetrics} onClick={e => e.stopPropagation()}>
+      {/* Call Rate */}
+      <div className={styles.cardMiniProgressBarCell} title={`${called} of ${total} leads called`}>
+        <div className={styles.cardProgressBarTrack}>
+          <div
+            className={styles.cardProgressBarFill}
+            style={{ width: `${callRate}%`, backgroundColor: progressFillColor }}
+          />
+        </div>
+        <span className={styles.cardProgressText} style={{ color: progressFillColor }}>{callRate}%</span>
+      </div>
+
+      {/* Avg Duration */}
+      <span className={styles.cardDurationLabel} title="Average Call Duration">
+        {metrics.avgDurationFormatted || '0s'}
+      </span>
+
+      {/* Mishandled % */}
+      <span className={`${styles.mishandledPill} ${pillClass}`} style={{ transform: 'scale(0.85)', transformOrigin: 'right center' }}>
+        {mishandledPct}%
+      </span>
     </div>
   )
 }
@@ -276,26 +616,26 @@ export default function PriorityPage({ session }: Props) {
 
     const filteredL1Groups = search.trim()
       ? l1Groups.filter((l1: any) => {
-          const l1Match = l1.l1_name?.toLowerCase().includes(search.toLowerCase())
-          if (l1Match) return true
-          return l1.l2_groups?.some((l2: any) => {
-            const l2Match = l2.l2_name?.toLowerCase().includes(search.toLowerCase())
-            if (l2Match) return true
-            return l2.sellers.some((s: any) =>
-              s.seller_name?.toLowerCase().includes(search.toLowerCase()) ||
-              s.seller_email?.toLowerCase().includes(search.toLowerCase())
-            )
-          })
+        const l1Match = l1.l1_name?.toLowerCase().includes(search.toLowerCase())
+        if (l1Match) return true
+        return l1.l2_groups?.some((l2: any) => {
+          const l2Match = l2.l2_name?.toLowerCase().includes(search.toLowerCase())
+          if (l2Match) return true
+          return l2.sellers.some((s: any) =>
+            s.seller_name?.toLowerCase().includes(search.toLowerCase()) ||
+            s.seller_email?.toLowerCase().includes(search.toLowerCase())
+          )
         })
+      })
       : l1Groups
 
     const filteredFlatSellers = search.trim()
       ? allSellersFlat.filter((s: any) =>
-          s.seller_name?.toLowerCase().includes(search.toLowerCase()) ||
-          s.seller_email?.toLowerCase().includes(search.toLowerCase()) ||
-          s.l1_name?.toLowerCase().includes(search.toLowerCase()) ||
-          s.l2_name?.toLowerCase().includes(search.toLowerCase())
-        )
+        s.seller_name?.toLowerCase().includes(search.toLowerCase()) ||
+        s.seller_email?.toLowerCase().includes(search.toLowerCase()) ||
+        s.l1_name?.toLowerCase().includes(search.toLowerCase()) ||
+        s.l2_name?.toLowerCase().includes(search.toLowerCase())
+      )
       : allSellersFlat
 
     return (
@@ -321,7 +661,7 @@ export default function PriorityPage({ session }: Props) {
         <KpiCards metrics={teamMetrics} />
 
         {tableView ? (
-          <SellersFlatTable sellers={filteredFlatSellers} />
+          <HierarchicalTableView viewType="admin" l1Groups={l1Groups} search={search} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {filteredL1Groups.map((l1: any) => {
@@ -331,21 +671,16 @@ export default function PriorityPage({ session }: Props) {
                 <div key={l1.l1_email} style={{ background: '#141414', border: '1px solid #232323', borderRadius: '12px', overflow: 'hidden' }}>
                   <div onClick={() => toggleL1(l1.l1_email)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', cursor: 'pointer', userSelect: 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ color: '#8A8278', fontSize: '0.7rem' }}>{isL1Expanded ? <ChevronDown /> : <ChevronRight />}</span>
+                      <span className={styles.chevronContainer}>{isL1Expanded ? <ChevronDown /> : <ChevronRight />}</span>
                       <div>
                         <span style={{ fontWeight: 700, fontSize: '0.9rem', display: 'block' }}>{l1.l1_name}</span>
-                        <span style={{ fontSize: '0.62rem', color: '#8A8278' }}>{l1.l2_count} L1 Managers · {l1.seller_count} sellers</span>
+                        <span style={{ fontSize: '0.62rem', color: '#8A8278' }}>{l1.l2_count} L1 Managers · {l1.seller_count} sellers · {lm.totalLeads} leads</span>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.72rem', color: '#22C55E', fontWeight: 600 }}>{lm.calledLeads} called</span>
-                      <span style={{ fontSize: '0.72rem', color: lm.mishandledPct > 20 ? '#EF4444' : '#22C55E', fontWeight: 600 }}>{lm.mishandledPct}%</span>
-                      <span style={{ fontSize: '0.72rem', color: '#C9A84C' }}>{lm.avgDurationFormatted}</span>
-                    </div>
+                    <CardHeaderStats metrics={lm} />
                   </div>
                   {isL1Expanded && (
                     <div style={{ padding: '0 16px 16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                      <KpiCards metrics={lm} />
                       {l1.l2_groups.map((l2: any) => {
                         const isL2Expanded = expandedL2[l2.l2_email]
                         const l2m = l2.metrics
@@ -353,19 +688,16 @@ export default function PriorityPage({ session }: Props) {
                           <div key={l2.l2_email} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px', marginBottom: '6px', overflow: 'hidden' }}>
                             <div onClick={(e) => { e.stopPropagation(); toggleL2(l2.l2_email) }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', cursor: 'pointer' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ color: '#8A8278', fontSize: '0.6rem' }}>{isL2Expanded ? <ChevronDown /> : <ChevronRight />}</span>
-                                <span style={{ fontWeight: 600, fontSize: '0.82rem' }}>{l2.l2_name}</span>
-                                <span style={{ fontSize: '0.6rem', color: '#8A8278' }}>{l2.seller_count} sellers</span>
+                                <span className={styles.chevronContainer}>{isL2Expanded ? <ChevronDown /> : <ChevronRight />}</span>
+                                <div>
+                                  <span style={{ fontWeight: 600, fontSize: '0.82rem', display: 'block' }}>{l2.l2_name}</span>
+                                  <span style={{ fontSize: '0.62rem', color: '#8A8278' }}>{l2.seller_count} sellers · {l2m.totalLeads} leads</span>
+                                </div>
                               </div>
-                              <div style={{ display: 'flex', gap: '12px', fontSize: '0.68rem' }}>
-                                <span style={{ color: '#22C55E' }}>{l2m.calledLeads} called</span>
-                                <span style={{ color: '#C9A84C' }}>{l2m.avgDurationFormatted}</span>
-                                <span style={{ color: l2m.mishandledPct > 20 ? '#EF4444' : '#22C55E' }}>{l2m.mishandledPct}%</span>
-                              </div>
+                              <CardHeaderStats metrics={l2m} />
                             </div>
                             {isL2Expanded && (
                               <div style={{ padding: '0 14px 12px' }}>
-                                <KpiCards metrics={l2m} />
                                 {l2.sellers.map((seller: any) => {
                                   const isSellerExpanded = expandedSellers[seller.seller_email]
                                   const sm = seller.metrics
@@ -373,19 +705,17 @@ export default function PriorityPage({ session }: Props) {
                                     <div key={seller.seller_email} style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '6px', marginBottom: '4px', overflow: 'hidden' }}>
                                       <div onClick={(e) => { e.stopPropagation(); toggleSeller(seller.seller_email) }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', cursor: 'pointer' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                          <span style={{ color: '#8A8278', fontSize: '0.55rem' }}>{isSellerExpanded ? <ChevronDown /> : <ChevronRight />}</span>
-                                          <span style={{ fontWeight: 500, fontSize: '0.75rem' }}>{seller.seller_name}</span>
+                                          <span className={styles.chevronContainer}>{isSellerExpanded ? <ChevronDown /> : <ChevronRight />}</span>
+                                          <div>
+                                            <span style={{ fontWeight: 500, fontSize: '0.75rem', display: 'block' }}>{seller.seller_name}</span>
+                                            <span style={{ fontSize: '0.62rem', color: '#8A8278' }}>{sm.totalLeads} leads</span>
+                                          </div>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '10px', fontSize: '0.65rem' }}>
-                                          <span style={{ color: '#22C55E' }}>{sm.calledLeads}</span>
-                                          <span style={{ color: '#EF4444' }}>{sm.notCalledLeads}</span>
-                                          <span style={{ color: sm.mishandledPct > 20 ? '#EF4444' : '#22C55E' }}>{sm.mishandledPct}%</span>
-                                        </div>
+                                        <CardHeaderStats metrics={sm} />
                                       </div>
                                       {isSellerExpanded && (
                                         <div style={{ padding: '0 12px 10px' }}>
-                                          <KpiCards metrics={sm} />
-                                          <LeadsTable leads={seller.leads || []} search={search} setSearch={setSearch} />
+                                          <LeadsTable leads={seller.leads || []} />
                                         </div>
                                       )}
                                     </div>
@@ -421,17 +751,17 @@ export default function PriorityPage({ session }: Props) {
 
     const filteredL2Groups = search.trim()
       ? l2Groups.filter((g: any) =>
-          g.l2_name?.toLowerCase().includes(search.toLowerCase()) ||
-          g.sellers.some((s: any) => s.seller_name?.toLowerCase().includes(search.toLowerCase()) || s.seller_email?.toLowerCase().includes(search.toLowerCase()))
-        )
+        g.l2_name?.toLowerCase().includes(search.toLowerCase()) ||
+        g.sellers.some((s: any) => s.seller_name?.toLowerCase().includes(search.toLowerCase()) || s.seller_email?.toLowerCase().includes(search.toLowerCase()))
+      )
       : l2Groups
 
     const filteredFlatSellers = search.trim()
       ? allSellersFlat.filter((s: any) =>
-          s.seller_name?.toLowerCase().includes(search.toLowerCase()) ||
-          s.seller_email?.toLowerCase().includes(search.toLowerCase()) ||
-          s.l2_name?.toLowerCase().includes(search.toLowerCase())
-        )
+        s.seller_name?.toLowerCase().includes(search.toLowerCase()) ||
+        s.seller_email?.toLowerCase().includes(search.toLowerCase()) ||
+        s.l2_name?.toLowerCase().includes(search.toLowerCase())
+      )
       : allSellersFlat
 
     return (
@@ -457,7 +787,7 @@ export default function PriorityPage({ session }: Props) {
         <KpiCards metrics={teamMetrics} />
 
         {tableView ? (
-          <SellersFlatTable sellers={filteredFlatSellers} />
+          <HierarchicalTableView viewType="l1" l2Groups={l2Groups} search={search} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {filteredL2Groups.map((group: any) => {
@@ -467,21 +797,16 @@ export default function PriorityPage({ session }: Props) {
                 <div key={group.l2_email} style={{ background: '#141414', border: '1px solid #232323', borderRadius: '12px', overflow: 'hidden' }}>
                   <div onClick={() => toggleL2(group.l2_email)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', cursor: 'pointer', userSelect: 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ color: '#8A8278', fontSize: '0.7rem' }}>{isExpanded ? <ChevronDown /> : <ChevronRight />}</span>
+                      <span className={styles.chevronContainer}>{isExpanded ? <ChevronDown /> : <ChevronRight />}</span>
                       <div>
                         <span style={{ fontWeight: 600, fontSize: '0.85rem', display: 'block' }}>{group.l2_name}</span>
                         <span style={{ fontSize: '0.62rem', color: '#8A8278' }}>{group.seller_count} sellers · {gm.totalLeads} leads</span>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.72rem', color: '#22C55E', fontWeight: 600 }}>{gm.calledLeads} called</span>
-                      <span style={{ fontSize: '0.72rem', color: gm.mishandledPct > 20 ? '#EF4444' : '#22C55E', fontWeight: 600 }}>{gm.mishandledPct}%</span>
-                      <span style={{ fontSize: '0.72rem', color: '#C9A84C' }}>{gm.avgDurationFormatted}</span>
-                    </div>
+                    <CardHeaderStats metrics={gm} />
                   </div>
                   {isExpanded && (
                     <div style={{ padding: '0 16px 16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                      <KpiCards metrics={gm} />
                       {group.sellers.map((seller: any) => {
                         const isSellerExpanded = expandedSellers[seller.seller_email]
                         const sm = seller.metrics
@@ -489,19 +814,17 @@ export default function PriorityPage({ session }: Props) {
                           <div key={seller.seller_email} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px', marginBottom: '6px', overflow: 'hidden' }}>
                             <div onClick={() => toggleSeller(seller.seller_email)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', cursor: 'pointer' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ color: '#8A8278', fontSize: '0.6rem' }}>{isSellerExpanded ? <ChevronDown /> : <ChevronRight />}</span>
-                                <span style={{ fontWeight: 500, fontSize: '0.78rem' }}>{seller.seller_name}</span>
+                                <span className={styles.chevronContainer}>{isSellerExpanded ? <ChevronDown /> : <ChevronRight />}</span>
+                                <div>
+                                  <span style={{ fontWeight: 500, fontSize: '0.78rem', display: 'block' }}>{seller.seller_name}</span>
+                                  <span style={{ fontSize: '0.62rem', color: '#8A8278' }}>{sm.totalLeads} leads</span>
+                                </div>
                               </div>
-                              <div style={{ display: 'flex', gap: '12px', fontSize: '0.7rem' }}>
-                                <span style={{ color: '#22C55E' }}>{sm.calledLeads}</span>
-                                <span style={{ color: '#EF4444' }}>{sm.notCalledLeads}</span>
-                                <span style={{ color: sm.mishandledPct > 20 ? '#EF4444' : '#22C55E' }}>{sm.mishandledPct}%</span>
-                              </div>
+                              <CardHeaderStats metrics={sm} />
                             </div>
                             {isSellerExpanded && (
                               <div style={{ padding: '0 14px 12px' }}>
-                                <KpiCards metrics={sm} />
-                                <LeadsTable leads={seller.leads || []} search={search} setSearch={setSearch} />
+                                <LeadsTable leads={seller.leads || []} />
                               </div>
                             )}
                           </div>
@@ -538,8 +861,8 @@ export default function PriorityPage({ session }: Props) {
             <p style={{ fontSize: '0.6rem', color: '#5A5650', marginTop: '2px' }}>Updates every 40 min</p>
           </div>
           <div style={{ display: 'flex', gap: '3px', background: '#141414', border: '1px solid #232323', borderRadius: '8px', padding: '3px' }}>
-            <button onClick={() => setViewMode('my')} style={{ padding: '7px 16px', border: 'none', borderRadius: '6px', background: viewMode === 'my' ? 'rgba(244,99,30,0.15)' : 'transparent', color: viewMode === 'my' ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>My Priority</button>
-            <button onClick={() => setViewMode('team')} style={{ padding: '7px 16px', border: 'none', borderRadius: '6px', background: viewMode === 'team' ? 'rgba(244,99,30,0.15)' : 'transparent', color: viewMode === 'team' ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>My Team ({sellers.length})</button>
+            <button onClick={() => setViewMode('my')} style={{ padding: '7px 16px', border: 'none', borderRadius: '6px', background: (viewMode as any) === 'my' ? 'rgba(244,99,30,0.15)' : 'transparent', color: (viewMode as any) === 'my' ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>My Priority</button>
+            <button onClick={() => setViewMode('team')} style={{ padding: '7px 16px', border: 'none', borderRadius: '6px', background: (viewMode as any) === 'team' ? 'rgba(244,99,30,0.15)' : 'transparent', color: (viewMode as any) === 'team' ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>My Team ({sellers.length})</button>
           </div>
         </div>
 
@@ -558,22 +881,17 @@ export default function PriorityPage({ session }: Props) {
               <div key={seller.seller_email} style={{ background: '#141414', border: '1px solid #232323', borderRadius: '12px', overflow: 'hidden' }}>
                 <div onClick={() => toggleSeller(seller.seller_email)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', cursor: 'pointer', userSelect: 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ color: '#8A8278', fontSize: '0.7rem' }}>{isExpanded ? <ChevronDown /> : <ChevronRight />}</span>
+                    <span className={styles.chevronContainer}>{isExpanded ? <ChevronDown /> : <ChevronRight />}</span>
                     <div>
                       <span style={{ fontWeight: 600, fontSize: '0.85rem', display: 'block' }}>{seller.seller_name}</span>
-                      <span style={{ fontSize: '0.62rem', color: '#8A8278' }}>{m.totalLeads} leads · {m.calledLeads} called · {m.notCalledLeads} not called</span>
+                      <span style={{ fontSize: '0.62rem', color: '#8A8278' }}>{m.totalLeads} leads</span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.72rem', color: '#22C55E', fontWeight: 600 }}>{m.calledLeads}</span>
-                    <span style={{ fontSize: '0.72rem', color: m.mishandledPct > 20 ? '#EF4444' : '#22C55E', fontWeight: 600 }}>{m.mishandledPct}%</span>
-                    <span style={{ fontSize: '0.72rem', color: '#C9A84C' }}>{m.avgDurationFormatted}</span>
-                  </div>
+                  <CardHeaderStats metrics={m} />
                 </div>
                 {isExpanded && (
                   <div style={{ padding: '0 16px 16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                    <KpiCards metrics={m} />
-                    <LeadsTable leads={seller.leads || []} search={search} setSearch={setSearch} />
+                    <LeadsTable leads={seller.leads || []} />
                   </div>
                 )}
               </div>
@@ -598,14 +916,14 @@ export default function PriorityPage({ session }: Props) {
         </div>
         {isL2 && (
           <div style={{ display: 'flex', gap: '3px', background: '#141414', border: '1px solid #232323', borderRadius: '8px', padding: '3px' }}>
-            <button onClick={() => setViewMode('my')} style={{ padding: '7px 16px', border: 'none', borderRadius: '6px', background: viewMode === 'my' ? 'rgba(244,99,30,0.15)' : 'transparent', color: viewMode === 'my' ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>My Priority</button>
-            <button onClick={() => setViewMode('team')} style={{ padding: '7px 16px', border: 'none', borderRadius: '6px', background: viewMode === 'team' ? 'rgba(244,99,30,0.15)' : 'transparent', color: viewMode === 'team' ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>My Team</button>
+            <button onClick={() => setViewMode('my')} style={{ padding: '7px 16px', border: 'none', borderRadius: '6px', background: (viewMode as any) === 'my' ? 'rgba(244,99,30,0.15)' : 'transparent', color: (viewMode as any) === 'my' ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>My Priority</button>
+            <button onClick={() => setViewMode('team')} style={{ padding: '7px 16px', border: 'none', borderRadius: '6px', background: (viewMode as any) === 'team' ? 'rgba(244,99,30,0.15)' : 'transparent', color: (viewMode as any) === 'team' ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>My Team</button>
           </div>
         )}
       </div>
 
       <KpiCards metrics={metrics} />
-      <LeadsTable leads={leads} search={search} setSearch={setSearch} />
+      <LeadsTable leads={leads} />
     </div>
   )
 }

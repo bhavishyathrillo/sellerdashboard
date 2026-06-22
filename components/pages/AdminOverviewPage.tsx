@@ -91,7 +91,7 @@ export default function AdminOverviewPage() {
       })
     })
     setFilteredResults(results)
-  }, [search, l1Data])
+  }, [search])
 
   const toggleL2 = (email: string) => {
     setExpandedL2((prev: any) => ({ ...prev, [email]: !prev[email] }))
