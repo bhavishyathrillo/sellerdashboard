@@ -18,18 +18,12 @@ export async function GET(req: Request) {
 
   if (view === 'team' && ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(role || '')) {
     if (role === 'L1') {
-      const { data: teamSellers } = await supabase
-        .from('srs_raw')
-        .select('seller_email')
-        .eq('l1_email', email)
+      const { data: teamSellers } = await supabase.from('srs_raw').select('seller_email').eq('l1_email', email)
       const emails = (teamSellers || []).map(s => s.seller_email).filter(e => e.toLowerCase() !== email.toLowerCase())
       if (emails.length > 0) query = query.in('owner_email', emails)
       else query = query.eq('owner_email', '__none__')
     } else if (role === 'L2') {
-      const { data: teamSellers } = await supabase
-        .from('srs_raw')
-        .select('seller_email')
-        .eq('l2_email', email)
+      const { data: teamSellers } = await supabase.from('srs_raw').select('seller_email').eq('l2_email', email)
       const emails = (teamSellers || []).map(s => s.seller_email).filter(e => e.toLowerCase() !== email.toLowerCase())
       if (emails.length > 0) query = query.in('owner_email', emails)
       else query = query.eq('owner_email', '__none__')
@@ -38,20 +32,40 @@ export async function GET(req: Request) {
     query = query.eq('owner_email', email)
   }
 
-  const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // 🔥 Fetch ALL rows using pagination
+  let allData: any[] = []
+  let page = 0
+  const pageSize = 1000
+  let hasMore = true
 
-  // Add seller names
-  if (data && data.length > 0) {
-    const emails = [...new Set(data.map(d => d.owner_email).filter(Boolean))]
-    const { data: sellers } = await supabase
-      .from('srs_raw')
-      .select('seller_email, seller_name')
-      .in('seller_email', emails)
-    const nameMap: any = {}
-    sellers?.forEach(s => { nameMap[s.seller_email] = s.seller_name })
-    data.forEach(d => { (d as any).seller_name = nameMap[d.owner_email] || d.owner_email?.split('@')[0] })
+  while (hasMore) {
+    const start = page * pageSize
+    const end = (page + 1) * pageSize - 1
+
+    const { data: chunk, error } = await query.range(start, end)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    if (!chunk || chunk.length === 0) {
+      hasMore = false
+    } else {
+      allData = allData.concat(chunk)
+      if (chunk.length < pageSize) {
+        hasMore = false
+      } else {
+        page++
+      }
+    }
   }
 
-  return NextResponse.json(data || [])
+  // Add seller names
+  if (allData.length > 0) {
+    const emails = [...new Set(allData.map(d => d.owner_email).filter(Boolean))]
+    const { data: sellers } = await supabase.from('srs_raw').select('seller_email, seller_name').in('seller_email', emails)
+    const nameMap: any = {}
+    sellers?.forEach(s => { nameMap[s.seller_email] = s.seller_name })
+    allData.forEach(d => { (d as any).seller_name = nameMap[d.owner_email] || d.owner_email?.split('@')[0] })
+  }
+
+  return NextResponse.json(allData || [])
 }

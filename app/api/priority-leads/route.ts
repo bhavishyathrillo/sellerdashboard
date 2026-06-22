@@ -297,7 +297,25 @@ function calcMetrics(leads: any[]) {
   const calledLeadsData = leads.filter((l: any) => (l.dials_today || 0) > 0)
   const totalDuration = calledLeadsData.reduce((sum: number, l: any) => sum + (l.answered_seconds_today || 0), 0)
   const avgDurationSeconds = calledLeadsData.length > 0 ? Math.round(totalDuration / calledLeadsData.length) : 0
-  return { totalLeads, calledLeads, notCalledLeads, mishandledLeads, mishandledPct, avgDurationSeconds, avgDurationFormatted: fmtDuration(avgDurationSeconds) }
+  const conversationHappenedLeads = leads.filter((l: any) => {
+    const s = (l.final_status || '').toLowerCase().trim()
+    return s === 'convo happened' || s === 'conversation happened'
+  }).length
+  const twoAttemptsDoneLeads = leads.filter((l: any) => {
+    const s = (l.final_status || '').toLowerCase().trim()
+    return s === '2 attempts done' || s === 'two attempts done'
+  }).length
+  return { 
+    totalLeads, 
+    calledLeads, 
+    notCalledLeads, 
+    mishandledLeads, 
+    mishandledPct, 
+    avgDurationSeconds, 
+    avgDurationFormatted: fmtDuration(avgDurationSeconds),
+    conversationHappenedLeads,
+    twoAttemptsDoneLeads
+  }
 }
 
 function fmtDuration(seconds: number) {

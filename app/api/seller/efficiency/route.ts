@@ -13,12 +13,19 @@ export async function GET(req: Request) {
   if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
 
   try {
+    const today = new Date()
+    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    const dateFrom = firstOfMonth.toISOString().split('T')[0]
+    const dateTo = today.toISOString().split('T')[0]
+
     const { data, error } = await supabase
       .from('efficiency')
       .select('*')
       .eq('seller_email', email.toLowerCase().trim())
-      .order('date', { ascending: false })
-      .limit(60)
+      .gte('date', dateFrom)
+      .lte('date', dateTo)
+      .order('date', { ascending: true })
+      .limit(50000)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data || [])

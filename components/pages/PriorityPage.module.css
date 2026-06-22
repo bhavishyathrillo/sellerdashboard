@@ -7,8 +7,8 @@
 
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
   margin-bottom: 20px;
 }
 
@@ -293,5 +293,47 @@
 }
 
 .chevronContainer:hover {
+  color: #F0EDE8;
+}
+
+/* Split card styles */
+.kpiSplit {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin-top: 6px;
+  min-height: 42px;
+}
+
+.kpiSplitCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.kpiSplitCol:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 10%;
+  height: 80%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.kpiSplitLabel {
+  font-size: 0.58rem;
+  color: #8A8278;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.kpiSplitValue {
+  font-size: 1.3rem;
+  font-weight: 700;
   color: #F0EDE8;
 }

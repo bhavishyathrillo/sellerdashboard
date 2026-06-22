@@ -11,28 +11,14 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const email = searchParams.get('email')
 
-  if (!email) {
-    return NextResponse.json({ error: 'Email required' }, { status: 400 })
-  }
+  if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
 
   const trimmedEmail = cleanEmail(email)
 
   try {
-    // Get all sellers under this L1
-    const { data: sellers, error: sellersError } = await supabase
-      .from('srs_raw')
-      .select('seller_email, seller_name')
-      .eq('l1_email', trimmedEmail)
+    const { data: sellers } = await supabase.from('srs_raw').select('seller_email, seller_name').eq('l1_email', trimmedEmail)
+    if (!sellers || sellers.length === 0) return NextResponse.json({ teamAverage: null, sellers: [] })
 
-    if (sellersError) {
-      return NextResponse.json({ error: sellersError.message }, { status: 500 })
-    }
-
-    if (!sellers || sellers.length === 0) {
-      return NextResponse.json({ teamAverage: null, sellers: [] })
-    }
-
-    // Build date list from 1st of this month to today
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -42,58 +28,39 @@ export async function GET(req: Request) {
     for (let i = 0; i < daysInRange; i++) {
       const d = new Date(firstOfMonth)
       d.setDate(d.getDate() + i)
-      const y = d.getFullYear()
-      const m = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      dateList.push(`${y}-${m}-${day}`)
+      dateList.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
     }
 
     const dateFrom = dateList[0]
     const dateTo = dateList[dateList.length - 1]
 
-    // 🔥 Get seller emails - Include ALL sellers under this L1
-    // EXCLUDE only the L1's own email (L1 is NOT a seller)
-    const sellerEmails = sellers
-      .map((s: any) => cleanEmail(s.seller_email))
-      .filter((e: string, index: number, self: string[]) => 
-        e !== trimmedEmail && self.indexOf(e) === index
-      )
+    const sellerEmails = sellers.map((s: any) => cleanEmail(s.seller_email)).filter((e: string) => e !== trimmedEmail)
 
-    // Fetch ALL efficiency data with pagination
+    // Fetch ALL efficiency using cursor pagination
     let allEfficiency: any[] = []
-    let page = 0
+    let lastId = 0
     const pageSize = 1000
     let hasMore = true
 
     while (hasMore) {
-      const start = page * pageSize
-      const end = (page + 1) * pageSize - 1
-
-      const { data: chunk, error: effError } = await supabase
+      let query = supabase
         .from('efficiency')
-        .select('*')
+        .select('id, seller_email, date, call_dials, call_duration')
         .in('seller_email', sellerEmails)
         .gte('date', dateFrom)
         .lte('date', dateTo)
-        .range(start, end)
+        .order('id', { ascending: true })
+        .limit(pageSize)
 
-      if (effError) {
-        return NextResponse.json({ error: effError.message }, { status: 500 })
-      }
+      if (lastId > 0) query = query.gt('id', lastId)
 
-      if (!chunk || chunk.length === 0) {
-        hasMore = false
-      } else {
-        allEfficiency = allEfficiency.concat(chunk)
-        if (chunk.length < pageSize) {
-          hasMore = false
-        } else {
-          page++
-        }
-      }
+      const { data: chunk, error } = await query
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+      if (!chunk || chunk.length === 0) hasMore = false
+      else { allEfficiency = allEfficiency.concat(chunk); lastId = chunk[chunk.length - 1].id; if (chunk.length < pageSize) hasMore = false }
     }
 
-    // Index efficiency by email
     const effByEmail: Record<string, any[]> = {}
     if (allEfficiency) {
       allEfficiency.forEach((e: any) => {
@@ -105,18 +72,12 @@ export async function GET(req: Request) {
       })
     }
 
-    // Build seller data
     const sellerData = sellerEmails.map((email) => {
       const effRows = effByEmail[email] || []
       const sellerInfo = sellers.find((s: any) => cleanEmail(s.seller_email) === email)
-      return {
-        seller_name: sellerInfo?.seller_name || email.split('@')[0],
-        seller_email: email,
-        effRows: effRows
-      }
+      return { seller_name: sellerInfo?.seller_name || email.split('@')[0], seller_email: email, effRows }
     })
 
-    // Use shared utility to calculate stats
     const stats = calculateHygieneStats(sellerData, dateList)
 
     return NextResponse.json({
@@ -132,7 +93,6 @@ export async function GET(req: Request) {
       dateRange: { from: dateFrom, to: dateTo, count: dateList.length }
     })
   } catch (error: any) {
-    console.error('L1 Efficiency API Error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

@@ -69,59 +69,27 @@ function SellerStats({ data, fmt }: { data: any; fmt: any }) {
         labels,
         datasets: [
           {
-            label: 'SHB',
-            data: shbData,
-            borderColor: '#22C55E',
-            backgroundColor: 'rgba(34,197,94,0.08)',
-            fill: true,
-            tension: 0.35,
-            pointBackgroundColor: '#22C55E',
-            pointBorderColor: '#141414',
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            hidden: !showSHB
+            label: 'SHB', data: shbData, borderColor: '#22C55E', backgroundColor: 'rgba(34,197,94,0.08)',
+            fill: true, tension: 0.35, pointBackgroundColor: '#22C55E', pointBorderColor: '#141414',
+            pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 7, hidden: !showSHB
           },
           {
-            label: 'Achieved',
-            data: achData,
-            borderColor: '#EF4444',
-            backgroundColor: 'rgba(239,68,68,0.05)',
-            fill: false,
-            tension: 0.35,
-            pointBackgroundColor: '#EF4444',
-            pointBorderColor: '#141414',
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            hidden: !showAchieved
+            label: 'Achieved', data: achData, borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.05)',
+            fill: false, tension: 0.35, pointBackgroundColor: '#EF4444', pointBorderColor: '#141414',
+            pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 7, hidden: !showAchieved
           }
         ]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: false },
-          tooltip: {
-            backgroundColor: '#1a1a1a',
-            borderColor: '#333',
-            borderWidth: 1,
-            titleColor: '#F0EDE8',
-            bodyColor: '#8A8278',
-            callbacks: {
-              label: (ctx: any) => `${ctx.dataset.label}: ${fmt(ctx.raw)}`
-            }
-          }
+          tooltip: { backgroundColor: '#1a1a1a', borderColor: '#333', borderWidth: 1, titleColor: '#F0EDE8', bodyColor: '#8A8278', callbacks: { label: (ctx: any) => `${ctx.dataset.label}: ${fmt(ctx.raw)}` } }
         },
         scales: {
           x: { ticks: { color: '#8A8278', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
-          y: { 
-            ticks: { color: '#8A8278', font: { size: 10 }, callback: (v: any) => fmt(v) }, 
-            grid: { color: 'rgba(255,255,255,0.06)' }, 
-            beginAtZero: true 
-          }
+          y: { ticks: { color: '#8A8278', font: { size: 10 }, callback: (v: any) => fmt(v) }, grid: { color: 'rgba(255,255,255,0.06)' }, beginAtZero: true }
         }
       }
     })
@@ -235,11 +203,8 @@ export default function PerformancePage({ session }: Props) {
   }, [session.email, session.role])
 
   const handleToggle = (type: 'topline' | 'bottomline') => {
-    if (toggleState === type) {
-      setToggleState('all')
-    } else {
-      setToggleState(type)
-    }
+    if (toggleState === type) setToggleState('all')
+    else setToggleState(type)
   }
 
   const toggleL2 = (key: string) => {
@@ -257,7 +222,6 @@ export default function PerformancePage({ session }: Props) {
   if (loading) return <div className={styles.loading}>Loading...</div>
   if (!data && !isL1) return <div className={styles.empty}>No performance data found</div>
 
-  // Filter team sellers
   const team = (teamData?.team || []).filter(filterSeller)
   
   const totalGoal = team.reduce((a:any,b:any)=>a+(b.bottomline_goal_monthly||0),0)
@@ -280,16 +244,13 @@ export default function PerformancePage({ session }: Props) {
             <button className={`${styles.toggleBtn} ${viewMode==='team'?styles.toggleActive:''}`} onClick={()=>setViewMode('team')}>My Team</button>
           </div>
         )}
-        {isL1 && (
-          <span style={{fontSize:'0.8rem',color:'#C9A84C',fontWeight:600}}>Team Performance</span>
-        )}
+        {isL1 && <span style={{fontSize:'0.8rem',color:'#C9A84C',fontWeight:600}}>Team Performance</span>}
       </div>
 
       {viewMode === 'my' && data && !isL1 && <SellerStats data={data} fmt={fmt} />}
 
       {isTeamView && teamData && (
         <div className={styles.teamSection}>
-          {/* TOP LINE / BOTTOM LINE TOGGLE */}
           {(isL1 || isL2) && (
             <div style={{display:'flex',gap:'8px',marginBottom:'14px'}}>
               <button onClick={() => handleToggle('topline')} style={{
@@ -298,18 +259,14 @@ export default function PerformancePage({ session }: Props) {
                 background: toggleState === 'topline' ? 'rgba(34,197,94,0.12)' : toggleState === 'all' ? 'rgba(34,197,94,0.06)' : 'transparent',
                 color: toggleState === 'topline' ? '#22C55E' : toggleState === 'all' ? '#8A8278' : '#8A8278',
                 cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
-              }}>
-                {toggleState === 'topline' ? '✓ ' : ''}Top Line
-              </button>
+              }}>{toggleState === 'topline' ? '✓ ' : ''}Top Line</button>
               <button onClick={() => handleToggle('bottomline')} style={{
                 padding:'7px 16px',borderRadius:'8px',
                 border:`1px solid ${toggleState === 'bottomline' ? '#F4631E' : toggleState === 'all' ? '#F4631E' : '#2A2A2A'}`,
                 background: toggleState === 'bottomline' ? 'rgba(244,99,30,0.12)' : toggleState === 'all' ? 'rgba(244,99,30,0.06)' : 'transparent',
                 color: toggleState === 'bottomline' ? '#F4631E' : toggleState === 'all' ? '#8A8278' : '#8A8278',
                 cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
-              }}>
-                {toggleState === 'bottomline' ? '✓ ' : ''}Bottom Line
-              </button>
+              }}>{toggleState === 'bottomline' ? '✓ ' : ''}Bottom Line</button>
               <span style={{fontSize:'0.65rem',color:'#8A8278',marginLeft:'auto'}}>
                 {toggleState === 'all' ? 'Showing all' : toggleState === 'topline' ? 'Top Line only' : 'Bottom Line only'}
               </span>
@@ -322,19 +279,13 @@ export default function PerformancePage({ session }: Props) {
               <span className={styles.teamCount}>{team.length} sellers</span>
             </div>
             <div className={styles.stats}>
-              <div className={`${styles.stat} ${styles.statPct}`}>
-                <span>Team %</span>
-                <strong style={{color:'#C9A84C'}}>{totalPct.toFixed(1)}%</strong>
-              </div>
+              <div className={`${styles.stat} ${styles.statPct}`}><span>Team %</span><strong style={{color:'#C9A84C'}}>{totalPct.toFixed(1)}%</strong></div>
               <div className={styles.stat}><span>Goal</span><strong>{fmt(totalGoal)}</strong></div>
               <div className={styles.stat}><span>Achieved</span><strong style={{color:shbDiff>=0?'#22C55E':'#EF4444'}}>{fmt(totalAch)}</strong></div>
               <div className={styles.stat}><span>SHB</span><strong>{fmt(totalShb)}</strong></div>
               <div className={styles.stat}><span>Required</span><strong>{fmt(totalReq)}</strong></div>
               <div className={`${styles.stat} ${shbDiff>=0?styles.statSuccess:styles.statDanger}`}>
-                <span>vs SHB</span>
-                <strong style={{color:shbDiff>=0?'#22C55E':'#EF4444'}}>
-                  {shbDiff>=0?`+${fmt(shbDiff)}`:fmt(shbDiff)}
-                </strong>
+                <span>vs SHB</span><strong style={{color:shbDiff>=0?'#22C55E':'#EF4444'}}>{shbDiff>=0?`+${fmt(shbDiff)}`:fmt(shbDiff)}</strong>
               </div>
             </div>
             <div className={styles.pctSection}>
@@ -343,69 +294,40 @@ export default function PerformancePage({ session }: Props) {
             </div>
           </div>
 
-          {/* L2 View: Show L2 groups with Team/Personal toggle on click */}
           {teamData.type==='L2' && teamData.l1Groups?.map((group:any) => {
             const groupSellers = (group.sellers || []).filter(filterSeller)
             if (groupSellers.length === 0) return null
-            
             const groupKey = group.l1_name || 'unknown'
             const isExpanded = expandedL2[groupKey] === true
-            
-            // Calculate seller totals
             const sellerGoal = groupSellers.reduce((s: number, r: any) => s + (r.bottomline_goal_monthly || 0), 0)
             const sellerAch = groupSellers.reduce((s: number, r: any) => s + (r.actual_achieved_monthly || 0), 0)
             const sellerShb = groupSellers.reduce((s: number, r: any) => s + (r.should_have_been_monthly || 0), 0)
             const sellerPct = sellerGoal > 0 ? (sellerAch / sellerGoal) * 100 : 0
-            
-            // When expanded: show L2 manager's PERSONAL data
-            // When collapsed: show TEAM totals
             const displayGoal = isExpanded ? (group.l1_performance?.goal || 0) : sellerGoal
             const displayAch = isExpanded ? (group.l1_performance?.achieved || 0) : sellerAch
             const displayPct = isExpanded ? (group.l1_performance?.pct || 0) : sellerPct
             
             return (
               <div key={groupKey} className={styles.groupCard}>
-                <div 
-                  onClick={() => toggleL2(groupKey)} 
-                  style={{
-                    display:'flex',
-                    alignItems:'center',
-                    justifyContent:'space-between',
-                    cursor:'pointer',
-                    padding:'6px 0'
-                  }}
-                >
+                <div onClick={() => toggleL2(groupKey)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',padding:'6px 0'}}>
                   <h3 className={styles.groupTitle} style={{margin:0}}>
-                    My Team 
-                    <span className={styles.groupCount}>({groupSellers.length} sellers)</span>
-                    <span style={{fontSize:'0.55rem',color:'#8A8278',fontWeight:400,marginLeft:'8px'}}>
-                      {isExpanded ? '· Personal' : '· Team'}
-                    </span>
+                    My Team <span className={styles.groupCount}>({groupSellers.length} sellers)</span>
+                    <span style={{fontSize:'0.55rem',color:'#8A8278',fontWeight:400,marginLeft:'8px'}}>{isExpanded ? '· Personal' : '· Team'}</span>
                   </h3>
                   <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                    <span style={{fontSize:'0.7rem',color:'#8A8278'}}>
-                      {fmt(displayAch)} / {fmt(displayGoal)}
-                    </span>
-                    <span style={{fontWeight:700,fontSize:'0.85rem',color:displayPct >= 100 ? '#22C55E' : '#F4631E'}}>
-                      {displayPct.toFixed(1)}%
-                    </span>
-                    <span style={{fontSize:'0.7rem',color:'#8A8278'}}>
-                      {isExpanded ? '▲' : '▼'}
-                    </span>
+                    <span style={{fontSize:'0.7rem',color:'#8A8278'}}>{fmt(displayAch)} / {fmt(displayGoal)}</span>
+                    <span style={{fontWeight:700,fontSize:'0.85rem',color:displayPct >= 100 ? '#22C55E' : '#F4631E'}}>{displayPct.toFixed(1)}%</span>
+                    <span style={{fontSize:'0.7rem',color:'#8A8278'}}>{isExpanded ? '▲' : '▼'}</span>
                   </div>
                 </div>
-                
-                {/* Progress bar */}
                 <div style={{height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',margin:'6px 0'}}>
-                  <div style={{height:'100%',background:displayPct >= 100 ? '#22C55E' : '#F4631E',borderRadius:'2px',width:`${Math.min(displayPct,100)}%`,transition:'width 0.5s'}}/>
+                  <div style={{height:'100%',background:displayPct >= 100 ? '#22C55E' : '#F4631E',borderRadius:'2px',width:`${Math.min(displayPct,100)}%`}}/>
                 </div>
-                
                 {groupSellers.map((s:any)=><SellerCard key={s.seller_email} s={s} fmt={fmt} />)}
               </div>
             )
           })}
 
-          {/* L1 View: Show all filtered sellers */}
           {teamData.type==='L1' && (
             <div className={styles.groupCard}>
               <h3 className={styles.groupTitle}>My Team <span className={styles.groupCount}>({team.length} sellers)</span></h3>
