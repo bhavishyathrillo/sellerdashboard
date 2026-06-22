@@ -22,14 +22,14 @@ export async function POST(req: Request) {
     const isPremium = spinType === 'PREMIUM'
     const prizes = isPremium ? PREMIUM_PRIZES : STANDARD_PRIZES
 
-    // 🔥 Check if user has a rewards record
+    // Check if user has a rewards record
     let { data: user, error: userError } = await supabase
       .from('rewards')
       .select('*')
       .eq('seller_email', trimmedEmail)
       .single()
 
-    // 🔥 If no rewards record, create one
+    // If no rewards record, create one
     if (userError && userError.code === 'PGRST116') {
       const { data: newUser, error: insertError } = await supabase
         .from('rewards')
@@ -45,63 +45,71 @@ export async function POST(req: Request) {
         .single()
 
       if (insertError) {
-        console.error('Insert error:', insertError)
         return NextResponse.json({ success: false, message: 'Failed to create rewards record' }, { status: 500 })
       }
-
       user = newUser
     } else if (userError) {
-      console.error('User fetch error:', userError)
       return NextResponse.json({ success: false, message: 'Failed to fetch user data' }, { status: 500 })
     }
 
-    // 🔥 Check available spins
+    // Check available spins
     const available = isPremium ? user.premium_available : user.standard_available
     if (available <= 0) {
       return NextResponse.json({ success: false, message: `No ${spinType} spins left` }, { status: 400 })
     }
 
-    // 🔥 Randomly select a prize
+    // Randomly select a prize
     const prizeIndex = Math.floor(Math.random() * prizes.length)
     const prize = prizes[prizeIndex]
 
-    // 🔥 Prepare update data
+    // Prepare update data
     let updateData: any = {}
     let updateMessage = ''
 
     if (isPremium) {
-      // Premium spin: deduct 1 Premium spin
-      updateData.premium_available = (user.premium_available || 0) - 1
-      updateMessage = `🎉 You won: ${prize}!`
+      // Premium spin
+      if (prize === 'Spin Again') {
+        // Don't deduct — they keep their spin
+        updateMessage = `🔄 Spin Again! You get another spin!`
+      } else {
+        updateData.premium_available = (user.premium_available || 0) - 1
+        updateMessage = `🎉 You won: ${prize}!`
+      }
     } else {
-      // Standard spin: deduct 1 Standard spin
-      updateData.standard_available = (user.standard_available || 0) - 1
-      
-      // 🔥 If the prize is "Upgrade to Premium", add 1 Premium spin
-      if (prize === 'Upgrade to Premium' || prize === 'Upgrade to Premium Spin') {
+      // Standard spin
+      if (prize === 'Spin Again') {
+        // Don't deduct — they keep their spin
+        updateMessage = `🔄 Spin Again! You get another spin!`
+      } else if (prize === 'Better Luck') {
+        // Deduct the spin — bad luck
+        updateData.standard_available = (user.standard_available || 0) - 1
+        updateMessage = `😔 Better luck next time!`
+      } else if (prize === 'Upgrade to Premium' || prize === 'Upgrade to Premium Spin') {
+        // Deduct standard spin, add 1 premium spin
+        updateData.standard_available = (user.standard_available || 0) - 1
         updateData.premium_available = (user.premium_available || 0) + 1
         updateData.is_premium = true
         updateMessage = `🎉 You got upgraded to Premium! You have 1 Premium spin now!`
       } else {
+        // Normal prize — deduct the spin
+        updateData.standard_available = (user.standard_available || 0) - 1
         updateMessage = `🎉 You won: ${prize}!`
       }
     }
 
-    // 🔥 Update rewards table
-    const { error: updateError } = await supabase
-      .from('rewards')
-      .update({
-        ...updateData,
-        updated_at: new Date().toISOString()
-      })
-      .eq('seller_email', trimmedEmail)
+    // Only update if there's data to update
+    if (Object.keys(updateData).length > 0) {
+      const { error: updateError } = await supabase
+        .from('rewards')
+        .update({ ...updateData, updated_at: new Date().toISOString() })
+        .eq('seller_email', trimmedEmail)
 
-    if (updateError) {
-      console.error('Update error:', updateError)
-      return NextResponse.json({ success: false, message: 'Failed to update spins' }, { status: 500 })
+      if (updateError) {
+        return NextResponse.json({ success: false, message: 'Failed to update spins' }, { status: 500 })
+      }
     }
 
-    // 🔥 Record the spin in spin_results table
+    // Record the spin in spin_results table
     const { error: historyError } = await supabase
       .from('spin_results')
       .insert({
@@ -116,7 +124,6 @@ export async function POST(req: Request) {
       console.error('History error:', historyError)
     }
 
-    // 🔥 Return success response
     return NextResponse.json({ 
       success: true, 
       result: prize,
