@@ -9,7 +9,6 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // Get all unique L1 managers
     const { data: allL1Emails } = await supabase.from('srs_raw').select('l1_email, l1_name').limit(5000)
     if (!allL1Emails) return NextResponse.json({ l1_data: [], _srsSellers: [] })
 
@@ -34,15 +33,15 @@ export async function GET() {
     const dateFrom = dateList[0]
     const dateTo = dateList[dateList.length - 1]
 
-    // Fetch ALL srs_raw sellers (large limit)
+    // 🔥 Fetch ALL srs_raw — include l1_name
     const { data: allSellers } = await supabase
       .from('srs_raw')
-      .select('seller_email, seller_name, l1_email, l2_email, l2_name')
+      .select('seller_email, seller_name, l1_email, l1_name, l2_email, l2_name')
       .limit(5000)
 
     if (!allSellers || allSellers.length === 0) return NextResponse.json({ l1_data: [], _srsSellers: [] })
 
-    // Fetch ALL efficiency using cursor pagination (efficiency table has 'id')
+    // Fetch ALL efficiency using cursor pagination
     let allEfficiency: any[] = []
     let lastId = 0
     const pageSize = 1000

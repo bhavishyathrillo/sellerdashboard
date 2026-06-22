@@ -115,7 +115,7 @@
 
 .leaderboardHeader {
   display: grid;
-  grid-template-columns: 60px 2.2fr 1fr 2fr 1.2fr 1.2fr;
+  grid-template-columns: 60px 3fr 1.5fr 1.5fr;
   align-items: center;
   padding: 10px 16px;
   color: #8A8278;
@@ -142,7 +142,7 @@
 
 .leaderboardRow {
   display: grid;
-  grid-template-columns: 60px 2.2fr 1fr 2fr 1.2fr 1.2fr;
+  grid-template-columns: 60px 3fr 1.5fr 1.5fr;
   align-items: center;
   padding: 16px;
   background: #141414;
