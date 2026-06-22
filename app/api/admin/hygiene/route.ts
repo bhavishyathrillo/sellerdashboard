@@ -41,43 +41,26 @@ export async function GET() {
 
     if (!allSellers || allSellers.length === 0) return NextResponse.json({ l1_data: [], _srsSellers: [] })
 
-    // 1. Get exact count of efficiency records matching criteria
-    const activeEmails = [...new Set(allSellers.map((s: any) => cleanEmail(s.seller_email)).filter(Boolean))]
-    
-    // We fetch count first
-    const { count, error: countError } = await supabase
-      .from('efficiency')
-      .select('*', { count: 'exact', head: true })
-      .gte('date', dateFrom)
-      .lte('date', dateTo)
-
-    if (countError) return NextResponse.json({ error: countError.message }, { status: 500 })
-    
-    const totalRecords = count || 0
-    const pageSize = 1000
-    const totalPages = Math.ceil(totalRecords / pageSize)
-    
-    // 2. Fetch all pages in parallel
-    const promises = []
-    for (let page = 0; page < totalPages; page++) {
-      const start = page * pageSize
-      const end = start + pageSize - 1
-      promises.push(
-        supabase
-          .from('efficiency')
-          .select('seller_email, date, call_dials, call_duration')
-          .gte('date', dateFrom)
-          .lte('date', dateTo)
-          .range(start, end)
-      )
-    }
-
-    const results = await Promise.all(promises)
+    // Fetch ALL efficiency using cursor pagination
     let allEfficiency: any[] = []
-    
-    for (const res of results) {
-      if (res.error) return NextResponse.json({ error: res.error.message }, { status: 500 })
-      if (res.data) allEfficiency = allEfficiency.concat(res.data)
+    let lastId = 0
+    const pageSize = 1000
+    let hasMore = true
+
+    while (hasMore) {
+      let query = supabase
+        .from('efficiency')
+        .select('id, seller_email, date, call_dials, call_duration')
+        .gte('date', dateFrom)
+        .lte('date', dateTo)
+        .order('id', { ascending: true })
+        .limit(pageSize)
+
+      if (lastId > 0) query = query.gt('id', lastId)
+      const { data: chunk, error } = await query
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (!chunk || chunk.length === 0) hasMore = false
+      else { allEfficiency = allEfficiency.concat(chunk); lastId = chunk[chunk.length - 1].id; if (chunk.length < pageSize) hasMore = false }
     }
 
     const effByEmail: Record<string, any[]> = {}
@@ -94,7 +77,7 @@ export async function GET() {
 
     for (const [l1Email, l1Name] of l1Map) {
       const l1Sellers = allSellers.filter((s: any) => cleanEmail(s.l1_email) === l1Email)
-      
+
       const sellerData = l1Sellers
         .filter((s: any) => cleanEmail(s.seller_email) !== l1Email)
         .map((s: any) => {
