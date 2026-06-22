@@ -84,10 +84,214 @@
   font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.table th:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #F0EDE8;
 }
 
 @media (max-width: 800px) {
   .kpiGrid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* Leaderboard view classes */
+.leaderboardWrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
+.leaderboardContainer {
+  min-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 20px;
+}
+
+.leaderboardHeader {
+  display: grid;
+  grid-template-columns: 60px 2.2fr 1fr 2fr 1.2fr 1.2fr;
+  align-items: center;
+  padding: 10px 16px;
+  color: #8A8278;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.headerCell {
+  display: flex;
+  align-items: center;
+  user-select: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.headerCell.sortable {
+  cursor: pointer;
+}
+
+.headerCell.sortable:hover {
+  color: #F0EDE8;
+}
+
+.leaderboardRow {
+  display: grid;
+  grid-template-columns: 60px 2.2fr 1fr 2fr 1.2fr 1.2fr;
+  align-items: center;
+  padding: 16px;
+  background: #141414;
+  border: 1px solid #232323;
+  border-radius: 12px;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.leaderboardRow:hover {
+  transform: translateY(-2px);
+  border-color: rgba(244, 99, 30, 0.3);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.rankCell {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #8A8278;
+  text-align: center;
+}
+
+.nameCell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nameText {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #F0EDE8;
+}
+
+.subText {
+  font-size: 0.72rem;
+  color: #8A8278;
+}
+
+.metricCell {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #F0EDE8;
+}
+
+.callRateCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progressBarTrack {
+  width: 120px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  border-radius: 10px;
+  background: #22C55E;
+}
+
+.progressText {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #22C55E;
+}
+
+.mishandledPill {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  width: fit-content;
+  border: 1px solid transparent;
+}
+
+.pillDanger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #EF4444;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.pillWarning {
+  background: rgba(201, 168, 76, 0.12);
+  color: #C9A84C;
+  border-color: rgba(201, 168, 76, 0.2);
+}
+
+.pillSuccess {
+  background: rgba(34, 197, 94, 0.08);
+  color: #22C55E;
+  border-color: rgba(34, 197, 94, 0.15);
+}
+
+/* Card header metrics and animations */
+.cardHeaderMetrics {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.cardMiniProgressBarCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardProgressBarTrack {
+  width: 80px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.cardProgressBarFill {
+  height: 100%;
+  border-radius: 10px;
+  background: #22C55E;
+}
+
+.cardProgressText {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #22C55E;
+  min-width: 32px;
+}
+
+.cardDurationLabel {
+  font-size: 0.72rem;
+  color: #C9A84C;
+  font-weight: 600;
+}
+
+.chevronContainer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #8A8278;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.chevronContainer:hover {
+  color: #F0EDE8;
 }
