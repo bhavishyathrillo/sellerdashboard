@@ -43,7 +43,7 @@ function LeadIdLink({ leadId }: { leadId: string }) {
 function ChevronDown() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <polyline points="6 9 12 15 18 9"/>
+      <polyline points="6 9 12 15 18 9" />
     </svg>
   )
 }
@@ -51,7 +51,7 @@ function ChevronDown() {
 function ChevronRight() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <polyline points="9 18 15 12 9 6"/>
+      <polyline points="9 18 15 12 9 6" />
     </svg>
   )
 }
@@ -90,11 +90,11 @@ function LeadsTable({ leads }: { leads: PriorityLead[] }) {
   const [search, setSearch] = useState('')
   const filtered = search.trim()
     ? leads.filter(l =>
-        l.lead_id?.toLowerCase().includes(search.toLowerCase()) ||
-        l.lead_status?.toLowerCase().includes(search.toLowerCase()) ||
-        l.stage?.toLowerCase().includes(search.toLowerCase()) ||
-        l.planned_region?.toLowerCase().includes(search.toLowerCase())
-      )
+      l.lead_id?.toLowerCase().includes(search.toLowerCase()) ||
+      l.lead_status?.toLowerCase().includes(search.toLowerCase()) ||
+      l.stage?.toLowerCase().includes(search.toLowerCase()) ||
+      l.planned_region?.toLowerCase().includes(search.toLowerCase())
+    )
     : leads
 
   return (
@@ -297,13 +297,13 @@ function HierarchicalTableView({ viewType, l1Groups = [], l2Groups = [], search 
   const query = search.toLowerCase().trim()
   const filteredData = query
     ? rawData.filter((item: any) => {
-        return (
-          item.name?.toLowerCase().includes(query) ||
-          item.email?.toLowerCase().includes(query) ||
-          (item.l1_name && item.l1_name.toLowerCase().includes(query)) ||
-          (item.l2_name && item.l2_name.toLowerCase().includes(query))
-        )
-      })
+      return (
+        item.name?.toLowerCase().includes(query) ||
+        item.email?.toLowerCase().includes(query) ||
+        (item.l1_name && item.l1_name.toLowerCase().includes(query)) ||
+        (item.l2_name && item.l2_name.toLowerCase().includes(query))
+      )
+    })
     : rawData
 
   // Apply sorting
@@ -384,38 +384,38 @@ function HierarchicalTableView({ viewType, l1Groups = [], l2Groups = [], search 
           {/* Header Row */}
           <div className={styles.leaderboardHeader}>
             <div className={styles.headerCell} style={{ justifyContent: 'center' }}>#</div>
-            
-            <div 
-              className={`${styles.headerCell} ${styles.sortable}`} 
+
+            <div
+              className={`${styles.headerCell} ${styles.sortable}`}
               onClick={() => requestSort('name')}
             >
               {activeTab === 'l1' ? 'Category Manager' : activeTab === 'l2' ? 'L1 Manager' : 'Seller'}
               {renderSortIcon('name')}
             </div>
 
-            <div 
-              className={`${styles.headerCell} ${styles.sortable}`} 
+            <div
+              className={`${styles.headerCell} ${styles.sortable}`}
               onClick={() => requestSort('total')}
             >
               Leads {renderSortIcon('total')}
             </div>
 
-            <div 
-              className={`${styles.headerCell} ${styles.sortable}`} 
+            <div
+              className={`${styles.headerCell} ${styles.sortable}`}
               onClick={() => requestSort('callRate')}
             >
               Call Rate {renderSortIcon('callRate')}
             </div>
 
-            <div 
-              className={`${styles.headerCell} ${styles.sortable}`} 
+            <div
+              className={`${styles.headerCell} ${styles.sortable}`}
               onClick={() => requestSort('avgDuration')}
             >
               Avg Dur {renderSortIcon('avgDuration')}
             </div>
 
-            <div 
-              className={`${styles.headerCell} ${styles.sortable}`} 
+            <div
+              className={`${styles.headerCell} ${styles.sortable}`}
               onClick={() => requestSort('mishandledPct')}
             >
               Mishandled {renderSortIcon('mishandledPct')}
@@ -476,8 +476,8 @@ function HierarchicalTableView({ viewType, l1Groups = [], l2Groups = [], search 
                   {/* Call Rate */}
                   <div className={styles.callRateCell}>
                     <div className={styles.progressBarTrack}>
-                      <div 
-                        className={styles.progressBarFill} 
+                      <div
+                        className={styles.progressBarFill}
                         style={{ width: `${row.callRate}%` }}
                       />
                     </div>
@@ -530,8 +530,8 @@ function CardHeaderStats({ metrics }: { metrics: any }) {
       {/* Call Rate */}
       <div className={styles.cardMiniProgressBarCell} title={`${called} of ${total} leads called`}>
         <div className={styles.cardProgressBarTrack}>
-          <div 
-            className={styles.cardProgressBarFill} 
+          <div
+            className={styles.cardProgressBarFill}
             style={{ width: `${callRate}%`, backgroundColor: progressFillColor }}
           />
         </div>
@@ -616,26 +616,26 @@ export default function PriorityPage({ session }: Props) {
 
     const filteredL1Groups = search.trim()
       ? l1Groups.filter((l1: any) => {
-          const l1Match = l1.l1_name?.toLowerCase().includes(search.toLowerCase())
-          if (l1Match) return true
-          return l1.l2_groups?.some((l2: any) => {
-            const l2Match = l2.l2_name?.toLowerCase().includes(search.toLowerCase())
-            if (l2Match) return true
-            return l2.sellers.some((s: any) =>
-              s.seller_name?.toLowerCase().includes(search.toLowerCase()) ||
-              s.seller_email?.toLowerCase().includes(search.toLowerCase())
-            )
-          })
+        const l1Match = l1.l1_name?.toLowerCase().includes(search.toLowerCase())
+        if (l1Match) return true
+        return l1.l2_groups?.some((l2: any) => {
+          const l2Match = l2.l2_name?.toLowerCase().includes(search.toLowerCase())
+          if (l2Match) return true
+          return l2.sellers.some((s: any) =>
+            s.seller_name?.toLowerCase().includes(search.toLowerCase()) ||
+            s.seller_email?.toLowerCase().includes(search.toLowerCase())
+          )
         })
+      })
       : l1Groups
 
     const filteredFlatSellers = search.trim()
       ? allSellersFlat.filter((s: any) =>
-          s.seller_name?.toLowerCase().includes(search.toLowerCase()) ||
-          s.seller_email?.toLowerCase().includes(search.toLowerCase()) ||
-          s.l1_name?.toLowerCase().includes(search.toLowerCase()) ||
-          s.l2_name?.toLowerCase().includes(search.toLowerCase())
-        )
+        s.seller_name?.toLowerCase().includes(search.toLowerCase()) ||
+        s.seller_email?.toLowerCase().includes(search.toLowerCase()) ||
+        s.l1_name?.toLowerCase().includes(search.toLowerCase()) ||
+        s.l2_name?.toLowerCase().includes(search.toLowerCase())
+      )
       : allSellersFlat
 
     return (
@@ -751,17 +751,17 @@ export default function PriorityPage({ session }: Props) {
 
     const filteredL2Groups = search.trim()
       ? l2Groups.filter((g: any) =>
-          g.l2_name?.toLowerCase().includes(search.toLowerCase()) ||
-          g.sellers.some((s: any) => s.seller_name?.toLowerCase().includes(search.toLowerCase()) || s.seller_email?.toLowerCase().includes(search.toLowerCase()))
-        )
+        g.l2_name?.toLowerCase().includes(search.toLowerCase()) ||
+        g.sellers.some((s: any) => s.seller_name?.toLowerCase().includes(search.toLowerCase()) || s.seller_email?.toLowerCase().includes(search.toLowerCase()))
+      )
       : l2Groups
 
     const filteredFlatSellers = search.trim()
       ? allSellersFlat.filter((s: any) =>
-          s.seller_name?.toLowerCase().includes(search.toLowerCase()) ||
-          s.seller_email?.toLowerCase().includes(search.toLowerCase()) ||
-          s.l2_name?.toLowerCase().includes(search.toLowerCase())
-        )
+        s.seller_name?.toLowerCase().includes(search.toLowerCase()) ||
+        s.seller_email?.toLowerCase().includes(search.toLowerCase()) ||
+        s.l2_name?.toLowerCase().includes(search.toLowerCase())
+      )
       : allSellersFlat
 
     return (
