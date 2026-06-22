@@ -32,25 +32,29 @@ export async function GET() {
     })
 
     // 🔥 Fetch ALL leads from mhl_mho (no .in() filter — get everything)
-    let allLeads: any[] = []
-    let page = 0
     const pageSize = 1000
-    let hasMore = true
-
-    while (hasMore) {
+    const totalPages = Math.ceil(totalRecords / pageSize)
+    
+    // 2. Fetch all pages in parallel
+    const promises = []
+    for (let page = 0; page < totalPages; page++) {
       const start = page * pageSize
-      const end = (page + 1) * pageSize - 1
+      const end = start + pageSize - 1
+      promises.push(
+        supabase
+          .from('mhl_mho')
+          .select('id, lead_id, stage, owner_email, last_call, mhl_mho, updated_at')
+          .order('updated_at', { ascending: false })
+          .range(start, end)
+      )
+    }
 
-      const { data: chunk, error } = await supabase
-        .from('mhl_mho')
-        .select('id, lead_id, stage, owner_email, last_call, mhl_mho, updated_at')
-        .order('updated_at', { ascending: false })
-        .range(start, end)
-
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-      if (!chunk || chunk.length === 0) hasMore = false
-      else { allLeads = allLeads.concat(chunk); if (chunk.length < pageSize) hasMore = false; else page++ }
+    const results = await Promise.all(promises)
+    let allLeads: any[] = []
+    
+    for (const res of results) {
+      if (res.error) return NextResponse.json({ error: res.error.message }, { status: 500 })
+      if (res.data) allLeads = allLeads.concat(res.data)
     }
 
     // 🔥 Filter leads to ONLY include sellers in srs_raw

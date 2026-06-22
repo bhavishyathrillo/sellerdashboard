@@ -222,12 +222,6 @@ export default function PerformancePage({ session }: Props) {
       <Particles />
       <div className={styles.header}>
         <h1 className={styles.title}>↗ Performance</h1>
-        {isManager && !isL1 && (
-          <div className={styles.viewToggle}>
-            <button className={`${styles.toggleBtn} ${viewMode==='my'?styles.toggleActive:''}`} onClick={()=>setViewMode('my')}>My Stats</button>
-            <button className={`${styles.toggleBtn} ${viewMode==='team'?styles.toggleActive:''}`} onClick={()=>setViewMode('team')}>My Team</button>
-          </div>
-        )}
         {isL1 && <span style={{fontSize:'0.8rem',color:'#C9A84C',fontWeight:600}}>Team Performance</span>}
       </div>
 

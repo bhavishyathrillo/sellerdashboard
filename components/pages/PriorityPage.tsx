@@ -194,6 +194,8 @@ function HierarchicalTableView({ viewType, l1Groups = [], search: extSearch }: {
             <div className={styles.headerCell} style={{ justifyContent: 'center' }}>#</div>
             <div className={`${styles.headerCell} ${styles.sortable}`} onClick={() => requestSort('name')}>{activeTab === 'l1' ? 'Category Manager' : activeTab === 'l2' ? 'L1 Manager' : 'Seller'}{renderSortIcon('name')}</div>
             <div className={`${styles.headerCell} ${styles.sortable}`} onClick={() => requestSort('total')}>Leads{renderSortIcon('total')}</div>
+            <div className={`${styles.headerCell} ${styles.sortable}`} onClick={() => requestSort('callRate')}>Call Rate{renderSortIcon('callRate')}</div>
+            <div className={`${styles.headerCell} ${styles.sortable}`} onClick={() => requestSort('avgDuration')}>Avg Dur{renderSortIcon('avgDuration')}</div>
             <div className={`${styles.headerCell} ${styles.sortable}`} onClick={() => requestSort('mishandledPct')}>Mishandled{renderSortIcon('mishandledPct')}</div>
           </div>
           {sortedData.length === 0 ? <div style={{ textAlign: 'center', padding: '40px', color: '#8A8278', background: '#141414', border: '1px solid #232323', borderRadius: '12px' }}>No matches found</div> : sortedData.map((row: any, i) => {
@@ -209,11 +211,9 @@ function HierarchicalTableView({ viewType, l1Groups = [], search: extSearch }: {
                 <div className={styles.rankCell}>{i + 1}</div>
                 <div className={styles.nameCell}><span className={styles.nameText}>{row.name}</span>{subText && <span className={styles.subText}>{subText}</span>}</div>
                 <div className={styles.metricCell}>{row.total}</div>
-                <div className={styles.metricCell}>
-                  <span className={`${styles.mishandledPill} ${pillClass}`}>
-                    {row.mishandledPct}%
-                  </span>
-                </div>
+                <div className={styles.callRateCell}><div className={styles.progressBarTrack}><div className={styles.progressBarFill} style={{ width: `${row.callRate}%` }} /></div><span className={styles.progressText}>{row.callRate}%</span></div>
+                <div className={styles.metricCell}>{row.avgDuration}</div>
+                <div><span className={`${styles.mishandledPill} ${pillClass}`}>{row.mishandledPct}%</span></div>
               </div>
             )
           })}
