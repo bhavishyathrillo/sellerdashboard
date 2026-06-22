@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { cleanEmail } from '@/lib/hygiene-utils'
+import { cleanEmail, calculateHygieneStats } from '@/lib/hygiene-utils'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,11 +9,12 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    const { data: allSellers } = await supabase.from('srs_raw').select('seller_email, seller_name, l1_email, l2_email, l2_name')
-    if (!allSellers) return NextResponse.json({ l1_data: [], _srsSellers: [] })
+    // Get all unique L1 managers
+    const { data: allL1Emails } = await supabase.from('srs_raw').select('l1_email, l1_name').limit(5000)
+    if (!allL1Emails) return NextResponse.json({ l1_data: [], _srsSellers: [] })
 
     const l1Map = new Map<string, string>()
-    allSellers.forEach((row: any) => {
+    allL1Emails.forEach((row: any) => {
       const email = cleanEmail(row.l1_email || '')
       if (email && !l1Map.has(email)) l1Map.set(email, row.l1_name || email.split('@')[0])
     })
@@ -33,7 +34,15 @@ export async function GET() {
     const dateFrom = dateList[0]
     const dateTo = dateList[dateList.length - 1]
 
-    // Fetch ALL efficiency using cursor pagination
+    // Fetch ALL srs_raw sellers (large limit)
+    const { data: allSellers } = await supabase
+      .from('srs_raw')
+      .select('seller_email, seller_name, l1_email, l2_email, l2_name')
+      .limit(5000)
+
+    if (!allSellers || allSellers.length === 0) return NextResponse.json({ l1_data: [], _srsSellers: [] })
+
+    // Fetch ALL efficiency using cursor pagination (efficiency table has 'id')
     let allEfficiency: any[] = []
     let lastId = 0
     const pageSize = 1000
@@ -49,10 +58,8 @@ export async function GET() {
         .limit(pageSize)
 
       if (lastId > 0) query = query.gt('id', lastId)
-
       const { data: chunk, error } = await query
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
       if (!chunk || chunk.length === 0) hasMore = false
       else { allEfficiency = allEfficiency.concat(chunk); lastId = chunk[chunk.length - 1].id; if (chunk.length < pageSize) hasMore = false }
     }
@@ -72,41 +79,17 @@ export async function GET() {
     for (const [l1Email, l1Name] of l1Map) {
       const l1Sellers = allSellers.filter((s: any) => cleanEmail(s.l1_email) === l1Email)
       
-      let l1TotalCalls = 0
-      let l1TotalDuration = 0
-      let l1SellerCount = 0
-
       const sellerData = l1Sellers
         .filter((s: any) => cleanEmail(s.seller_email) !== l1Email)
         .map((s: any) => {
           const email = cleanEmail(s.seller_email)
-          const rows = effByEmail[email] || []
-          const calls = rows.reduce((sum: number, e: any) => sum + (e.call_dials || 0), 0)
-          const dur = rows.reduce((sum: number, e: any) => sum + Math.round(parseFloat(e.call_duration || '0') || 0), 0)
-          
-          if (calls > 0 || dur > 0) {
-            l1TotalCalls += calls
-            l1TotalDuration += dur
-            l1SellerCount++
-          }
-
-          return {
-            seller_name: s.seller_name || email.split('@')[0], seller_email: email,
-            total_calls: calls, total_duration: dur,
-            dailyData: dateList.map(dateStr => {
-              const found = rows.find((e: any) => (e.date || '').split('T')[0] === dateStr)
-              return {
-                date: new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-                call_dials: found ? (found.call_dials || 0) : 0,
-                call_duration: found ? Math.round(parseFloat(found.call_duration || '0')) || 0 : 0
-              }
-            })
-          }
+          return { seller_name: s.seller_name || email.split('@')[0], seller_email: email, effRows: effByEmail[email] || [] }
         })
 
-      globalTotalCalls += l1TotalCalls
-      globalTotalDuration += l1TotalDuration
-      globalTotalSellers += l1SellerCount
+      const stats = calculateHygieneStats(sellerData, dateList)
+      globalTotalCalls += stats.totalCalls
+      globalTotalDuration += stats.totalDuration
+      globalTotalSellers += stats.totalSellers
 
       const l2Groups: any[] = []
       const l2Emails = [...new Set(l1Sellers.map((s: any) => cleanEmail(s.l2_email)).filter(Boolean))]
@@ -140,10 +123,11 @@ export async function GET() {
       const daysPassed = today.getDate()
       l1Data.push({
         l1_name: l1Name, l1_email: l1Email,
-        total_calls: l1TotalCalls, total_duration: l1TotalDuration,
-        avg_calls_per_seller_per_day: l1SellerCount > 0 && daysPassed > 0 ? Math.round(l1TotalCalls / (l1SellerCount * daysPassed)) : 0,
-        avg_duration_per_seller_per_day: l1SellerCount > 0 && daysPassed > 0 ? Math.round(l1TotalDuration / (l1SellerCount * daysPassed)) : 0,
-        total_sellers: l1SellerCount, l2_count: l2Groups.length, dailyData: [], l2_groups: l2Groups
+        total_calls: stats.totalCalls, total_duration: stats.totalDuration,
+        avg_calls_per_seller_per_day: stats.avgCallsPerSellerPerDay,
+        avg_duration_per_seller_per_day: stats.avgDurationPerSellerPerDay,
+        total_sellers: stats.totalSellers, l2_count: l2Groups.length,
+        dailyData: stats.teamDailyData, l2_groups: l2Groups
       })
     }
 
@@ -160,6 +144,7 @@ export async function GET() {
       }
     })
   } catch (error: any) {
+    console.error('Admin Hygiene Error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

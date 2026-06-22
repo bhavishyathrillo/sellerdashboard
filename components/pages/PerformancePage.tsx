@@ -68,25 +68,14 @@ function SellerStats({ data, fmt }: { data: any; fmt: any }) {
       data: {
         labels,
         datasets: [
-          {
-            label: 'SHB', data: shbData, borderColor: '#22C55E', backgroundColor: 'rgba(34,197,94,0.08)',
-            fill: true, tension: 0.35, pointBackgroundColor: '#22C55E', pointBorderColor: '#141414',
-            pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 7, hidden: !showSHB
-          },
-          {
-            label: 'Achieved', data: achData, borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.05)',
-            fill: false, tension: 0.35, pointBackgroundColor: '#EF4444', pointBorderColor: '#141414',
-            pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 7, hidden: !showAchieved
-          }
+          { label: 'SHB', data: shbData, borderColor: '#22C55E', backgroundColor: 'rgba(34,197,94,0.08)', fill: true, tension: 0.35, pointBackgroundColor: '#22C55E', pointBorderColor: '#141414', pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 7, hidden: !showSHB },
+          { label: 'Achieved', data: achData, borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.05)', fill: false, tension: 0.35, pointBackgroundColor: '#EF4444', pointBorderColor: '#141414', pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 7, hidden: !showAchieved }
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { display: false },
-          tooltip: { backgroundColor: '#1a1a1a', borderColor: '#333', borderWidth: 1, titleColor: '#F0EDE8', bodyColor: '#8A8278', callbacks: { label: (ctx: any) => `${ctx.dataset.label}: ${fmt(ctx.raw)}` } }
-        },
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a1a', borderColor: '#333', borderWidth: 1, titleColor: '#F0EDE8', bodyColor: '#8A8278', callbacks: { label: (ctx: any) => `${ctx.dataset.label}: ${fmt(ctx.raw)}` } } },
         scales: {
           x: { ticks: { color: '#8A8278', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
           y: { ticks: { color: '#8A8278', font: { size: 10 }, callback: (v: any) => fmt(v) }, grid: { color: 'rgba(255,255,255,0.06)' }, beginAtZero: true }
@@ -173,7 +162,6 @@ export default function PerformancePage({ session }: Props) {
     session.role === 'L1' ? 'team' : 'my'
   )
   const [toggleState, setToggleState] = useState<'topline' | 'bottomline' | 'all'>('all')
-  const [expandedL2, setExpandedL2] = useState<Record<string, boolean>>({})
 
   const isManager = ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(session.role)
   const isL1 = session.role === 'L1'
@@ -205,10 +193,6 @@ export default function PerformancePage({ session }: Props) {
   const handleToggle = (type: 'topline' | 'bottomline') => {
     if (toggleState === type) setToggleState('all')
     else setToggleState(type)
-  }
-
-  const toggleL2 = (key: string) => {
-    setExpandedL2((prev: any) => ({ ...prev, [key]: !prev[key] }))
   }
 
   const filterSeller = (seller: any) => {
@@ -294,40 +278,35 @@ export default function PerformancePage({ session }: Props) {
             </div>
           </div>
 
+          {/* L2 Team View — Simplified: always shows team totals, no Personal toggle */}
           {teamData.type==='L2' && teamData.l1Groups?.map((group:any) => {
             const groupSellers = (group.sellers || []).filter(filterSeller)
             if (groupSellers.length === 0) return null
             const groupKey = group.l1_name || 'unknown'
-            const isExpanded = expandedL2[groupKey] === true
             const sellerGoal = groupSellers.reduce((s: number, r: any) => s + (r.bottomline_goal_monthly || 0), 0)
             const sellerAch = groupSellers.reduce((s: number, r: any) => s + (r.actual_achieved_monthly || 0), 0)
-            const sellerShb = groupSellers.reduce((s: number, r: any) => s + (r.should_have_been_monthly || 0), 0)
             const sellerPct = sellerGoal > 0 ? (sellerAch / sellerGoal) * 100 : 0
-            const displayGoal = isExpanded ? (group.l1_performance?.goal || 0) : sellerGoal
-            const displayAch = isExpanded ? (group.l1_performance?.achieved || 0) : sellerAch
-            const displayPct = isExpanded ? (group.l1_performance?.pct || 0) : sellerPct
-            
+
             return (
               <div key={groupKey} className={styles.groupCard}>
-                <div onClick={() => toggleL2(groupKey)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',padding:'6px 0'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 0'}}>
                   <h3 className={styles.groupTitle} style={{margin:0}}>
                     My Team <span className={styles.groupCount}>({groupSellers.length} sellers)</span>
-                    <span style={{fontSize:'0.55rem',color:'#8A8278',fontWeight:400,marginLeft:'8px'}}>{isExpanded ? '· Personal' : '· Team'}</span>
                   </h3>
                   <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                    <span style={{fontSize:'0.7rem',color:'#8A8278'}}>{fmt(displayAch)} / {fmt(displayGoal)}</span>
-                    <span style={{fontWeight:700,fontSize:'0.85rem',color:displayPct >= 100 ? '#22C55E' : '#F4631E'}}>{displayPct.toFixed(1)}%</span>
-                    <span style={{fontSize:'0.7rem',color:'#8A8278'}}>{isExpanded ? '▲' : '▼'}</span>
+                    <span style={{fontSize:'0.7rem',color:'#8A8278'}}>{fmt(sellerAch)} / {fmt(sellerGoal)}</span>
+                    <span style={{fontWeight:700,fontSize:'0.85rem',color:sellerPct >= 100 ? '#22C55E' : '#F4631E'}}>{sellerPct.toFixed(1)}%</span>
                   </div>
                 </div>
                 <div style={{height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',margin:'6px 0'}}>
-                  <div style={{height:'100%',background:displayPct >= 100 ? '#22C55E' : '#F4631E',borderRadius:'2px',width:`${Math.min(displayPct,100)}%`}}/>
+                  <div style={{height:'100%',background:sellerPct >= 100 ? '#22C55E' : '#F4631E',borderRadius:'2px',width:`${Math.min(sellerPct,100)}%`}}/>
                 </div>
                 {groupSellers.map((s:any)=><SellerCard key={s.seller_email} s={s} fmt={fmt} />)}
               </div>
             )
           })}
 
+          {/* L1 Team View */}
           {teamData.type==='L1' && (
             <div className={styles.groupCard}>
               <h3 className={styles.groupTitle}>My Team <span className={styles.groupCount}>({team.length} sellers)</span></h3>
