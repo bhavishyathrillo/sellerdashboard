@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { cleanEmail, calculateHygieneStats } from '@/lib/hygiene-utils'
+import { cleanEmail } from '@/lib/hygiene-utils'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,6 +33,7 @@ export async function GET(req: Request) {
 
     const dateFrom = dateList[0]
     const dateTo = dateList[dateList.length - 1]
+    const daysPassed = today.getDate()
 
     const sellerEmails = sellers.map((s: any) => cleanEmail(s.seller_email)).filter((e: string) => e !== trimmedEmail)
 
@@ -53,10 +54,8 @@ export async function GET(req: Request) {
         .limit(pageSize)
 
       if (lastId > 0) query = query.gt('id', lastId)
-
       const { data: chunk, error } = await query
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
       if (!chunk || chunk.length === 0) hasMore = false
       else { allEfficiency = allEfficiency.concat(chunk); lastId = chunk[chunk.length - 1].id; if (chunk.length < pageSize) hasMore = false }
     }
@@ -72,24 +71,65 @@ export async function GET(req: Request) {
       })
     }
 
+    // Build seller data
     const sellerData = sellerEmails.map((email) => {
       const effRows = effByEmail[email] || []
       const sellerInfo = sellers.find((s: any) => cleanEmail(s.seller_email) === email)
-      return { seller_name: sellerInfo?.seller_name || email.split('@')[0], seller_email: email, effRows }
+      
+      const dailyData = dateList.map((dateStr: string) => {
+        const found = effRows.find((e: any) => (e.date || '').split('T')[0] === dateStr)
+        return {
+          date: new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+          call_dials: found ? (found.call_dials || 0) : 0,
+          call_duration: found ? Math.round(parseFloat(found.call_duration || '0')) || 0 : 0
+        }
+      })
+
+      const totalCalls = dailyData.reduce((s: number, d: any) => s + d.call_dials, 0)
+      const totalDuration = dailyData.reduce((s: number, d: any) => s + d.call_duration, 0)
+
+      return {
+        seller_name: sellerInfo?.seller_name || email.split('@')[0],
+        seller_email: email,
+        total_calls: totalCalls,
+        total_duration: totalDuration,
+        dailyData
+      }
     })
 
-    const stats = calculateHygieneStats(sellerData, dateList)
+    // Calculate team totals
+    const totalSellers = sellerData.filter(s => s.total_calls > 0 || s.total_duration > 0).length
+    const teamTotalCalls = sellerData.reduce((s, d) => s + d.total_calls, 0)
+    const teamTotalDuration = sellerData.reduce((s, d) => s + d.total_duration, 0)
+
+    // 🔥 Option A: totalCalls / (totalSellers × daysPassed)
+    const avgCallsPerDay = totalSellers > 0 && daysPassed > 0 ? Math.round(teamTotalCalls / (totalSellers * daysPassed)) : 0
+    const avgDurationPerDay = totalSellers > 0 && daysPassed > 0 ? Math.round(teamTotalDuration / (totalSellers * daysPassed)) : 0
+
+    // Team daily data (average per day across sellers)
+    const teamDailyData = dateList.map((dateStr: string, idx: number) => {
+      let totalDials = 0, totalDur = 0, count = 0
+      sellerData.forEach((s: any) => {
+        const dd = s.dailyData[idx]
+        if (dd && dd.call_dials > 0) { totalDials += dd.call_dials; totalDur += dd.call_duration; count++ }
+      })
+      return {
+        date: new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+        call_dials: count > 0 ? Math.round(totalDials / count) : 0,
+        call_duration: count > 0 ? Math.round(totalDur / count) : 0
+      }
+    })
 
     return NextResponse.json({
       teamAverage: {
-        total_calls: stats.totalCalls,
-        total_duration: stats.totalDuration,
-        avg_calls_per_day: stats.avgCallsPerSellerPerDay,
-        avg_duration_per_day: stats.avgDurationPerSellerPerDay,
-        total_sellers: stats.totalSellers,
-        dailyData: stats.teamDailyData
+        total_calls: teamTotalCalls,
+        total_duration: teamTotalDuration,
+        avg_calls_per_day: avgCallsPerDay,
+        avg_duration_per_day: avgDurationPerDay,
+        total_sellers: totalSellers,
+        dailyData: teamDailyData
       },
-      sellers: stats.processedSellers,
+      sellers: sellerData,
       dateRange: { from: dateFrom, to: dateTo, count: dateList.length }
     })
   } catch (error: any) {

@@ -33,6 +33,7 @@ export async function GET(req: Request) {
 
   const dateFrom = dateList[0]
   const dateTo = dateList[dateList.length - 1]
+  const daysPassed = today.getDate()
 
   // Fetch ALL efficiency using cursor pagination
   let allEfficiency: any[] = []
@@ -51,10 +52,8 @@ export async function GET(req: Request) {
       .limit(pageSize)
 
     if (lastId > 0) query = query.gt('id', lastId)
-
     const { data: chunk, error } = await query
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
     if (!chunk || chunk.length === 0) hasMore = false
     else { allEfficiency = allEfficiency.concat(chunk); lastId = chunk[chunk.length - 1].id; if (chunk.length < pageSize) hasMore = false }
   }
@@ -81,19 +80,17 @@ export async function GET(req: Request) {
       })
       const totalCalls = dailyData.reduce((sum, d) => sum + d.call_dials, 0)
       const totalDuration = dailyData.reduce((sum, d) => sum + d.call_duration, 0)
-      const daysWithCalls = dailyData.filter(d => d.call_dials > 0).length
-      return { seller_name: s.seller_name, seller_email: s.seller_email, total_calls: totalCalls, avg_calls_per_day: daysWithCalls > 0 ? Math.round(totalCalls / daysWithCalls) : 0, total_duration: totalDuration, avg_duration_per_day: daysWithCalls > 0 ? Math.round(totalDuration / daysWithCalls) : 0, days_with_data: daysWithCalls, dailyData }
+      return { seller_name: s.seller_name, seller_email: s.seller_email, total_calls: totalCalls, total_duration: totalDuration, dailyData }
     })
 
   const totalSellers = sellerData.length
-
-  // 🔥 Team totals = SUM of all sellers (not average)
   const teamTotalCalls = sellerData.reduce((s, d) => s + d.total_calls, 0)
   const teamTotalDuration = sellerData.reduce((s, d) => s + d.total_duration, 0)
-  const allDaysWithCalls = sellerData.reduce((s, d) => s + d.days_with_data, 0)
-  const avgDaysPerSeller = totalSellers > 0 ? Math.round(allDaysWithCalls / totalSellers) : 0
 
-  // Team daily data = average per day across sellers
+  // 🔥 Option A: totalCalls / (totalSellers × daysPassed)
+  const avgCallsPerDay = totalSellers > 0 && daysPassed > 0 ? Math.round(teamTotalCalls / (totalSellers * daysPassed)) : 0
+  const avgDurationPerDay = totalSellers > 0 && daysPassed > 0 ? Math.round(teamTotalDuration / (totalSellers * daysPassed)) : 0
+
   const teamDailyData = dateList.map((dateStr, idx) => {
     const dayData = sellerData.map(s => s.dailyData[idx])
     const sellersWithData = dayData.filter(d => d.call_dials > 0).length
@@ -103,9 +100,9 @@ export async function GET(req: Request) {
   return NextResponse.json({
     teamAverage: {
       total_calls: teamTotalCalls,
-      avg_calls_per_day: avgDaysPerSeller > 0 ? Math.round(teamTotalCalls / (totalSellers * avgDaysPerSeller)) : 0,
       total_duration: teamTotalDuration,
-      avg_duration_per_day: avgDaysPerSeller > 0 ? Math.round(teamTotalDuration / (totalSellers * avgDaysPerSeller)) : 0,
+      avg_calls_per_day: avgCallsPerDay,
+      avg_duration_per_day: avgDurationPerDay,
       total_sellers: totalSellers,
       dailyData: teamDailyData
     },
