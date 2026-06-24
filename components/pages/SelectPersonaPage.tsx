@@ -28,7 +28,7 @@ function getCosmeticRole(role: string): string {
 const personaTabs = [
   { id: 'home', label: 'Overview' },
   { id: 'pipeline', label: 'Pipeline' },
-  { id: 'priority', label: 'Priority' },
+  { id: 'priority', label: 'Priority / QB Stats' },
   { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'performance', label: 'Performance' },
   { id: 'rewards', label: 'Rewards' },
@@ -55,7 +55,7 @@ export default function SelectPersonaPage({ session }: Props) {
         setActivePersonaTab(parsed.tab || 'home')
         setShowModal(true)
       }
-    } catch {}
+    } catch { }
   }, [])
 
   const personaSession: UserSession | null = selectedUser ? {
@@ -73,7 +73,7 @@ export default function SelectPersonaPage({ session }: Props) {
       const res = await fetch(`/api/admin/search?q=${encodeURIComponent(search)}`)
       const data = await res.json()
       setResults(data.users || [])
-    } catch {}
+    } catch { }
     setLoading(false)
   }
 
@@ -99,7 +99,7 @@ export default function SelectPersonaPage({ session }: Props) {
         parsed.tab = tabId
         localStorage.setItem('persona_popup', JSON.stringify(parsed))
       }
-    } catch {}
+    } catch { }
   }
 
   return (

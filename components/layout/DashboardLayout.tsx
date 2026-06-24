@@ -15,7 +15,7 @@ interface DashboardLayoutProps {
 
 const navItems = [
   { id: 'home',        label: 'Overview',    icon: '◈' },
-  { id: 'priority',    label: 'Priority',    icon: '⭐' },
+  { id: 'priority',    label: 'Priority/QB Stats', icon: '⭐' },
   { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
   { id: 'performance', label: 'Performance', icon: '↗', adminOnly: false },
   { id: 'rewards',     label: 'Rewards',     icon: '🎰', adminOnly: false },
@@ -31,7 +31,6 @@ export default function DashboardLayout({
   const [collapsed, setCollapsed] = useState(false)
   const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session.role)
 
-  // Filter out items marked adminOnly: false for admin
   const filteredNavItems = navItems.filter(item => {
     if (isAdmin && item.adminOnly === false) return false
     return true
