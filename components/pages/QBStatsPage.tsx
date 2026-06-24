@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './QBStatsPage.module.css'
 
@@ -121,7 +121,7 @@ function SellerView({ data }: { data: SellerQbData }) {
   )
 }
 
-function DrillDownOverlay({ breadcrumb, onBack, sellerName, sellerEmail, children }: { breadcrumb: string[]; onBack: () => void; sellerName: string; sellerEmail: string; children: React.ReactNode }) {
+function DrillDownOverlay({ breadcrumb, onBack, sellerName, sellerEmail, children }: { breadcrumb: string[]; onBack: () => void; sellerName: string; sellerEmail: string; children?: React.ReactNode }) {
   const color = avatarColor(sellerName)
   return React.createElement('div', { style: { position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', flexDirection: 'column', background: '#0a0a0a', animation: 'slideIn 0.2s ease-out' } },
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid #1a1a1a', background: '#0d0d0d', flexShrink: 0 } },
@@ -135,9 +135,101 @@ function DrillDownOverlay({ breadcrumb, onBack, sellerName, sellerEmail, childre
 }
 
 function SelectDropdown({ options, value, onChange, placeholder, color }: { options: { label: string; value: string }[]; value: string; onChange: (v: string) => void; placeholder: string; color?: string }) {
-  return React.createElement('select', { value: value, onChange: function (e: any) { onChange(e.target.value) }, style: { ...selectStyle, borderColor: color || '#232323' } },
-    React.createElement('option', { value: '' }, placeholder),
-    options.map(function (o) { return React.createElement('option', { key: o.value, value: o.value }, o.label) })
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const accentColor = color || '#F4631E'
+  const selected = options.find(o => o.value === value)
+
+  // Close on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div ref={ref} style={{ position: 'relative', minWidth: 190 }}>
+      {/* Trigger button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+          width: '100%', padding: '8px 12px',
+          background: '#1A1A1A',
+          border: `1.5px solid ${open ? accentColor : '#2A2A2A'}`,
+          borderRadius: '10px',
+          color: selected ? accentColor : '#5A5650',
+          fontSize: '0.75rem', fontWeight: selected ? 600 : 400,
+          cursor: 'pointer',
+          transition: 'border-color 0.15s, color 0.15s',
+          boxShadow: open ? `0 0 0 3px ${accentColor}18` : 'none',
+          outline: 'none',
+        }}
+      >
+        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {selected ? selected.label : placeholder}
+        </span>
+        {/* Chevron */}
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
+          <path d="M2 4l4 4 4-4" stroke={accentColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {/* Dropdown panel */}
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 9999,
+          background: '#1A1A1A',
+          border: `1.5px solid ${accentColor}44`,
+          borderRadius: '10px',
+          overflow: 'hidden',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          animation: 'ddOpen 0.15s ease-out',
+          maxHeight: 280,
+          overflowY: 'auto',
+        }}>
+          {/* Clear/placeholder option */}
+          <div
+            onClick={() => { onChange(''); setOpen(false) }}
+            style={{
+              padding: '9px 14px', fontSize: '0.72rem', color: '#5A5650',
+              cursor: 'pointer', borderBottom: '1px solid #242424',
+              background: !value ? 'rgba(255,255,255,0.03)' : 'transparent',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+            onMouseLeave={e => (e.currentTarget.style.background = !value ? 'rgba(255,255,255,0.03)' : 'transparent')}
+          >
+            {placeholder}
+          </div>
+          {options.map(o => (
+            <div
+              key={o.value}
+              onClick={() => { onChange(o.value); setOpen(false) }}
+              style={{
+                padding: '9px 14px', fontSize: '0.75rem',
+                color: o.value === value ? accentColor : '#C0BDB8',
+                fontWeight: o.value === value ? 600 : 400,
+                cursor: 'pointer',
+                background: o.value === value ? `${accentColor}12` : 'transparent',
+                borderBottom: '1px solid #1E1E1E',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => { if (o.value !== value) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = o.value === value ? `${accentColor}12` : 'transparent' }}
+            >
+              <span>{o.label}</span>
+              {o.value === value && (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6l3 3 5-5" stroke={accentColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <style>{`@keyframes ddOpen{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
   )
 } function TeamSummaryTable({ sellers, onSellerClick }: { sellers: SellerQbData[]; onSellerClick: (seller: SellerQbData) => void }) {
   const [search, setSearch] = useState('')
@@ -249,7 +341,7 @@ function CatManagerView({ l1Sellers, managerName, cmEmail, breadcrumb, onBack }:
   const teamAllEnq = useMemo(() => l1Sellers.flatMap(s => s.enquiries), [l1Sellers]); const teamAggData: SellerQbData = useMemo(() => ({ seller_name: managerName, seller_email: '', sent: l1Sellers.reduce((a, s) => a + s.sent, 0), passed: l1Sellers.reduce((a, s) => a + s.passed, 0), won: l1Sellers.reduce((a, s) => a + s.won, 0), lost: l1Sellers.reduce((a, s) => a + s.lost, 0), stuck: l1Sellers.reduce((a, s) => a + s.stuck, 0), passRate: 0, enquiries: teamAllEnq }), [l1Sellers, managerName, teamAllEnq])
   if (drillSeller) return React.createElement(DrillDownOverlay, { breadcrumb: [...(breadcrumb || []), managerName], onBack: function () { setDrillSeller(null) }, sellerName: drillSeller.seller_name, sellerEmail: drillSeller.seller_email }, React.createElement(SellerView, { data: drillSeller }))
   if (drillManager) {
-    const managerSeller = l1Sellers.find(s => s.seller_name === drillManager.name) || l1Sellers.find(s => s.seller_email === drillManager.email) || l1Sellers.find(s => s.l2_email === drillManager.email)
+    const managerSeller = l1Sellers.find(s => s.seller_email === drillManager.email)
     const isSelf = !!(cmEmail && drillManager.email === cmEmail)
     const managerTeam = l1Sellers.filter(s => s.l2_email === drillManager.email && s.seller_email !== drillManager.email)
     const myData = isSelf ? null : (managerSeller || { seller_name: drillManager.name, seller_email: drillManager.email, sent: 0, passed: 0, won: 0, lost: 0, stuck: 0, passRate: 0, enquiries: [] })
@@ -319,16 +411,50 @@ function CatManagerView({ l1Sellers, managerName, cmEmail, breadcrumb, onBack }:
 }
 
 function AdminView({ qbSellers }: { qbSellers: SellerQbData[] }) {
-  const [activeBuckets, setActiveBuckets] = useState<Set<BucketKey>>(new Set()); const [drillCM, setDrillCM] = useState<{ name: string; email: string; sellers: SellerQbData[]; color: string } | null>(null)
+  const [activeBuckets, setActiveBuckets] = useState<Set<BucketKey>>(new Set())
+  const [drillCM, setDrillCM] = useState<{ name: string; email: string; sellers: SellerQbData[]; color: string } | null>(null)
+  const [drillL1, setDrillL1] = useState<{ name: string; email: string; sellers: SellerQbData[] } | null>(null)
+  const [drillSeller, setDrillSeller] = useState<SellerQbData | null>(null)
   const [cmFilter, setCmFilter] = useState(''); const [l1Filter, setL1Filter] = useState('')
   const toggleBucket = (key: BucketKey) => setActiveBuckets(prev => { const next = new Set(prev); if (next.has(key)) next.delete(key); else next.add(key); return next }); const clearBuckets = () => setActiveBuckets(new Set())
   const cmGroups = useMemo(() => { const map: Record<string, { name: string; email: string; sellers: SellerQbData[]; color: string }> = {}; let ci = 0; qbSellers.forEach(s => { const l1e = s.l1_email || 'unmapped'; const l1n = s.l1_name || 'Not Mapped'; if (!map[l1e]) { map[l1e] = { name: l1n, email: l1e, sellers: [], color: CM_COLORS[ci % CM_COLORS.length] }; ci++ } map[l1e].sellers.push(s) }); return Object.values(map) }, [qbSellers])
   const allEnq = useMemo(() => qbSellers.flatMap(s => s.enquiries), [qbSellers]); const orgData: SellerQbData = useMemo(() => ({ seller_name: 'Organisation', seller_email: '', sent: qbSellers.reduce((a, s) => a + s.sent, 0), passed: qbSellers.reduce((a, s) => a + s.passed, 0), won: qbSellers.reduce((a, s) => a + s.won, 0), lost: qbSellers.reduce((a, s) => a + s.lost, 0), stuck: qbSellers.reduce((a, s) => a + s.stuck, 0), passRate: 0, enquiries: allEnq }), [qbSellers, allEnq])
-  const l1Options = useMemo(() => { if (!cmFilter) return []; const cm = cmGroups.find(c => c.email === cmFilter); if (!cm) return []; const l1Map: Record<string, string> = {}; cm.sellers.forEach(s => { const l2e = s.l2_email || s.seller_email; const l2n = s.l2_name || l2e.split('@')[0]; if (!l1Map[l2e]) l1Map[l2e] = l2n }); return Object.entries(l1Map).map(([email, name]) => ({ label: name, value: email })) }, [cmFilter, cmGroups])
+  // Group selected CM's sellers by l2_email to build L1 Manager groups
+  const l1Groups = useMemo(() => {
+    if (!cmFilter) return [] as { name: string; email: string; sellers: SellerQbData[] }[]
+    const cmSellers = cmGroups.find(c => c.email === cmFilter)?.sellers || []
+    const map: Record<string, { name: string; email: string; sellers: SellerQbData[] }> = {}
+    cmSellers.forEach(s => {
+      const l2e = (s.l2_email && s.l2_email !== s.seller_email) ? s.l2_email : s.seller_email
+      const l2n = s.l2_name || l2e.split('@')[0]
+      if (!map[l2e]) map[l2e] = { name: l2n, email: l2e, sellers: [] }
+      map[l2e].sellers.push(s)
+    })
+    return Object.values(map)
+  }, [cmFilter, cmGroups])
+
+  const l1Options = useMemo(() => l1Groups.map(g => ({ label: g.name + ' (' + g.sellers.length + ')', value: g.email })), [l1Groups])
+
+  // Drill overlays — order matters: most specific first
+  if (drillSeller) return React.createElement(DrillDownOverlay, { breadcrumb: ['Admin', cmFilter ? (cmGroups.find(c => c.email === cmFilter)?.name || '') : '', drillL1?.name || ''].filter(Boolean), onBack: function () { setDrillSeller(null) }, sellerName: drillSeller.seller_name, sellerEmail: drillSeller.seller_email }, React.createElement(SellerView, { data: drillSeller }))
+  if (drillL1) {
+    const managerSeller = qbSellers.find(s => s.seller_email === drillL1.email)
+    const myData = managerSeller || { seller_name: drillL1.name, seller_email: drillL1.email, sent: 0, passed: 0, won: 0, lost: 0, stuck: 0, passRate: 0, enquiries: [] }
+    const teamSellers = drillL1.sellers.filter(s => s.seller_email !== drillL1.email)
+    return React.createElement(DrillDownOverlay, { breadcrumb: ['Admin', cmFilter ? (cmGroups.find(c => c.email === cmFilter)?.name || '') : ''].filter(Boolean), onBack: function () { setDrillL1(null) }, sellerName: drillL1.name, sellerEmail: drillL1.email }, React.createElement(L1ManagerView, { myData: myData, teamSellers: teamSellers, managerName: drillL1.name, breadcrumb: ['Admin'] }))
+  }
   if (drillCM) return React.createElement(DrillDownOverlay, { breadcrumb: ['Admin'], onBack: function () { setDrillCM(null) }, sellerName: drillCM.name, sellerEmail: drillCM.email }, React.createElement(CatManagerView, { l1Sellers: drillCM.sellers, managerName: drillCM.name, cmEmail: drillCM.email }))
-  const showSellers = !!(cmFilter && l1Filter); const showL1Managers = !!cmFilter && !l1Filter
-  const tableData = showSellers ? qbSellers.filter(s => s.l2_email === l1Filter) : showL1Managers ? (cmGroups.find(c => c.email === cmFilter)?.sellers || []) : cmGroups
-  const tableTitle = showSellers ? 'Seller' : showL1Managers ? 'L1 Manager' : 'Category Manager'; const hintText = showSellers ? 'Showing sellers' : showL1Managers ? 'Click a manager' : 'Click a Category Manager'
+
+  // 3-level filter states
+  const showCMs = !cmFilter
+  const showL1Groups = !!cmFilter && !l1Filter
+  const showSellers = !!(cmFilter && l1Filter)
+
+  // Each level's data
+  const sellerRows = showSellers ? qbSellers.filter(s => s.l2_email === l1Filter) : []
+  const tableTitle = showSellers ? 'Seller' : showL1Groups ? 'L1 Manager' : 'Category Manager'
+  const hintText = showSellers ? 'Showing sellers' : showL1Groups ? 'Click an L1 Manager to see sellers, or use the dropdown' : 'Click a Category Manager to drill in'
+
   return React.createElement(React.Fragment, null,
     React.createElement('div', { className: styles.orgKpiLabel }, 'Org KPIs'),
     React.createElement(KpiCards, { data: orgData }),
@@ -347,41 +473,138 @@ function AdminView({ qbSellers }: { qbSellers: SellerQbData[] }) {
           React.createElement('th', { className: styles.numCol, style: { color: '#9CA3AF' } }, 'Passed & Lost'),
           React.createElement('th', { className: styles.numCol, style: { color: '#EC4899' } }, 'Not Passed & Lost')
         )),
-        React.createElement('tbody', null, tableData.map(function (row: any) {
-          var isCM = !cmFilter; var sellers = isCM ? row.sellers : [row]
-          var counts = bucketCounts(sellers.flatMap(function (s: SellerQbData) { return s.enquiries }))
-          var tts = sellers.reduce(function (a: number, s: SellerQbData) { return a + s.sent }, 0)
-          var ttp = sellers.reduce(function (a: number, s: SellerQbData) { return a + s.passed }, 0)
-          var tpr = tts > 0 ? Math.round((ttp / tts) * 100) : 0
-          var ttw = sellers.reduce(function (a: number, s: SellerQbData) { return a + s.won }, 0)
-          var twp = ttp > 0 ? Math.round((ttw / ttp) * 100) : 0
-          var name = isCM ? row.name : row.seller_name
-          var email = isCM ? row.email : row.seller_email
-          var color = isCM ? row.color : avatarColor(name)
-          var count = isCM ? row.sellers.length : 1
-          var onClick = isCM ? function () { setDrillCM(row) } : undefined
-          return React.createElement('tr', { key: email, onClick: onClick, style: { cursor: isCM ? 'pointer' : 'default' } },
-            React.createElement('td', null, React.createElement('div', { style: alignedCell },
-              React.createElement('span', { className: styles.avatar, style: { background: color + '22', color: color, width: 26, height: 26, fontSize: 10, flexShrink: 0 } }, initials(name)),
-              React.createElement('span', { style: nameStyle }, name),
-              React.createElement('span', { style: countStyle }, count + ' seller' + (count !== 1 ? 's' : '')),
-              React.createElement('span', { style: pillWrap },
-                React.createElement('span', { style: pillStyle('rgba(201,168,76,0.12)', '#C9A84C') }, tpr + '% Pass Rate'),
-                React.createElement('span', { style: pillStyle('rgba(34,197,94,0.12)', '#4ADE80') }, twp + '% Won')
-              )
-            )),
-            React.createElement('td', { className: styles.numCell + ' ' + styles.numCellPO, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.po),
-            React.createElement('td', { className: styles.numCell + ' ' + styles.numCellNPO, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.npo),
-            React.createElement('td', { className: styles.numCell + ' ' + styles.numCellPL, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.pl),
-            React.createElement('td', { className: styles.numCell + ' ' + styles.numCellNPL, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.npl)
-          )
-        }))
+        React.createElement('tbody', null,
+          // ── Level 1: No filter — show CM groups ──
+          showCMs && cmGroups.map(function (cm) {
+            var counts = bucketCounts(cm.sellers.flatMap(s => s.enquiries))
+            var tts = cm.sellers.reduce((a, s) => a + s.sent, 0), ttp = cm.sellers.reduce((a, s) => a + s.passed, 0)
+            var tpr = tts > 0 ? Math.round((ttp / tts) * 100) : 0
+            var ttw = cm.sellers.reduce((a, s) => a + s.won, 0), twp = ttp > 0 ? Math.round((ttw / ttp) * 100) : 0
+            return React.createElement('tr', { key: cm.email, onClick: function () { setDrillCM(cm) }, style: { cursor: 'pointer' } },
+              React.createElement('td', null, React.createElement('div', { style: alignedCell },
+                React.createElement('span', { className: styles.avatar, style: { background: cm.color + '22', color: cm.color, width: 26, height: 26, fontSize: 10, flexShrink: 0 } }, initials(cm.name)),
+                React.createElement('span', { style: nameStyle }, cm.name),
+                React.createElement('span', { style: countStyle }, cm.sellers.length + ' seller' + (cm.sellers.length !== 1 ? 's' : '')),
+                React.createElement('span', { style: pillWrap },
+                  React.createElement('span', { style: pillStyle('rgba(201,168,76,0.12)', '#C9A84C') }, tpr + '% Pass Rate'),
+                  React.createElement('span', { style: pillStyle('rgba(34,197,94,0.12)', '#4ADE80') }, twp + '% Won')
+                )
+              )),
+              React.createElement('td', { className: styles.numCell + ' ' + styles.numCellPO, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.po),
+              React.createElement('td', { className: styles.numCell + ' ' + styles.numCellNPO, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.npo),
+              React.createElement('td', { className: styles.numCell + ' ' + styles.numCellPL, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.pl),
+              React.createElement('td', { className: styles.numCell + ' ' + styles.numCellNPL, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.npl)
+            )
+          }),
+          // ── Level 2: CM selected — show L1 Manager groups ──
+          showL1Groups && l1Groups.map(function (group) {
+            var counts = bucketCounts(group.sellers.flatMap(s => s.enquiries))
+            var tts = group.sellers.reduce((a, s) => a + s.sent, 0), ttp = group.sellers.reduce((a, s) => a + s.passed, 0)
+            var tpr = tts > 0 ? Math.round((ttp / tts) * 100) : 0
+            var ttw = group.sellers.reduce((a, s) => a + s.won, 0), twp = ttp > 0 ? Math.round((ttw / ttp) * 100) : 0
+            var color = avatarColor(group.name)
+            return React.createElement('tr', { key: group.email, onClick: function () { setDrillL1(group) }, style: { cursor: 'pointer' } },
+              React.createElement('td', null, React.createElement('div', { style: alignedCell },
+                React.createElement('span', { className: styles.avatar, style: { background: color + '22', color: color, width: 26, height: 26, fontSize: 10, flexShrink: 0 } }, initials(group.name)),
+                React.createElement('span', { style: nameStyle }, group.name),
+                React.createElement('span', { style: countStyle }, group.sellers.length + ' seller' + (group.sellers.length !== 1 ? 's' : '')),
+                React.createElement('span', { style: pillWrap },
+                  React.createElement('span', { style: pillStyle('rgba(201,168,76,0.12)', '#C9A84C') }, tpr + '% Pass Rate'),
+                  React.createElement('span', { style: pillStyle('rgba(34,197,94,0.12)', '#4ADE80') }, twp + '% Won')
+                )
+              )),
+              React.createElement('td', { className: styles.numCell + ' ' + styles.numCellPO, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.po),
+              React.createElement('td', { className: styles.numCell + ' ' + styles.numCellNPO, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.npo),
+              React.createElement('td', { className: styles.numCell + ' ' + styles.numCellPL, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.pl),
+              React.createElement('td', { className: styles.numCell + ' ' + styles.numCellNPL, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.npl)
+            )
+          }),
+          // ── Level 3: CM + L1 selected — show individual sellers ──
+          showSellers && sellerRows.map(function (s) {
+            var counts = bucketCounts(s.enquiries)
+            var tpr = s.sent > 0 ? Math.round((s.passed / s.sent) * 100) : 0
+            var twp = s.passed > 0 ? Math.round((s.won / s.passed) * 100) : 0
+            var color = avatarColor(s.seller_name)
+            return React.createElement('tr', { key: s.seller_email, onClick: function () { setDrillSeller(s) }, style: { cursor: 'pointer' } },
+              React.createElement('td', null, React.createElement('div', { style: alignedCell },
+                React.createElement('span', { className: styles.avatar, style: { background: color + '22', color: color, width: 26, height: 26, fontSize: 10, flexShrink: 0 } }, initials(s.seller_name)),
+                React.createElement('span', { style: nameStyle }, s.seller_name),
+                React.createElement('span', { style: countStyle }, s.sent + ' sent'),
+                React.createElement('span', { style: pillWrap },
+                  React.createElement('span', { style: pillStyle('rgba(201,168,76,0.12)', '#C9A84C') }, tpr + '% Pass Rate'),
+                  React.createElement('span', { style: pillStyle('rgba(34,197,94,0.12)', '#4ADE80') }, twp + '% Won')
+                )
+              )),
+              React.createElement('td', { className: styles.numCell + ' ' + styles.numCellPO, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.po),
+              React.createElement('td', { className: styles.numCell + ' ' + styles.numCellNPO, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.npo),
+              React.createElement('td', { className: styles.numCell + ' ' + styles.numCellPL, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.pl),
+              React.createElement('td', { className: styles.numCell + ' ' + styles.numCellNPL, style: { fontSize: '0.85rem', fontWeight: 600 } }, counts.npl)
+            )
+          }),
+          // Empty state
+          (showL1Groups && l1Groups.length === 0 || showSellers && sellerRows.length === 0) &&
+            React.createElement('tr', null, React.createElement('td', { colSpan: 5, className: styles.emptyState }, 'No data found'))
+        )
       )
     ) : React.createElement(TeamEnqTable, { sellers: qbSellers, activeBuckets: activeBuckets, onClearBuckets: clearBuckets, showCmCol: true })
   )
 }
 
 interface QBStatsPageProps { session: UserSession }
+
+const QB_CONTEXT = {
+  seller: {
+    icon: '🎯',
+    headline: 'Your feasibility pipeline — this month',
+    body: 'These are the enquiries where you sent a feasibility check this month. Each one is a real buyer who showed interest. The ones that passed feasibility are near-converting — follow up hard on Passed & Open to close them before they go cold.',
+    accent: '#F4631E',
+  },
+  l1: {
+    icon: '👥',
+    headline: "Your team's feasibility pipeline — this month",
+    body: "Every enquiry here went to feasibility — meaning it almost converted. These are the hottest leads in your book. Whether it's you or someone on your team, don't let a single one slip. Passed & Open need a closure push right now. Passed & Lost — understand what happened and see if it can be reversed. These are too close to the finish line to leave on the table.",
+    accent: '#C9A84C',
+  },
+  cm: {
+    icon: '📊',
+    headline: 'Category feasibility health — this month',
+    body: "These leads cleared the hardest gate — they went to feasibility and almost converted. Use the L1 view to see which ones can still be saved. Get context on who owns each lead, which L1 it sits under, and make sure every Passed & Open one gets closed. These are real revenue sitting in the pipeline.",
+    accent: '#22C55E',
+  },
+  admin: {
+    icon: '🏢',
+    headline: 'Org-wide feasibility funnel — this month',
+    body: 'Full-org view of enquiries sent to feasibility this month. These are the highest-intent leads in the system — they got far enough for a feasibility check. Passed & Open across the org = the immediate revenue opportunity. Drill into any CM or L1 to see where the pipeline is stuck.',
+    accent: '#3B82F6',
+  },
+}
+
+function QBContextBanner({ role }: { role: 'seller' | 'l1' | 'cm' | 'admin' }) {
+  const [dismissed, setDismissed] = useState(false)
+  const ctx = QB_CONTEXT[role]
+  if (dismissed) return null
+  return (
+    <div style={{
+      background: `linear-gradient(135deg, ${ctx.accent}0A 0%, rgba(20,20,20,0) 60%)`,
+      border: `1px solid ${ctx.accent}28`,
+      borderLeft: `3px solid ${ctx.accent}`,
+      borderRadius: '10px',
+      padding: '12px 16px',
+      marginBottom: '16px',
+      display: 'flex',
+      gap: '12px',
+      alignItems: 'flex-start',
+      position: 'relative',
+    }}>
+      <span style={{ fontSize: '1.1rem', flexShrink: 0, marginTop: 1 }}>{ctx.icon}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: ctx.accent, letterSpacing: '0.3px', marginBottom: '4px', textTransform: 'uppercase' }}>{ctx.headline}</div>
+        <div style={{ fontSize: '0.71rem', color: '#8A8278', lineHeight: 1.6 }}>{ctx.body}</div>
+      </div>
+      <button onClick={() => setDismissed(true)} style={{ background: 'none', border: 'none', color: '#5A5650', fontSize: '1rem', cursor: 'pointer', padding: '0 0 0 8px', lineHeight: 1, flexShrink: 0 }}>×</button>
+    </div>
+  )
+}
 
 export default function QBStatsPage({ session }: QBStatsPageProps) {
   const [qbData, setQbData] = useState<SellerQbData[]>([])
@@ -407,7 +630,7 @@ export default function QBStatsPage({ session }: QBStatsPageProps) {
 
   const myQbData = useMemo(() => {
     if (isSeller || isL1Manager) {
-      const found = qbData.find(s => s.seller_email === email.toLowerCase()) || qbData.find(s => s.seller_name === name)
+      const found = qbData.find(s => s.seller_email === email.toLowerCase())
       if (found) return found
       return { seller_name: name, seller_email: email, sent: 0, passed: 0, won: 0, lost: 0, stuck: 0, passRate: 0, enquiries: [] }
     }
@@ -420,12 +643,14 @@ export default function QBStatsPage({ session }: QBStatsPageProps) {
   }, [qbData, email, isCatManager, isL1Manager])
 
   const sub = isAdmin ? 'Admin · Insights' : isCatManager ? name + ' · Category Manager' : isL1Manager ? name + ' · L1 Manager' : name + ' · Seller'
+  const bannerRole: 'seller' | 'l1' | 'cm' | 'admin' = isAdmin ? 'admin' : isCatManager ? 'cm' : isL1Manager ? 'l1' : 'seller'
 
   return React.createElement('div', { className: styles.page },
     React.createElement('div', { className: styles.header },
       React.createElement('div', { className: styles.titleRow }, React.createElement('span', { className: styles.titleIcon }), React.createElement('h1', { className: styles.title }, 'QB Stats')),
       React.createElement('p', { className: styles.subtitle }, sub + ' · This month')
     ),
+    React.createElement(QBContextBanner, { role: bannerRole }),
     loading && React.createElement('div', { className: styles.loading }, 'Loading...'),
     error && React.createElement('div', { className: styles.emptyState, style: { color: '#F87171' } }, 'Failed: ' + error),
     !loading && !error && React.createElement(React.Fragment, null,

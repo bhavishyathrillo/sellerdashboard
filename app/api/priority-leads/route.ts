@@ -237,15 +237,26 @@ export async function GET(req: Request) {
         .eq('seller_email', email.toLowerCase().trim())
         .single()
 
+      // Fetch the L1 Manager's own name from srs_raw
+      const { data: managerSrsRow } = await supabase
+        .from('srs_raw')
+        .select('seller_name')
+        .eq('seller_email', email.toLowerCase().trim())
+        .single()
+      const managerName = managerSrsRow?.seller_name || email.split('@')[0]
+
       const qbSellers: any[] = (qbData || []).map((row: any) => {
         const emailKey = (row.seller_email || '').toLowerCase().trim()
         const srsRow = (teamSellers || []).find((s: any) => (s.seller_email || '').toLowerCase().trim() === emailKey)
         return buildSellerQbData(row, srsRow?.seller_name || emailKey.split('@')[0], emailKey, srsRow)
       })
 
-      // Add the L1 Manager's own data at the beginning
+      // Add the L1 Manager's own data at the beginning (with correct name so frontend can match by email)
       if (myQbRow) {
-        qbSellers.unshift(buildSellerQbData(myQbRow, '', email.toLowerCase().trim()))
+        qbSellers.unshift(buildSellerQbData(myQbRow, managerName, email.toLowerCase().trim()))
+      } else {
+        // Always include the manager as an entry with zeros so the frontend can find them by email
+        qbSellers.unshift({ seller_name: managerName, seller_email: email.toLowerCase().trim(), sent: 0, passed: 0, won: 0, lost: 0, stuck: 0, passRate: 0, enquiries: [], l1_email: '', l1_name: '', l2_email: '', l2_name: '' })
       }
 
       const { data: allLeads } = await supabase

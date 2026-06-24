@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import IntroScreen from '@/components/ui/IntroScreen'
@@ -191,7 +191,7 @@ export default function Home() {
           {activePage === 'roadmap'     && <RoadmapPage session={session} />}
           {activePage === 'rewards'     && <RewardsPage session={session} />}
           {activePage === 'calendar'    && <CalendarPage session={session} />}
-          {activePage === 'ttk'         && <TTKPage session={session} />}
+          {activePage === 'ttk'         && <TTKPage />}
           {activePage === 'team'        && <TeamPage session={session} />}
         </DashboardLayout>
       )}

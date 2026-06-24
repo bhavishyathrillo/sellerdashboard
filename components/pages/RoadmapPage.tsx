@@ -158,7 +158,7 @@ function ARPSChart({ roadmap }: { roadmap: any }) {
               }
             },
             scales: {
-              x: { ticks: { color:'#8A8278',font:{size:10,weight:'600'},padding:10 }, grid:{display:false}, border:{display:false} },
+              x: { ticks: { color:'#8A8278',font:{size:10,weight:600},padding:10 }, grid:{display:false}, border:{display:false} },
               y: { ticks: { color:'#8A8278',font:{size:9},callback:(v:any)=>fmt(v),padding:8 }, grid:{color:'rgba(255,255,255,0.03)'}, border:{display:false}, beginAtZero:true, max:maxVal*1.3 }
             },
             layout: { padding: { top: 10, bottom: 5 } }
