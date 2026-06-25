@@ -218,15 +218,17 @@ function HierarchicalTableView({ viewType, l1Groups = [], search: extSearch }: {
   const [search, setSearch] = useState('')
   const query = (search || extSearch || '').toLowerCase().trim()
 
-  const l1Data = l1Groups.map((l1: any) => ({ name: l1.l1_name || 'Not Mapped', email: l1.l1_email, l2_count: l1.l2_count, seller_count: l1.seller_count, total: l1.metrics?.totalLeads || 0, called: l1.metrics?.calledLeads || 0, callRate: (l1.metrics?.totalLeads || 0) > 0 ? Math.round(((l1.metrics?.calledLeads || 0) / l1.metrics?.totalLeads) * 100) : 0, avgDuration: l1.metrics?.avgDurationFormatted || '0s', mishandledPct: l1.metrics?.mishandledPct || 0 }))
-  const l2Data: any[] = []; l1Groups.forEach((l1: any) => { (l1.l2_groups || []).forEach((l2: any) => { l2Data.push({ name: l2.l2_name || 'Unknown', email: l2.l2_email, l1_name: l1.l1_name, seller_count: l2.seller_count, total: l2.metrics?.totalLeads || 0, called: l2.metrics?.calledLeads || 0, callRate: (l2.metrics?.totalLeads || 0) > 0 ? Math.round(((l2.metrics?.calledLeads || 0) / l2.metrics?.totalLeads) * 100) : 0, avgDuration: l2.metrics?.avgDurationFormatted || '0s', mishandledPct: l2.metrics?.mishandledPct || 0 }) }) })
-  const sellerData: any[] = []; l1Groups.forEach((l1: any) => { (l1.l2_groups || []).forEach((l2: any) => { (l2.sellers || []).forEach((s: any) => { sellerData.push({ name: s.seller_name || s.seller_email?.split('@')[0], email: s.seller_email, l1_name: l1.l1_name, l2_name: l2.l2_name, total: s.metrics?.totalLeads || 0, called: s.metrics?.calledLeads || 0, callRate: (s.metrics?.totalLeads || 0) > 0 ? Math.round(((s.metrics?.calledLeads || 0) / s.metrics?.totalLeads) * 100) : 0, avgDuration: s.metrics?.avgDurationFormatted || '0s', mishandledPct: s.metrics?.mishandledPct || 0 }) }) }) })
+  const l1Data = l1Groups.map((l1: any) => ({ name: l1.l1_name || 'Not Mapped', email: l1.l1_email, l2_count: l1.l2_count, seller_count: l1.seller_count, total: l1.metrics?.totalLeads || 0, convoRate: (l1.metrics?.totalLeads || 0) > 0 ? Math.round(((l1.metrics?.conversationHappenedLeads || 0) / l1.metrics?.totalLeads) * 100) : 0, avgDuration: l1.metrics?.avgDurationFormatted || '0s', mishandledPct: l1.metrics?.mishandledPct || 0 }))
+  const l2Data: any[] = []; l1Groups.forEach((l1: any) => { (l1.l2_groups || []).forEach((l2: any) => { l2Data.push({ name: l2.l2_name || 'Unknown', email: l2.l2_email, l1_name: l1.l1_name, seller_count: l2.seller_count, total: l2.metrics?.totalLeads || 0, convoRate: (l2.metrics?.totalLeads || 0) > 0 ? Math.round(((l2.metrics?.conversationHappenedLeads || 0) / l2.metrics?.totalLeads) * 100) : 0, avgDuration: l2.metrics?.avgDurationFormatted || '0s', mishandledPct: l2.metrics?.mishandledPct || 0 }) }) })
+  const sellerData: any[] = []; l1Groups.forEach((l1: any) => { (l1.l2_groups || []).forEach((l2: any) => { (l2.sellers || []).forEach((s: any) => { sellerData.push({ name: s.seller_name || s.seller_email?.split('@')[0], email: s.seller_email, l1_name: l1.l1_name, l2_name: l2.l2_name, total: s.metrics?.totalLeads || 0, convoRate: (s.metrics?.totalLeads || 0) > 0 ? Math.round(((s.metrics?.conversationHappenedLeads || 0) / s.metrics?.totalLeads) * 100) : 0, avgDuration: s.metrics?.avgDurationFormatted || '0s', mishandledPct: s.metrics?.mishandledPct || 0 }) }) }) })
 
   let rawData = l1Data; if (activeTab === 'l2') rawData = l2Data; if (activeTab === 'seller') rawData = sellerData
   const filteredData = query ? rawData.filter((item: any) => item.name?.toLowerCase().includes(query) || item.email?.toLowerCase().includes(query) || (item.l1_name || '').toLowerCase().includes(query) || (item.l2_name || '').toLowerCase().includes(query)) : rawData
   const sortedData = [...filteredData].sort((a: any, b: any) => { let aVal = a[sortField], bVal = b[sortField]; if (typeof aVal === 'string') return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal); aVal = aVal || 0; bVal = bVal || 0; return sortDir === 'asc' ? aVal - bVal : bVal - aVal })
   const requestSort = (field: string) => { if (sortField === field) setSortDir(prev => prev === 'asc' ? 'desc' : 'asc'); else { setSortField(field); setSortDir('desc') } }
   const SortIcon = ({ field }: { field: string }) => sortField !== field ? <span style={{ marginLeft: 3, opacity: 0.3, fontSize: '0.7rem' }}>↕</span> : sortDir === 'asc' ? <span style={{ marginLeft: 3, color: '#F4631E', fontSize: '0.7rem' }}>↑</span> : <span style={{ marginLeft: 3, color: '#F4631E', fontSize: '0.7rem' }}>↓</span>
+  // default sort field rename guard
+  const resolvedSortField = sortField === 'callRate' ? 'convoRate' : sortField
 
   const tabLabel = activeTab === 'l1' ? 'Category Manager' : activeTab === 'l2' ? 'L1 Manager' : 'Seller'
 
@@ -255,7 +257,7 @@ function HierarchicalTableView({ viewType, l1Groups = [], search: extSearch }: {
               <th style={{ padding: '10px 16px', textAlign: 'left', color: '#555', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, borderBottom: '1px solid #1E1E1E', width: 40 }}>#</th>
               <th onClick={() => requestSort('name')} style={{ padding: '10px 16px', textAlign: 'left', color: '#555', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, borderBottom: '1px solid #1E1E1E', cursor: 'pointer' }}>{tabLabel}<SortIcon field="name" /></th>
               <th onClick={() => requestSort('total')} style={{ padding: '10px 16px', textAlign: 'right', color: '#555', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, borderBottom: '1px solid #1E1E1E', cursor: 'pointer' }}>Leads<SortIcon field="total" /></th>
-              <th onClick={() => requestSort('callRate')} style={{ padding: '10px 16px', textAlign: 'left', color: '#555', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, borderBottom: '1px solid #1E1E1E', cursor: 'pointer', minWidth: 160 }}>Call Rate<SortIcon field="callRate" /></th>
+              <th onClick={() => requestSort('convoRate')} style={{ padding: '10px 16px', textAlign: 'left', color: '#555', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, borderBottom: '1px solid #1E1E1E', cursor: 'pointer', minWidth: 160 }}>Convo Rate<SortIcon field="convoRate" /></th>
               <th onClick={() => requestSort('avgDuration')} style={{ padding: '10px 16px', textAlign: 'left', color: '#555', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, borderBottom: '1px solid #1E1E1E', cursor: 'pointer' }}>Avg Duration<SortIcon field="avgDuration" /></th>
               <th onClick={() => requestSort('mishandledPct')} style={{ padding: '10px 16px', textAlign: 'left', color: '#555', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, borderBottom: '1px solid #1E1E1E', cursor: 'pointer' }}>Mishandled<SortIcon field="mishandledPct" /></th>
             </tr>
@@ -285,9 +287,9 @@ function HierarchicalTableView({ viewType, l1Groups = [], search: extSearch }: {
                     <td style={{ padding: '10px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 100, height: 5, background: '#242424', borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}>
-                          <div style={{ height: '100%', width: `${row.callRate}%`, background: '#22C55E', borderRadius: 10 }} />
+                          <div style={{ height: '100%', width: `${row.convoRate}%`, background: '#22C55E', borderRadius: 10 }} />
                         </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#22C55E' }}>{row.callRate}%</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#22C55E' }}>{row.convoRate}%</span>
                       </div>
                     </td>
                     <td style={{ padding: '10px 16px', fontSize: '0.75rem', color: '#C9A84C', fontWeight: 600 }}>{row.avgDuration}</td>
