@@ -108,20 +108,28 @@ function KpiCards({ metrics }: { metrics: any }) {
   )
 }
 
-// ── Card header stats (compact: total + mishandled%) ──────────────────────
+// ── Card header stats (compact: total + convo rate + mishandled%) ──────────
 function CardHeaderStats({ metrics, name }: { metrics: any; name?: string }) {
   if (!metrics) return null
+  const total = metrics.totalLeads || 0
+  const convo = metrics.conversationHappenedLeads || 0
+  const convoRate = total > 0 ? Math.round((convo / total) * 100) : 0
   const pct = metrics.mishandledPct || 0
   const pillColor = pct > 50 ? '#EF4444' : pct > 20 ? '#C9A84C' : '#22C55E'
   const pillBg = pct > 50 ? 'rgba(239,68,68,0.12)' : pct > 20 ? 'rgba(201,168,76,0.12)' : 'rgba(34,197,94,0.08)'
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#F4631E' }}>{metrics.totalLeads || 0}</span>
+      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#F4631E' }}>{total}</span>
       <span style={{ fontSize: '0.6rem', color: '#5A5650' }}>leads</span>
+      {/* Convo Rate */}
+      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: '0.6rem', fontWeight: 700, background: 'rgba(34,197,94,0.08)', color: '#22C55E', border: '1px solid rgba(34,197,94,0.2)' }}>{convoRate}% convo</span>
+      </span>
       <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: '0.6rem', fontWeight: 700, background: pillBg, color: pillColor, border: `1px solid ${pillColor}30` }}>{pct}% mishandled</span>
     </div>
   )
 }
+
 
 // ── Leads table ───────────────────────────────────────────────────────────
 function LeadsTable({ leads }: { leads: PriorityLead[] }) {
