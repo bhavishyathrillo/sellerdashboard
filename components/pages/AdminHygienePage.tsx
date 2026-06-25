@@ -54,7 +54,22 @@ function HygieneChart({ dailyData }: { dailyData: any[] }) {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: true, labels: { color: '#8A8278', font: { size: 10 } } } },
             scales: {
-              x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+              x: {
+                ticks: {
+                  color: '#8A8278',
+                  font: { size: 9 },
+                  maxRotation: 0,
+                  minRotation: 0,
+                  autoSkip: false,
+                  callback: function(_val: any, index: number) {
+                    const d = dailyData[index]
+                    if (!d) return ''
+                    // Show just the day number (1, 2, 3...) to fit all dates
+                    return d.dateKey ? new Date(d.dateKey + 'T00:00:00').getDate().toString() : d.date.split(' ')[0]
+                  }
+                },
+                grid: { color: 'rgba(255,255,255,0.04)' }
+              },
               y: { type: 'linear', position: 'left', ticks: { color: '#F4631E', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.06)' }, beginAtZero: true },
               y2: { type: 'linear', position: 'right', ticks: { color: '#22C55E', font: { size: 9 } }, grid: { drawOnChartArea: false }, beginAtZero: true }
             }
@@ -65,7 +80,7 @@ function HygieneChart({ dailyData }: { dailyData: any[] }) {
     return () => { if (chartInstance.current) chartInstance.current.destroy() }
   }, [dailyData])
 
-  return (<div style={{ height: '200px', marginBottom: '16px' }}><canvas ref={chartRef} style={{ width: '100%', height: '100%' }} /></div>)
+  return (<div style={{ height: '230px', marginBottom: '20px' }}><canvas ref={chartRef} style={{ width: '100%', height: '100%' }} /></div>)
 }
 
 function getDisplayName(email: string, allSellers?: any[]): string {
@@ -184,9 +199,9 @@ export default function AdminHygienePage() {
         <PopupModal title={`${getDisplayName(selectedL1.l1_email, allSrsSellers)} — Hygiene`} onClose={() => setSelectedL1(null)}>
           {(() => {
             const allSellers: any[] = []; selectedL1.l2_groups?.forEach((l2: any) => { l2.sellers?.forEach((s: any) => allSellers.push(s)) })
-            const dateMap: Record<string, { date: string; call_dials: number; call_duration: number }> = {}
-            allSellers.forEach((s: any) => { (s.dailyData || []).forEach((d: any) => { if (!dateMap[d.date]) dateMap[d.date] = { date: d.date, call_dials: 0, call_duration: 0 }; dateMap[d.date].call_dials += (d.call_dials || 0); dateMap[d.date].call_duration += (d.call_duration || 0) }) })
-            const teamDailyData = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date))
+            const dateMap: Record<string, { dateKey: string; date: string; call_dials: number; call_duration: number }> = {}
+            allSellers.forEach((s: any) => { (s.dailyData || []).forEach((d: any) => { const key = d.dateKey || d.date; if (!dateMap[key]) dateMap[key] = { dateKey: d.dateKey || d.date, date: d.date, call_dials: 0, call_duration: 0 }; dateMap[key].call_dials += (d.call_dials || 0); dateMap[key].call_duration += (d.call_duration || 0) }) })
+            const teamDailyData = Object.values(dateMap).sort((a, b) => a.dateKey.localeCompare(b.dateKey))
             const teamTotalCalls = teamDailyData.reduce((s, d) => s + d.call_dials, 0); const teamTotalDuration = teamDailyData.reduce((s, d) => s + d.call_duration, 0)
             return (<><HygieneChart dailyData={teamDailyData} /><div style={{display:'flex',gap:'16px',marginBottom:'12px',fontSize:'0.72rem',color:'#8A8278'}}><span>Team Total Calls: <strong style={{color:'#F4631E'}}>{teamTotalCalls}</strong></span><span>Team Total Duration: <strong style={{color:'#22C55E'}}>{fmtDuration(teamTotalDuration)}</strong></span><span>Avg/Day: <strong>{selectedL1.avg_calls_per_seller_per_day}</strong></span><span>Sellers: <strong>{allSellers.length}</strong></span></div></>)
           })()}
@@ -208,9 +223,9 @@ export default function AdminHygienePage() {
             {(() => {
               const allSellers = selectedL2.sellers || []
               if (allSellers.length === 0) return <div style={{ textAlign: 'center', padding: '20px', color: '#8A8278', fontSize: '0.75rem' }}>No data available</div>
-              const dateMap: Record<string, { date: string; call_dials: number; call_duration: number }> = {}
-              allSellers.forEach((s: any) => { (s.dailyData || []).forEach((d: any) => { if (!dateMap[d.date]) dateMap[d.date] = { date: d.date, call_dials: 0, call_duration: 0 }; dateMap[d.date].call_dials += (d.call_dials || 0); dateMap[d.date].call_duration += (d.call_duration || 0) }) })
-              const teamDailyData = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date)); const ttc = teamDailyData.reduce((s, d) => s + d.call_dials, 0); const ttd = teamDailyData.reduce((s, d) => s + d.call_duration, 0)
+              const dateMap: Record<string, { dateKey: string; date: string; call_dials: number; call_duration: number }> = {}
+              allSellers.forEach((s: any) => { (s.dailyData || []).forEach((d: any) => { const key = d.dateKey || d.date; if (!dateMap[key]) dateMap[key] = { dateKey: d.dateKey || d.date, date: d.date, call_dials: 0, call_duration: 0 }; dateMap[key].call_dials += (d.call_dials || 0); dateMap[key].call_duration += (d.call_duration || 0) }) })
+              const teamDailyData = Object.values(dateMap).sort((a, b) => a.dateKey.localeCompare(b.dateKey)); const ttc = teamDailyData.reduce((s, d) => s + d.call_dials, 0); const ttd = teamDailyData.reduce((s, d) => s + d.call_duration, 0)
               if (ttc === 0 && ttd === 0) return <div style={{ textAlign: 'center', padding: '20px', color: '#8A8278', fontSize: '0.75rem' }}>No call data available for this month</div>
               return (<><HygieneChart dailyData={teamDailyData} /><div style={{ display: 'flex', gap: '16px', fontSize: '0.72rem', color: '#8A8278', marginTop: '8px' }}><span>Team Total Calls: <strong style={{ color: '#F4631E' }}>{ttc}</strong></span><span>Team Total Duration: <strong style={{ color: '#22C55E' }}>{fmtDuration(ttd)}</strong></span><span>Sellers: <strong>{allSellers.length}</strong></span></div></>)
             })()}
