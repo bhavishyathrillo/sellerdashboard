@@ -80,16 +80,18 @@ export async function GET(req: Request) {
       })
       const totalCalls = dailyData.reduce((sum, d) => sum + d.call_dials, 0)
       const totalDuration = dailyData.reduce((sum, d) => sum + d.call_duration, 0)
-      return { seller_name: s.seller_name, seller_email: s.seller_email, total_calls: totalCalls, total_duration: totalDuration, dailyData }
+      const daysWithCalls = dailyData.filter(d => d.call_dials > 0).length
+      return { seller_name: s.seller_name, seller_email: s.seller_email, total_calls: totalCalls, total_duration: totalDuration, days_with_calls: daysWithCalls, avg_calls_per_day: daysWithCalls > 0 ? Math.round(totalCalls / daysWithCalls) : 0, dailyData }
     })
 
-  const totalSellers = sellerData.length
+  const totalSellers = sellerData.filter(s => s.total_calls > 0 || s.total_duration > 0).length
   const teamTotalCalls = sellerData.reduce((s, d) => s + d.total_calls, 0)
   const teamTotalDuration = sellerData.reduce((s, d) => s + d.total_duration, 0)
 
-  // 🔥 Option A: totalCalls / (totalSellers × daysPassed)
-  const avgCallsPerDay = totalSellers > 0 && daysPassed > 0 ? Math.round(teamTotalCalls / (totalSellers * daysPassed)) : 0
-  const avgDurationPerDay = totalSellers > 0 && daysPassed > 0 ? Math.round(teamTotalDuration / (totalSellers * daysPassed)) : 0
+  // Option A: divide by total working days across all sellers (not calendar days)
+  const totalWorkingDays = sellerData.filter(s => s.total_calls > 0 || s.total_duration > 0).reduce((s, d) => s + d.days_with_calls, 0)
+  const avgCallsPerDay = totalWorkingDays > 0 ? Math.round(teamTotalCalls / totalWorkingDays) : 0
+  const avgDurationPerDay = totalWorkingDays > 0 ? Math.round(teamTotalDuration / totalWorkingDays) : 0
 
   const teamDailyData = dateList.map((dateStr, idx) => {
     const dayData = sellerData.map(s => s.dailyData[idx])
