@@ -52,7 +52,18 @@ export async function GET(req: Request) {
     ]
 
     // Determine which milestones were achieved
-    const completionDay = rewards?.completion_day || 0
+    // Fetch goal_achieved_date from srs_raw (the actual date the goal was completed)
+    let completionDay = 0
+    if (rewards?.goal_done) {
+      const { data: sellerRow } = await supabase
+        .from('srs_raw')
+        .select('goal_achieved_date')
+        .eq('seller_email', trimmedEmail)
+        .single()
+      if (sellerRow?.goal_achieved_date) {
+        completionDay = new Date(sellerRow.goal_achieved_date).getDate()
+      }
+    }
     const achieved = {
       by: completionDay
     }
@@ -66,7 +77,7 @@ export async function GET(req: Request) {
       isPremium: rewards?.is_premium || false,
       goalDone: rewards?.goal_done || false,
       pct: rewards?.pct || 0,
-      completionDay: rewards?.completion_day || 0,
+      completionDay: completionDay,
       milestones: milestones,
       achieved: achieved,
       spinHistory: spinHistory || []
