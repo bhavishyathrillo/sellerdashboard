@@ -70,7 +70,21 @@ export async function GET(req: Request) {
       // Determine milestone
       let milestone: any = null
       if (goalDone) {
-        const day = s.goal_achieved_date ? new Date(s.goal_achieved_date).getDate() : now.getDate()
+        let day = now.getDate()
+        if (s.goal_achieved_date) {
+          const raw = String(s.goal_achieved_date).trim()
+          const num = Number(raw)
+          if (!isNaN(num) && num > 40000 && num < 60000) {
+            day = new Date((num - 25569) * 86400000).getUTCDate()
+          } else if (raw.includes('/')) {
+            const parts = raw.split('/')
+            const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`)
+            if (!isNaN(d.getTime())) day = d.getUTCDate()
+          } else {
+            const d = new Date(raw)
+            if (!isNaN(d.getTime())) day = d.getUTCDate()
+          }
+        }
         if (day <= 5) milestone = { label: 'By 5th', premium: 2, standard: 0 }
         else if (day <= 10) milestone = { label: 'By 10th', premium: 1, standard: 0 }
         else if (day <= 15) milestone = { label: 'By 15th', premium: 0, standard: 1 }
