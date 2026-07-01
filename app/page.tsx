@@ -29,6 +29,7 @@ import TTKPage from '@/components/pages/TTKPage'
 import PriorityPage from '@/components/pages/PriorityPage'
 import TeamPage from '@/components/pages/TeamPage'
 import SellerViewPage from '@/components/pages/SellerViewPage'
+import L2SellerViewPage from '@/components/pages/L2SellerViewPage'
 
 type AppState = 'intro' | 'login' | 'pipeline_gate' | 'dashboard'
 
@@ -188,7 +189,11 @@ export default function Home() {
             <PriorityPage session={session} />
           )}
 
-          {activePage === 'seller-view' && !isAdmin && (
+          {activePage === 'seller-view' && !isAdmin && (session.role === 'L1' || session.role === 'L2') && (
+            <L2SellerViewPage session={session} />
+          )}
+
+          {activePage === 'seller-view' && !isAdmin && session.role !== 'L1' && session.role !== 'L2' && (
             <SellerViewPage session={session} />
           )}
 

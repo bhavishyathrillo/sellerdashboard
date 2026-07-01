@@ -1,4 +1,4 @@
-﻿import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 const supabase = createClient(
@@ -79,16 +79,24 @@ export async function POST(req: Request) {
   if (roleEntry?.role) {
     role = roleEntry.role
   } else {
-    // Check srs_raw for L1/L2 - L1 first
+    // Check srs_raw for L1/L2
     const { data: srsCheck } = await supabase
       .from('srs_raw')
       .select('l1_email, l2_email')
       .or(`l1_email.eq.${trimmedEmail},l2_email.eq.${trimmedEmail}`)
-      .limit(1)
 
     if (srsCheck && srsCheck.length > 0) {
-      if (srsCheck[0].l1_email === trimmedEmail) role = 'L1'
-      else if (srsCheck[0].l2_email === trimmedEmail) role = 'L2'
+      // Is he an L2 (CM) anywhere?
+      const isL2 = srsCheck.some((s: any) => s.l2_email === trimmedEmail)
+      const isL1Only = srsCheck.some((s: any) => s.l1_email === trimmedEmail && s.l2_email !== trimmedEmail)
+      
+      if (isL2) {
+        role = 'L2'
+      } else if (isL1Only) {
+        role = 'L1'
+      } else {
+        role = 'L1' // fallback
+      }
     }
   }
 

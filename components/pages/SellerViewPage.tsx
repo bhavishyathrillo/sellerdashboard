@@ -792,16 +792,8 @@ export default function SellerViewPage({ session }: { session: UserSession }) {
             </div>
             <div className={styles.monthlyLtaItem}>
               <div className={styles.kpiLabel}>Revised LTA</div>
-              <div className={styles.kpiSplitFlex}>
-                <div className={styles.kpiSplitSide}>
-                  <div className={`${styles.kpiValue} ${styles.kpiValueMuted}`}>{dailyLta?.revised_lta_hygiene_goal || 0}</div>
-                  <div className={styles.kpiSub}>When present</div>
-                </div>
-                <div className={styles.kpiSplitDivider} />
-                <div className={styles.kpiSplitSide}>
-                  <div className={`${styles.kpiValue} ${styles.kpiValueMuted}`}>0</div>
-                  <div className={styles.kpiSub}>All days</div>
-                </div>
+              <div className={`${styles.kpiValue} ${styles.kpiValueMuted}`} style={{ fontSize: '1rem', marginTop: '8px' }}>
+                Data coming soon
               </div>
             </div>
             <div className={styles.monthlyLtaItem}>

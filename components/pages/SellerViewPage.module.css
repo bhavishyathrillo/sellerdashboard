@@ -437,13 +437,13 @@
   }
 
   .blockEligibleNoLead {
-    background: transparent;
-    border: 1px solid #333;
+    background: #172554;
+    border: 1px solid #1D4ED8;
   }
 
   .blockNotEligible {
-    background: #1F1F1F;
-    border: 1px solid #1F1F1F;
+    background: #2E1065;
+    border: 1px solid #4C1D95;
   }
 
   .timelineLabelsRow {
