@@ -28,6 +28,7 @@ import PerformancePage from '@/components/pages/PerformancePage'
 import TTKPage from '@/components/pages/TTKPage'
 import PriorityPage from '@/components/pages/PriorityPage'
 import TeamPage from '@/components/pages/TeamPage'
+import SellerViewPage from '@/components/pages/SellerViewPage'
 
 type AppState = 'intro' | 'login' | 'pipeline_gate' | 'dashboard'
 
@@ -185,6 +186,10 @@ export default function Home() {
 
           {activePage === 'priority' && (
             <PriorityPage session={session} />
+          )}
+
+          {activePage === 'seller-view' && !isAdmin && (
+            <SellerViewPage session={session} />
           )}
 
           {activePage === 'leaderboard' && <LeaderboardPage session={session} />}
