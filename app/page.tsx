@@ -143,25 +143,6 @@ export default function Home() {
             <SelectPersonaPage session={session} />
           )}
 
-          {activePage === 'home' && isAdmin && (
-            <AdminOverviewPage />
-          )}
-
-          {activePage === 'home' && !isAdmin && session.role === 'L1' && (
-            <L1HomePage session={session} />
-          )}
-
-          {activePage === 'home' && !isAdmin && session.role !== 'L1' && (
-            <HomePage session={session} />
-          )}
-
-          {activePage === 'performance' && isAdmin && (
-            <AdminPerformancePage />
-          )}
-          {activePage === 'performance' && !isAdmin && (
-            <PerformancePage session={session} />
-          )}
-
           {activePage === 'mhl' && isAdmin && (
             <AdminMHLPage />
           )}
@@ -176,23 +157,23 @@ export default function Home() {
             <PipelinePage session={session} />
           )}
 
-          {activePage === 'hygiene' && isAdmin && (
-            <AdminHygienePage />
-          )}
-          {activePage === 'hygiene' && !isAdmin && (
-            <HygienePage session={session} />
-          )}
-
           {activePage === 'priority' && (
             <PriorityPage session={session} />
           )}
 
-          {activePage === 'leaderboard' && <LeaderboardPage session={session} />}
-          {activePage === 'roadmap'     && <RoadmapPage session={session} />}
-          {activePage === 'rewards'     && <RewardsPage session={session} />}
-          {activePage === 'calendar'    && <CalendarPage session={session} />}
-          {activePage === 'ttk'         && <TTKPage />}
-          {activePage === 'team'        && <TeamPage session={session} />}
+          {activePage === 'roadmap' && <RoadmapPage session={session} />}
+
+          {/* Temporarily disabled pages awaiting new month data */}
+          {['home', 'leaderboard', 'performance', 'rewards', 'hygiene', 'calendar', 'ttk', 'team'].includes(activePage) && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '60vh', gap: '16px' }}>
+              <div style={{ fontSize: '3rem' }}>⏳</div>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--text)' }}>Data will come soon</h2>
+              <p style={{ color: 'var(--muted)', fontSize: '0.9rem', maxWidth: '400px', textAlign: 'center', lineHeight: 1.6 }}>
+                We are currently processing the data for the new month. 
+                This section will be available again shortly.
+              </p>
+            </div>
+          )}
         </DashboardLayout>
       )}
     </>
