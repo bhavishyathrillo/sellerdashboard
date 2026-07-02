@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './L2SellerViewPage.module.css'
 import sellerStyles from './SellerViewPage.module.css'
@@ -92,6 +92,67 @@ function isHourInBreak(hourLabel: string, windows: BreakWindow[]): boolean {
 
 // Mock data generator for LTA funnel removed as we now have real daily_lta log data
 
+// ── MHE Trend Chart (Chart.js line) ─────────────────────────────────────────
+function MheTrendChart({ labels, values, color }: { labels: string[]; values: number[]; color: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  useEffect(() => {
+    if (!canvasRef.current || !labels.length) return
+    let instance: any = null
+    let active = true
+    import('chart.js/auto').then(mod => {
+      if (!active || !canvasRef.current) return
+      const Chart = mod.default || mod
+      const ctx = canvasRef.current.getContext('2d')
+      if (!ctx) return
+      instance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'MHE %',
+            data: values,
+            borderColor: color,
+            backgroundColor: `${color}18`,
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: color,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx: any) => ` ${ctx.parsed.y}% MHE`
+              }
+            }
+          },
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            y: {
+              max: 100,
+              beginAtZero: true,
+              ticks: { color: '#8A8278', font: { size: 9 }, precision: 0, callback: (v: any) => `${v}%` },
+              grid: { color: 'rgba(255,255,255,0.06)' }
+            }
+          }
+        }
+      })
+    })
+    return () => {
+      active = false
+      if (instance) instance.destroy()
+    }
+  }, [labels.join(','), values.join(','), color])
+  return <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+}
+
 export default function L2SellerViewPage({ session }: { session: UserSession }) {
   const [viewMode, setViewMode] = useState<'personal' | 'team'>('team')
   const [teamData, setTeamData] = useState<any>(null)
@@ -107,6 +168,10 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   // Custom modals
   const [showNoLeadsModal, setShowNoLeadsModal] = useState(false)
   
+  // MHE Trend Modal
+  const [showMheTrendModal, setShowMheTrendModal] = useState(false)
+  const [mheDrillSeller, setMheDrillSeller] = useState<any>(null)
+
   // Drill-down states
   const [drillSellerS1, setDrillSellerS1] = useState<any>(null)
   const [drillSellerS2, setDrillSellerS2] = useState<any>(null)
@@ -138,8 +203,8 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       <div className={styles.page} style={{ paddingTop: '16px', paddingBottom: 0 }}>
         {members.length > 1 && (
           <div className={styles.toggleContainer} style={{ marginLeft: '16px', marginTop: '8px', width: 'fit-content' }}>
-            <button className={`${styles.toggleBtn} ${viewMode === 'personal' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('personal')}>Personal</button>
-            <button className={`${styles.toggleBtn} ${viewMode === 'team' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('team')}>My Team ({members.length})</button>
+            <button className={`${styles.toggleBtn} ${styles.toggleBtnActive}`} onClick={() => setViewMode('personal')}>Personal</button>
+            <button className={styles.toggleBtn} onClick={() => setViewMode('team')}>My Team ({members.length})</button>
           </div>
         )}
         {/* We reuse the exact SellerViewPage completely isolated */}
@@ -313,8 +378,8 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
         {members.length > 1 && (
           <div className={styles.toggleContainer}>
-            <button className={`${styles.toggleBtn} ${viewMode === 'personal' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('personal')}>Personal</button>
-            <button className={`${styles.toggleBtn} ${viewMode === 'team' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('team')}>My Team ({members.length})</button>
+            <button className={styles.toggleBtn} onClick={() => setViewMode('personal')}>Personal</button>
+            <button className={`${styles.toggleBtn} ${styles.toggleBtnActive}`} onClick={() => setViewMode('team')}>My Team ({members.length})</button>
           </div>
         )}
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
@@ -379,6 +444,53 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
           <p className={styles.summaryValue} style={{ fontSize: '1.5rem', fontWeight: 600, color: '#F4631E' }}>{noLeadsCount}</p>
           <p className={styles.summaryLabel} style={{ fontSize: '0.8rem', color: '#8A8278', marginTop: '4px', textTransform: 'uppercase' }}>Sellers with no leads yet</p>
         </div>
+
+        {/* Monthly MHE Trend KPI Card */}
+        {(() => {
+          // Build day-wise team avg MHE from monthly_lta_logs
+          const dayMap: Record<string, { sum: number; count: number }> = {}
+          enrichedMembers.forEach((m: any) => {
+            ;(m.monthly_lta_logs || []).forEach((r: any) => {
+              const d = r.log_date
+              if (!d) return
+              const pct = typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
+              if (!dayMap[d]) dayMap[d] = { sum: 0, count: 0 }
+              dayMap[d].sum += pct
+              dayMap[d].count += 1
+            })
+          })
+          const sortedDays = Object.keys(dayMap).sort()
+          const teamAvgMhePct = sortedDays.length > 0
+            ? parseFloat((sortedDays.reduce((s, d) => s + dayMap[d].sum / dayMap[d].count, 0) / sortedDays.length).toFixed(1))
+            : 0
+          const latestDay = sortedDays[sortedDays.length - 1]
+          const latestAvg = latestDay ? parseFloat((dayMap[latestDay].sum / dayMap[latestDay].count).toFixed(1)) : 0
+          const isGood = teamAvgMhePct <= 20
+
+          return (
+            <div
+              className={styles.summaryCard}
+              style={{
+                background: '#1A1A1A', padding: '16px', borderRadius: '8px', flex: 1.2,
+                border: `1px solid ${isGood ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
+                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'border-color 0.2s'
+              }}
+              onClick={() => { setMheDrillSeller(null); setShowMheTrendModal(true); }}
+            >
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: isGood ? '#22C55E' : '#EF4444' }} />
+              <div style={{ fontSize: '0.6rem', color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Monthly MHE Trend</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 700, color: isGood ? '#22C55E' : '#EF4444', lineHeight: 1 }}>{teamAvgMhePct}%</span>
+                <span style={{ fontSize: '0.65rem', color: '#8A8278' }}>avg</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#8A8278' }}>Latest day: </span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: latestAvg <= 20 ? '#22C55E' : '#EF4444' }}>{latestAvg}%</span>
+                <span style={{ fontSize: '0.6rem', color: '#555', marginLeft: 'auto' }}>tap to view ▶</span>
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* S1: Login & Availability */}
@@ -1082,6 +1194,140 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
           </div>
         </div>
       )}
+
+      {/* ═══════════════ Monthly MHE Trend Modal ═══════════════ */}
+      {showMheTrendModal && (() => {
+        // Build day-wise data
+        const dayMap: Record<string, { sum: number; count: number }> = {}
+        enrichedMembers.forEach((m: any) => {
+          ;(m.monthly_lta_logs || []).forEach((r: any) => {
+            const d = r.log_date; if (!d) return
+            const pct = typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
+            if (!dayMap[d]) dayMap[d] = { sum: 0, count: 0 }
+            dayMap[d].sum += pct; dayMap[d].count += 1
+          })
+        })
+        const sortedDays = Object.keys(dayMap).sort()
+        const teamAvgByDay = sortedDays.map(d => ({ date: d, avg: parseFloat((dayMap[d].sum / dayMap[d].count).toFixed(1)) }))
+
+        // Per-seller summary
+        const sellerSummaries = enrichedMembers.map((m: any) => {
+          const logs = m.monthly_lta_logs || []
+          const avg = logs.length > 0
+            ? parseFloat((logs.reduce((s: number, r: any) => s + (typeof r.mishandled_pct === 'number' ? r.mishandled_pct * 100 : 0), 0) / logs.length).toFixed(1))
+            : 0
+          return { ...m, mheAvg: avg }
+        }).sort((a: any, b: any) => b.mheAvg - a.mheAvg)
+
+        // Drill: current seller logs
+        const drillLogs = mheDrillSeller
+          ? (mheDrillSeller.monthly_lta_logs || []).map((r: any) => ({
+              date: r.log_date,
+              pct: typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
+            })).sort((a: any, b: any) => a.date.localeCompare(b.date))
+          : []
+
+        const activeData = mheDrillSeller ? drillLogs : teamAvgByDay
+        const activeLabels = activeData.map((d: any) => new Date(d.date).getDate().toString())
+        const activeValues = activeData.map((d: any) => mheDrillSeller ? d.pct : d.avg)
+        const chartColor = mheDrillSeller
+          ? (mheDrillSeller.mheAvg <= 20 ? '#22C55E' : '#EF4444')
+          : (teamAvgByDay.length > 0 && teamAvgByDay[teamAvgByDay.length - 1].avg <= 20 ? '#22C55E' : '#EF4444')
+
+        return (
+          <div
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.78)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => { setShowMheTrendModal(false); setMheDrillSeller(null); }}
+          >
+            <div
+              style={{ background: '#1A1A1A', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '28px', width: '820px', maxWidth: '96vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.6)', position: 'relative' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                onClick={() => { setShowMheTrendModal(false); setMheDrillSeller(null); }}
+                style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.06)', border: '1px solid #333', color: '#E5E7EB', cursor: 'pointer', fontSize: '1rem', padding: '4px 10px', borderRadius: '6px', lineHeight: 1 }}
+              >✕</button>
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                {mheDrillSeller && (
+                  <button
+                    onClick={() => setMheDrillSeller(null)}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: '#E5E5E5', padding: '5px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.78rem' }}
+                  >← Team</button>
+                )}
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: chartColor, flexShrink: 0 }} />
+                <h3 style={{ color: '#fff', margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
+                  {mheDrillSeller ? `${mheDrillSeller.seller_name} — MHE Trend` : 'Monthly MHE Trend · Team Avg'}
+                </h3>
+                <span style={{ fontSize: '0.7rem', color: '#8A8278', marginLeft: '4px' }}>{monthStr}</span>
+              </div>
+              <p style={{ color: '#8A8278', fontSize: '0.75rem', margin: '0 0 20px 20px' }}>
+                {mheDrillSeller ? 'Day-wise MHE % for this seller.' : 'Day-wise avg MHE % across all team sellers.'}
+              </p>
+
+              {/* Chart */}
+              <div style={{ height: '220px', marginBottom: '24px' }}>
+                {activeData.length > 0 ? (
+                  <MheTrendChart labels={activeLabels} values={activeValues} color={chartColor} />
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#555', fontSize: '0.85rem', fontStyle: 'italic' }}>No MHE data for this month yet.</div>
+                )}
+              </div>
+
+              {/* Seller list (only in team view) */}
+              {!mheDrillSeller && (
+                <>
+                  <div style={{ fontSize: '0.68rem', color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px', fontWeight: 600 }}>Seller Breakdown</div>
+                  <div style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid #222' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                      <thead>
+                        <tr style={{ background: '#151515' }}>
+                          <th style={{ padding: '10px 14px', textAlign: 'left', color: '#8A8278', fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #2a2a2a' }}>Seller</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', color: '#8A8278', fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #2a2a2a' }}>Avg MHE %</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', color: '#8A8278', fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #2a2a2a' }}>Days</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'center', color: '#8A8278', fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #2a2a2a' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sellerSummaries.map((s: any, idx: number) => {
+                          const isGood = s.mheAvg <= 20
+                          const rowBg = idx % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent'
+                          return (
+                            <tr
+                              key={s.seller_email}
+                              style={{ background: rowBg, cursor: 'pointer', transition: 'background 0.15s' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(244,99,30,0.08)' }}
+                              onMouseLeave={e => { e.currentTarget.style.background = rowBg }}
+                              onClick={() => setMheDrillSeller(s)}
+                            >
+                              <td style={{ padding: '12px 14px', borderBottom: '1px solid #1e1e1e', color: '#E5E7EB', fontWeight: 500 }}>
+                                {s.seller_name}
+                                {s.seller_email === session.email && <span style={{ background: '#F4631E', color: '#fff', fontSize: '0.58rem', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', fontWeight: 600 }}>(You)</span>}
+                              </td>
+                              <td style={{ padding: '12px 14px', borderBottom: '1px solid #1e1e1e', textAlign: 'right', fontWeight: 700, color: isGood ? '#22C55E' : '#EF4444', fontVariantNumeric: 'tabular-nums' }}>
+                                {s.mheAvg}%
+                              </td>
+                              <td style={{ padding: '12px 14px', borderBottom: '1px solid #1e1e1e', textAlign: 'right', color: '#8A8278', fontVariantNumeric: 'tabular-nums' }}>
+                                {(s.monthly_lta_logs || []).length}
+                              </td>
+                              <td style={{ padding: '12px 14px', borderBottom: '1px solid #1e1e1e', textAlign: 'center' }}>
+                                <span style={{ fontSize: '0.6rem', fontWeight: 700, padding: '3px 9px', borderRadius: '100px', background: isGood ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: isGood ? '#22C55E' : '#EF4444' }}>
+                                  {isGood ? 'GOOD' : 'HIGH'}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* No Leads Modal */}
       {showNoLeadsModal && (

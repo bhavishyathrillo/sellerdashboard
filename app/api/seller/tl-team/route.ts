@@ -60,7 +60,7 @@ export async function GET(req: Request) {
   const monthEnd = `${qy}-${String(qm).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
   // Step 2: Fetch daily data for these sellers
-  const [attendanceRes, ctiRes, allotmentRes, ltaRes, hourlyRes, dotRes, monthlyAllotmentRes] = await Promise.all([
+  const [attendanceRes, ctiRes, allotmentRes, ltaRes, hourlyRes, dotRes, monthlyAllotmentRes, monthlyLtaLogRes] = await Promise.all([
     supabase.schema('seller_day_to_day').from('seller_attendance').select('*').eq('work_date', queryDate).in('email', emails),
     supabase.schema('seller_day_to_day').from('seller_cti_availability').select('*').eq('work_date', queryDate).in('seller_email', emails),
     supabase.schema('seller_day_to_day').from('daily_allotment_summary').select('*').eq('allotment_date', queryDate).in('seller_email', emails),
@@ -68,6 +68,8 @@ export async function GET(req: Request) {
     supabase.schema('seller_day_to_day').from('seller_hourly_allotment').select('*').eq('allotment_date', queryDate).in('seller_email', emails),
     supabase.schema('seller_day_to_day').from('seller_dot_distribution').select('*').in('seller_email', emails),
     supabase.schema('seller_day_to_day').from('daily_allotment_summary').select('*').gte('allotment_date', monthStart).lte('allotment_date', monthEnd).in('seller_email', emails),
+    // Monthly LTA logs for MHE trend (mishandled_pct per day per seller)
+    supabase.from('daily_lta_log').select('seller_email,log_date,mishandled_pct,mishandled_enquiries').gte('log_date', monthStart).lte('log_date', monthEnd).in('seller_email', emails).order('log_date', { ascending: true }),
   ])
 
   // Step 3: Combine
@@ -81,6 +83,7 @@ export async function GET(req: Request) {
       hourly: hourlyRes.data?.filter(h => h.seller_email === seller.seller_email) || [],
       dot_rows: dotRes.data?.filter(d => d.seller_email === seller.seller_email) || [],
       monthly_rows: (monthlyAllotmentRes.data || []).filter((r: any) => r.seller_email === seller.seller_email),
+      monthly_lta_logs: (monthlyLtaLogRes.data || []).filter((r: any) => r.seller_email === seller.seller_email),
     }
   })
 

@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
   if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
 
-  let query = supabase.from('mhl_mho').select('*').order('updated_at', { ascending: false })
+  let query = supabase.from('mhl_mho').select('*').eq('mhl_mho', 'Mishandled').order('updated_at', { ascending: false })
 
   if (view === 'team' && ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(role || '')) {
     if (role === 'L1') {

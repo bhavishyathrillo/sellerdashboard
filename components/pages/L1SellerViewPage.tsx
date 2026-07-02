@@ -260,13 +260,13 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   })
 
   // Global Aggregates
-  const globalLeads = processedGroups.reduce((sum, g) => sum + g.agg.totalLeads, 0)
-  const globalAuto = processedGroups.reduce((sum, g) => sum + g.agg.totalAuto, 0)
-  const globalManual = processedGroups.reduce((sum, g) => sum + g.agg.totalManual, 0)
-  const globalRtg = processedGroups.reduce((sum, g) => sum + g.agg.totalRtg, 0)
-  const globalNonRtg = processedGroups.reduce((sum, g) => sum + g.agg.totalNonRtg, 0)
+  const globalLeads = processedGroups.reduce((sum: number, g: any) => sum + g.agg.totalLeads, 0)
+  const globalAuto = processedGroups.reduce((sum: number, g: any) => sum + g.agg.totalAuto, 0)
+  const globalManual = processedGroups.reduce((sum: number, g: any) => sum + g.agg.totalManual, 0)
+  const globalRtg = processedGroups.reduce((sum: number, g: any) => sum + g.agg.totalRtg, 0)
+  const globalNonRtg = processedGroups.reduce((sum: number, g: any) => sum + g.agg.totalNonRtg, 0)
   const globalRtgPct = globalLeads > 0 ? Math.round((globalRtg / globalLeads) * 100) : 0
-  const globalNoLeads = processedGroups.reduce((sum, g) => sum + g.agg.noLeadsCount, 0)
+  const globalNoLeads = processedGroups.reduce((sum: number, g: any) => sum + g.agg.noLeadsCount, 0)
 
 
 
