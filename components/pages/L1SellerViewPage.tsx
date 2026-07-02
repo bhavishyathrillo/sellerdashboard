@@ -221,6 +221,28 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
     const pax4Plus = members.reduce((s:number, m:any) => s + (m.allotment?.pax_4_plus || 0), 0)
     const totalPax = pax1 + pax2 + pax3 + pax4 + pax4Plus
 
+    // S4: Appetite (final_lta) & C→A time (median_creation_to_allotment_mins)
+    const teamAppetite = members.reduce((s:number, m:any) => s + (m.isAbsent ? 0 : (m.daily_lta?.final_lta || 0)), 0)
+    const caVals = members.filter((m:any) => !m.isAbsent && m.allotment?.median_creation_to_allotment_mins != null).map((m:any) => m.allotment.median_creation_to_allotment_mins)
+    const teamMedianCA = caVals.length > 0 ? Math.round(caVals.reduce((s:number, v:number) => s + v, 0) / caVals.length) : null
+
+    // S6: DOT Month Distribution
+    const dotMap: Record<string, number> = {}
+    members.forEach((m:any) => {
+      (m.dot_rows || []).forEach((d:any) => {
+        const month = d.dot_month || 'Unknown'
+        dotMap[month] = (dotMap[month] || 0) + (d.total_leads_allotted || 0)
+      })
+    })
+
+    // S8: MHE %
+    const mheMembers = members.filter((m:any) => !m.isAbsent && m.daily_lta)
+    const teamMishandled = mheMembers.reduce((s:number, m:any) => s + (m.daily_lta?.mishandled_enquiries || 0), 0)
+    const teamOpenEnq = mheMembers.reduce((s:number, m:any) => s + (m.daily_lta?.open_enquiries || 0), 0)
+    const teamMhePct = mheMembers.length > 0
+      ? (mheMembers.reduce((s:number, m:any) => s + (m.daily_lta?.mishandled_pct || 0), 0) / mheMembers.length)
+      : 0
+
     return {
       ...g,
       members,
@@ -229,7 +251,10 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         teamPlanned, teamActual, noLeadsCount,
         tlAvgBreak, avgLoginStr,
         tlTotalBreak, tlTotalBreakCount, tlLongestBreak,
-        pax1, pax2, pax3, pax4, pax4Plus, totalPax
+        pax1, pax2, pax3, pax4, pax4Plus, totalPax,
+        teamAppetite, teamMedianCA,
+        dotMap,
+        teamMishandled, teamOpenEnq, teamMhePct
       }
     }
   })
@@ -252,7 +277,14 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.title}>CM Lead Allocation Dashboard</h1>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <h1 className={styles.title} style={{ color: '#fff', margin: 0 }}>
+            Lead <span style={{ color: '#F4631E' }}>Allocation</span>
+          </h1>
+          <div style={{ color: '#8A8278', fontSize: '14px', marginTop: '4px' }}>
+            {session.name} &middot; {date === new Date().toISOString().split('T')[0] ? 'Today' : date}
+          </div>
+        </div>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <div className={styles.controls} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button 
@@ -325,7 +357,6 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                   <th>Team (TL)</th>
                   <th>Avg Login Time</th>
                   <th>Avg Break</th>
-                  <th>Present / Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -338,7 +369,6 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                       </td>
                       <td>{g.agg.avgLoginStr}</td>
                       <td>{g.agg.tlAvgBreak}m</td>
-                      <td>{g.agg.onlineCount} / {g.members.length}</td>
                     </tr>
                     
                     {expandedTlS1 === g.l2_email && g.members.map((m: any) => {
@@ -662,24 +692,211 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         </div>
       )}
 
-      {/* S4, S6, S8, S10: Placeholders */}
-      {[4,6,8,10].map(sNum => (
-          <div key={`s${sNum}`} style={{marginBottom: '16px'}}>
-              <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === `s${sNum}` ? null : `s${sNum}`)}>
-                <div className={styles.headerLeft}>
-                  <span className={styles.chevron} style={{ transform: activeSectionModal === `s${sNum}` ? 'rotate(90deg)' : 'none' }}>▶</span>
-                  <h2 className={styles.sectionTitle}>S{sNum} · Data coming soon</h2>
-                </div>
-              </div>
-              {activeSectionModal === `s${sNum}` && (
-                <div className={sellerStyles.sectionContent}>
-                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#8A8278', fontStyle: 'italic' }}>
-                    Data coming soon...
-                  </div>
-                </div>
-              )}
+      {/* S4: Appetite Fulfillment & C→A Time */}
+      <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's4' ? null : 's4')}>
+        <div className={styles.headerLeft}>
+          <span className={styles.chevron} style={{ transform: activeSectionModal === 's4' ? 'rotate(90deg)' : 'none' }}>▶</span>
+          <h2 className={styles.sectionTitle}>S4 · Appetite Fulfillment & C→A Time</h2>
+        </div>
+      </div>
+      {activeSectionModal === 's4' && (
+        <div className={sellerStyles.sectionContent}>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Team (TL)</th>
+                  <th>Appetite (Final LTA)</th>
+                  <th>Leads Allotted</th>
+                  <th>Fulfillment %</th>
+                  <th>Avg C→A (mins)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {processedGroups.map((g: any) => (
+                  <React.Fragment key={g.l2_email}>
+                    <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS4, expandedTlS4)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                      <td style={{ fontWeight: 600, color: '#C9A84C' }}>
+                        <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS4 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span> 
+                        {g.l2_name}
+                      </td>
+                      <td>{g.agg.teamAppetite}</td>
+                      <td>{g.agg.totalLeads}</td>
+                      <td style={{ color: g.agg.teamAppetite > 0 && pct(g.agg.totalLeads, g.agg.teamAppetite) >= 90 ? '#22C55E' : g.agg.teamAppetite > 0 && pct(g.agg.totalLeads, g.agg.teamAppetite) >= 70 ? '#F59E0B' : '#EF4444' }}>
+                        {g.agg.teamAppetite > 0 ? pct(g.agg.totalLeads, g.agg.teamAppetite) : 0}%
+                      </td>
+                      <td>{g.agg.teamMedianCA != null ? `${g.agg.teamMedianCA}m` : '—'}</td>
+                    </tr>
+                    
+                    {expandedTlS4 === g.l2_email && g.members.map((m: any) => {
+                      const appetite = m.daily_lta?.final_lta || 0
+                      const leads = (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)
+                      const ca = m.allotment?.median_creation_to_allotment_mins
+                      const fulfPct = appetite > 0 ? pct(leads, appetite) : 0
+                      return (
+                        <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`}>
+                          <td style={{ paddingLeft: '32px' }}>
+                            {m.seller_name}
+                            {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+                          </td>
+                          <td>{m.isAbsent ? '—' : appetite}</td>
+                          <td>{leads}</td>
+                          <td style={{ color: m.isAbsent ? 'inherit' : fulfPct >= 90 ? '#22C55E' : fulfPct >= 70 ? '#F59E0B' : '#EF4444' }}>
+                            {m.isAbsent ? '—' : `${fulfPct}%`}
+                          </td>
+                          <td>{m.isAbsent ? '—' : ca != null ? `${Math.round(ca)}m` : '—'}</td>
+                        </tr>
+                      )
+                    })}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
           </div>
-      ))}
+        </div>
+      )}
+
+      {/* S6: DOT Month Distribution */}
+      <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's6' ? null : 's6')}>
+        <div className={styles.headerLeft}>
+          <span className={styles.chevron} style={{ transform: activeSectionModal === 's6' ? 'rotate(90deg)' : 'none' }}>▶</span>
+          <h2 className={styles.sectionTitle}>S6 · DOT Month Distribution</h2>
+        </div>
+      </div>
+      {activeSectionModal === 's6' && (
+        <div className={sellerStyles.sectionContent}>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Team (TL)</th>
+                  {(() => {
+                    const allMonths = new Set<string>()
+                    processedGroups.forEach((g: any) => Object.keys(g.agg.dotMap).forEach(k => allMonths.add(k)))
+                    return Array.from(allMonths).sort().map(m => <th key={m}>{m}</th>)
+                  })()}
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const allMonths = new Set<string>()
+                  processedGroups.forEach((g: any) => Object.keys(g.agg.dotMap).forEach(k => allMonths.add(k)))
+                  const sortedMonths = Array.from(allMonths).sort()
+                  
+                  return processedGroups.map((g: any) => (
+                    <React.Fragment key={g.l2_email}>
+                      <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS6, expandedTlS6)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                        <td style={{ fontWeight: 600, color: '#C9A84C' }}>
+                          <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS6 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span> 
+                          {g.l2_name}
+                        </td>
+                        {sortedMonths.map(mo => (
+                          <td key={mo} style={{ color: '#F4631E', fontWeight: 600 }}>{g.agg.dotMap[mo] || 0}</td>
+                        ))}
+                      </tr>
+                      
+                      {expandedTlS6 === g.l2_email && g.members.map((m: any) => {
+                        const sellerDot: Record<string, number> = {}
+                        ;(m.dot_rows || []).forEach((d: any) => {
+                          sellerDot[d.dot_month || 'Unknown'] = (sellerDot[d.dot_month || 'Unknown'] || 0) + (d.total_leads_allotted || 0)
+                        })
+                        return (
+                          <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`}>
+                            <td style={{ paddingLeft: '32px' }}>
+                              {m.seller_name}
+                              {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+                            </td>
+                            {sortedMonths.map(mo => (
+                              <td key={mo}>{m.isAbsent ? '—' : (sellerDot[mo] || 0)}</td>
+                            ))}
+                          </tr>
+                        )
+                      })}
+                    </React.Fragment>
+                  ))
+                })()}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* S8: MHE % (Mishandled Enquiries) */}
+      <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's8' ? null : 's8')}>
+        <div className={styles.headerLeft}>
+          <span className={styles.chevron} style={{ transform: activeSectionModal === 's8' ? 'rotate(90deg)' : 'none' }}>▶</span>
+          <h2 className={styles.sectionTitle}>S8 · MHE % (Mishandled Enquiries)</h2>
+        </div>
+      </div>
+      {activeSectionModal === 's8' && (
+        <div className={sellerStyles.sectionContent}>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Team (TL)</th>
+                  <th>Mishandled</th>
+                  <th>Open Enquiries</th>
+                  <th>MHE %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {processedGroups.map((g: any) => (
+                  <React.Fragment key={g.l2_email}>
+                    <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS8, expandedTlS8)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                      <td style={{ fontWeight: 600, color: '#C9A84C' }}>
+                        <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS8 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span> 
+                        {g.l2_name}
+                      </td>
+                      <td>{g.agg.teamMishandled}</td>
+                      <td>{g.agg.teamOpenEnq}</td>
+                      <td style={{ color: g.agg.teamMhePct > 20 ? '#EF4444' : g.agg.teamMhePct > 10 ? '#F59E0B' : '#22C55E', fontWeight: 600 }}>
+                        {Math.round(g.agg.teamMhePct)}%
+                      </td>
+                    </tr>
+                    
+                    {expandedTlS8 === g.l2_email && g.members.map((m: any) => {
+                      const mh = m.daily_lta?.mishandled_enquiries || 0
+                      const oe = m.daily_lta?.open_enquiries || 0
+                      const mhPct = m.daily_lta?.mishandled_pct || 0
+                      return (
+                        <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`}>
+                          <td style={{ paddingLeft: '32px' }}>
+                            {m.seller_name}
+                            {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+                          </td>
+                          <td>{m.isAbsent ? '—' : mh}</td>
+                          <td>{m.isAbsent ? '—' : oe}</td>
+                          <td style={{ color: m.isAbsent ? 'inherit' : mhPct > 20 ? '#EF4444' : mhPct > 10 ? '#F59E0B' : '#22C55E', fontWeight: 600 }}>
+                            {m.isAbsent ? '—' : `${Math.round(mhPct)}%`}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* S10: Goal % & At-Risk (data not available yet) */}
+      <div style={{marginBottom: '16px'}}>
+        <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's10' ? null : 's10')}>
+          <div className={styles.headerLeft}>
+            <span className={styles.chevron} style={{ transform: activeSectionModal === 's10' ? 'rotate(90deg)' : 'none' }}>▶</span>
+            <h2 className={styles.sectionTitle}>S10 · Goal % & At-Risk</h2>
+          </div>
+        </div>
+        {activeSectionModal === 's10' && (
+          <div className={sellerStyles.sectionContent}>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#8A8278', fontStyle: 'italic' }}>
+              Goal % data not available yet
+            </div>
+          </div>
+        )}
+      </div>
       
     </div>
   )

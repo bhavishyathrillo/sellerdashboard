@@ -303,7 +303,14 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.title}>TL Lead Allocation Dashboard</h1>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <h1 className={styles.title} style={{ color: '#fff', margin: 0 }}>
+            Lead <span style={{ color: '#F4631E' }}>Allocation</span>
+          </h1>
+          <div style={{ color: '#8A8278', fontSize: '14px', marginTop: '4px' }}>
+            {session.name} &middot; {date === new Date().toISOString().split('T')[0] ? 'Today' : date}
+          </div>
+        </div>
         {members.length > 1 && (
           <div className={styles.toggleContainer}>
             <button className={`${styles.toggleBtn} ${viewMode === 'personal' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('personal')}>Personal</button>
@@ -668,6 +675,8 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                       <th>Seller</th>
                       <th>Planned LTA</th>
                       <th>Final LTA</th>
+                      <th>Leads Allotted</th>
+                      <th>Appetite Fulfillment</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -681,6 +690,9 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                       const actualColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#F59E0B' : '#EF4444'
                       const lostColor = m.lta.totalLost < 3 ? '#22C55E' : m.lta.totalLost <= 6 ? '#F59E0B' : '#EF4444'
                       
+                      const leads = (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)
+                      const fulfPct = m.lta.actual > 0 ? Math.round((leads / m.lta.actual) * 100) : 0
+                      
                       return (
                         <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerS7(m)}>
                           <td>
@@ -691,6 +703,10 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                           <td>{m.isAbsent ? '—' : m.lta.planned}</td>
                           <td style={{color: m.isAbsent ? 'inherit' : actualColor, fontWeight: 600}}>
                             {m.isAbsent ? '—' : m.lta.actual}
+                          </td>
+                          <td>{m.isAbsent ? '—' : leads}</td>
+                          <td style={{ color: m.isAbsent ? 'inherit' : fulfPct >= 90 ? '#22C55E' : fulfPct >= 70 ? '#F59E0B' : '#EF4444' }}>
+                            {m.isAbsent ? '—' : `${fulfPct}%`}
                           </td>
                         </tr>
                       )
