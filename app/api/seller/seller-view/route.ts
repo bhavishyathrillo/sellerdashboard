@@ -49,28 +49,28 @@ export async function GET(request: NextRequest) {
       { data: ltaLogData },
       { data: ltaMonthData },
     ] = await Promise.all([
-      supabase
+      supabase.schema('seller_day_to_day')
         .from('daily_allotment_summary')
         .select('*')
         .eq('seller_email', email)
         .eq('allotment_date', date)
         .maybeSingle(),
 
-      supabase
+      supabase.schema('seller_day_to_day')
         .from('seller_attendance')
         .select('*')
         .eq('email', email)
         .eq('work_date', date)
         .maybeSingle(),
 
-      supabase
+      supabase.schema('seller_day_to_day')
         .from('seller_cti_availability')
         .select('*')
         .eq('seller_email', email)
         .eq('work_date', date)
         .maybeSingle(),
 
-      supabase
+      supabase.schema('seller_day_to_day')
         .from('seller_hourly_allotment')
         .select('*')
         .eq('seller_email', email)
@@ -78,14 +78,14 @@ export async function GET(request: NextRequest) {
         .order('hour_bucket', { ascending: true }),
 
       // Fetch ALL DOT data for this seller
-      supabase
+      supabase.schema('seller_day_to_day')
         .from('seller_dot_distribution')
         .select('*')
         .eq('seller_email', email)
         .order('dot_month', { ascending: true }),
 
       // Monthly allotment rows
-      supabase
+      supabase.schema('seller_day_to_day')
         .from('daily_allotment_summary')
         .select('*')
         .eq('seller_email', email)

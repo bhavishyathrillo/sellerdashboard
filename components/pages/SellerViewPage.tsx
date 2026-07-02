@@ -57,6 +57,7 @@ interface SellerViewData {
   dot_chart?: DotChartItem[]
   daily_lta?: any
   lta_trend?: any[]
+  mhe_trend?: any[]
 }
 
 const HOUR_SLOTS = ['9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM', '9PM']
@@ -181,7 +182,7 @@ export default function SellerViewPage({ session }: { session: UserSession }) {
   const [error, setError] = useState('')
   const [selectedDate, setSelectedDate] = useState(todayStr())
   const [activeTile, setActiveTile] = useState<string | null>(null)
-  const [activeBlock, setActiveBlock] = useState<{ hour: string; leads: number; eligible: boolean; isBreak: boolean; isLateAllocation: boolean; isReady: boolean } | null>(null)
+  const [activeBlock, setActiveBlock] = useState<{ hour: string; leads: number; eligible: boolean; isBreak: boolean; isLateAllocation: boolean; isReady: boolean; isOrbitOnly: boolean } | null>(null)
   const [closing, setClosing] = useState(false)
   const isToday = selectedDate === todayStr()
   const trendChartRef = useRef<HTMLCanvasElement>(null)
@@ -305,11 +306,11 @@ export default function SellerViewPage({ session }: { session: UserSession }) {
       const Chart = ChartModule.default
       const ctx = mheChartRef.current?.getContext('2d')
       if (ctx) {
-        const labels = data.mhe_trend.map((d: any) => {
+        const labels = data.mhe_trend!.map((d: any) => {
           const dt = new Date(d.date)
           return `${dt.getDate()}`
         })
-        const pcts = data.mhe_trend.map((d: any) => d.mhePct)
+        const pcts = data.mhe_trend!.map((d: any) => d.mhePct)
 
         chartInstance = new Chart(ctx, {
           type: 'line',

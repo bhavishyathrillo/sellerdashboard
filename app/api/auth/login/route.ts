@@ -86,16 +86,16 @@ export async function POST(req: Request) {
       .or(`l1_email.eq.${trimmedEmail},l2_email.eq.${trimmedEmail}`)
 
     if (srsCheck && srsCheck.length > 0) {
-      // Is he an L2 (CM) anywhere?
-      const isL2 = srsCheck.some((s: any) => s.l2_email === trimmedEmail)
-      const isL1Only = srsCheck.some((s: any) => s.l1_email === trimmedEmail && s.l2_email !== trimmedEmail)
+      // Is he an L1 (CM) anywhere?
+      const isL1 = srsCheck.some((s: any) => s.l1_email === trimmedEmail)
+      const isL2Only = srsCheck.some((s: any) => s.l2_email === trimmedEmail && s.l1_email !== trimmedEmail)
       
-      if (isL2) {
+      if (isL1) {
+        role = 'L1' // CM takes precedence
+      } else if (isL2Only) {
         role = 'L2'
-      } else if (isL1Only) {
-        role = 'L1'
       } else {
-        role = 'L1' // fallback
+        role = 'L2' // fallback
       }
     }
   }

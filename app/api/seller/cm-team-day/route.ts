@@ -18,40 +18,24 @@ export async function GET(req: Request) {
   const trimmedEmail = email.toLowerCase().trim()
   const queryDate = date || new Date().toISOString().split('T')[0]
 
-  // Step 1: Get all sellers under this TL (could be mapped in l1 or l2 depending on org structure)
+  // Step 1: Get all sellers under this CM (L1)
   const { data: allSellers, error: sellersError } = await supabase
     .from('srs_raw')
     .select('*')
-    .or(`l1_email.eq.${trimmedEmail},l2_email.eq.${trimmedEmail}`)
+    .eq('l1_email', trimmedEmail)
 
   if (sellersError) {
     return NextResponse.json({ error: sellersError.message }, { status: 500 })
   }
 
   if (!allSellers || allSellers.length === 0) {
-    return NextResponse.json({ members: [] })
+    return NextResponse.json({ l2Groups: [] })
   }
 
-  // Filter: TL and CM must be different. If they are the same, he is a CM.
-  // The user says: "take only those as tl whose cm is differnt if cm and tl is same the he is a cm we will build his view later"
-  // So we only keep members where l1_email != l2_email.
-  let validTeam = allSellers.filter(s => {
-    const l1 = (s.l1_email || '').toLowerCase().trim()
-    const l2 = (s.l2_email || '').toLowerCase().trim()
-    return l1 !== l2
-  })
-
-  // Ensure the TL is always included in his own team list!
-  const tlSelf = allSellers.find(s => (s.seller_email || '').toLowerCase().trim() === trimmedEmail)
-  if (tlSelf && !validTeam.some(s => s.seller_email === tlSelf.seller_email)) {
-    validTeam.push(tlSelf)
-  }
-
-  if (validTeam.length === 0) {
-    return NextResponse.json({ members: [] })
-  }
-
-  const emails = validTeam.map(s => s.seller_email)
+  // Ensure CM is included in his own team list (optional, but good for completeness)
+  const cmSelf = allSellers.find(s => (s.seller_email || '').toLowerCase().trim() === trimmedEmail)
+  
+  const emails = allSellers.map(s => s.seller_email)
 
   // Compute month bounds for monthly data
   const [qy, qm] = queryDate.split('-').map(Number)
@@ -59,7 +43,7 @@ export async function GET(req: Request) {
   const lastDay = new Date(qy, qm, 0).getDate()
   const monthEnd = `${qy}-${String(qm).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
-  // Step 2: Fetch daily data for these sellers
+  // Step 2: Fetch daily data for ALL these sellers
   const [attendanceRes, ctiRes, allotmentRes, ltaRes, hourlyRes, dotRes, monthlyAllotmentRes] = await Promise.all([
     supabase.schema('seller_day_to_day').from('seller_attendance').select('*').eq('work_date', queryDate).in('email', emails),
     supabase.schema('seller_day_to_day').from('seller_cti_availability').select('*').eq('work_date', queryDate).in('seller_email', emails),
@@ -70,8 +54,8 @@ export async function GET(req: Request) {
     supabase.schema('seller_day_to_day').from('daily_allotment_summary').select('*').gte('allotment_date', monthStart).lte('allotment_date', monthEnd).in('seller_email', emails),
   ])
 
-  // Step 3: Combine
-  const members = validTeam.map(seller => {
+  // Map day-to-day data to sellers
+  const populatedSellers = allSellers.map(seller => {
     return {
       ...seller,
       attendance: attendanceRes.data?.find(a => a.email === seller.seller_email) || null,
@@ -84,5 +68,31 @@ export async function GET(req: Request) {
     }
   })
 
-  return NextResponse.json({ members })
+  // Step 3: Group by L2 Email
+  const l2Map: Record<string, any[]> = {}
+  
+  populatedSellers.forEach(seller => {
+    const l2 = (seller.l2_email || trimmedEmail).toLowerCase().trim()
+    if (!l2Map[l2]) {
+      l2Map[l2] = []
+    }
+    // Don't duplicate the CM if they appear as their own L2, unless they are acting as a direct TL
+    l2Map[l2].push(seller)
+  })
+
+  // Create final L2 Groups structure
+  const l2Groups = Object.entries(l2Map).map(([l2Email, members]) => {
+    // Find L2's personal info
+    const l2Info = allSellers.find(s => (s.seller_email || '').toLowerCase().trim() === l2Email)
+    const l2Name = l2Info?.seller_name || members[0]?.l2_name || l2Email.split('@')[0]
+
+    return {
+      l2_name: l2Name,
+      l2_email: l2Email,
+      l2_info: l2Info || null,
+      members: members
+    }
+  })
+
+  return NextResponse.json({ l2Groups })
 }
