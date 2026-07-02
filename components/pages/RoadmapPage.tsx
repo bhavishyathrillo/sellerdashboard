@@ -269,31 +269,42 @@ export default function RoadmapPage({ session }: Props) {
 
   useEffect(() => {
     async function load() {
-      if (isL1) {
-        const res = await fetch(`/api/seller/l1-roadmap?email=${encodeURIComponent(session.email)}`)
-        const json = await res.json()
-        if (res.ok) setL1Data(json)
-      } else {
-        const [myRes, teamRes] = await Promise.all([
-          fetch(`/api/seller/roadmap?email=${encodeURIComponent(session.email)}`),
-          isL2 ? fetch(`/api/seller/team-performance?email=${encodeURIComponent(session.email)}&role=L2`) : null
-        ])
-        const myJson = await myRes.json()
-        if (myRes.ok && !myJson.error) setData(myJson)
-        if (teamRes) {
-          const tJson = await teamRes.json()
-          if (tJson?.team) {
-            const emails = tJson.team.map((s:any) => s.seller_email)
-            const rRes = await fetch('/api/seller/team-roadmap', {
-              method:'POST',headers:{'Content-Type':'application/json'},
-              body:JSON.stringify({emails})
-            })
-            const rJson = rRes.ok ? await rRes.json() : { roadmaps: [] }
-            setTeamData({ sellers: tJson.team, roadmaps: rJson.roadmaps || [] })
+      try {
+        if (isL1) {
+          const res = await fetch(`/api/seller/l1-roadmap?email=${encodeURIComponent(session.email)}`)
+          if (res.ok) {
+            const json = await res.json()
+            setL1Data(json)
+          }
+        } else {
+          const [myRes, teamRes] = await Promise.all([
+            fetch(`/api/seller/roadmap?email=${encodeURIComponent(session.email)}`),
+            isL2 ? fetch(`/api/seller/team-performance?email=${encodeURIComponent(session.email)}&role=L2`) : null
+          ])
+          if (myRes.ok) {
+            const myJson = await myRes.json()
+            if (!myJson.error) setData(myJson)
+          }
+          if (teamRes && teamRes.ok) {
+            const tJson = await teamRes.json()
+            if (tJson?.team) {
+              const emails = tJson.team.map((s:any) => s.seller_email)
+              const rRes = await fetch('/api/seller/team-roadmap', {
+                method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({emails})
+              })
+              if (rRes.ok) {
+                const rJson = await rRes.json()
+                setTeamData({ sellers: tJson.team, roadmaps: rJson.roadmaps || [] })
+              }
+            }
           }
         }
+      } catch (err) {
+        console.error('Failed to load roadmap:', err)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     load()
   }, [session.email])

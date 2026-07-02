@@ -14,9 +14,10 @@ export async function GET(req: Request) {
 
   try {
     const today = new Date()
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-    const dateFrom = firstOfMonth.toISOString().split('T')[0]
-    const dateTo = today.toISOString().split('T')[0]
+    const dateFrom = fmt(firstOfMonth)
+    const dateTo = fmt(today)
 
     const { data, error } = await supabase
       .from('efficiency')

@@ -68,9 +68,7 @@ export async function GET() {
         (s: any) => s.l1_email?.toLowerCase().trim() === l1Email
       )
 
-      const team = sellers.filter(
-        (s: any) => s.seller_email?.toLowerCase().trim() !== l1Email
-      )
+      const team = sellers;
 
       const totalGoal = team.reduce((s: number, r: any) => s + (r.bottomline_goal_monthly || 0), 0)
       const totalAch = team.reduce((s: number, r: any) => s + (r.actual_achieved_monthly || 0), 0)
@@ -84,11 +82,11 @@ export async function GET() {
         const key = l2Email.toLowerCase().trim()
         const l2 = allRows.find((r: any) => r.seller_email?.toLowerCase().trim() === key) || {}
         const l2Sellers = team.filter(
-          (s: any) => s.l2_email?.toLowerCase().trim() === key && s.seller_email?.toLowerCase().trim() !== key
+          (s: any) => s.l2_email?.toLowerCase().trim() === key
         )
 
         return {
-          l2_name: l2.seller_name || l2Email.split('@')[0],
+          l2_name: l2Sellers[0]?.l2_name || l2.seller_name || l2Email.split('@')[0],
           l2_email: l2Email,
           l2_goal: l2.bottomline_goal_monthly || 0,
           l2_achieved: l2.actual_achieved_monthly || 0,

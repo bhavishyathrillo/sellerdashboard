@@ -1,4 +1,4 @@
-﻿import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 const supabase = createClient(
@@ -44,8 +44,28 @@ export async function POST(req: Request) {
       if (srsData?.seller_name) name = srsData.seller_name
     }
 
-    // Return the role as-is from roles table (ADMIN, SUPERADMIN, L1, L2, etc.)
-    return NextResponse.json({ email: trimmedEmail, name, role: roleData.role })
+    let finalRole = roleData.role
+
+    if (finalRole === 'L1' || finalRole === 'L2' || finalRole === 'SELLER') {
+      const { data: srsCheck } = await supabase
+        .from('srs_raw')
+        .select('l1_email, l2_email')
+        .or(`l1_email.eq.${trimmedEmail},l2_email.eq.${trimmedEmail}`)
+
+      if (srsCheck && srsCheck.length > 0) {
+        const isL1 = srsCheck.some(row => row.l1_email === trimmedEmail)
+        const isL2 = srsCheck.some(row => row.l2_email === trimmedEmail)
+        
+        if (isL1) {
+          finalRole = 'L1'
+        } else if (isL2) {
+          finalRole = 'L2'
+        }
+      }
+    }
+
+    // Return the role as-is from roles table or overriden by srs_raw
+    return NextResponse.json({ email: trimmedEmail, name, role: finalRole })
   }
 
   // Check seller_credentials for regular sellers
@@ -78,17 +98,24 @@ export async function POST(req: Request) {
 
   if (roleEntry?.role) {
     role = roleEntry.role
-  } else {
-    // Check srs_raw for L1/L2 - L1 first
-    const { data: srsCheck } = await supabase
-      .from('srs_raw')
-      .select('l1_email, l2_email')
-      .or(`l1_email.eq.${trimmedEmail},l2_email.eq.${trimmedEmail}`)
-      .limit(1)
+  }
 
-    if (srsCheck && srsCheck.length > 0) {
-      if (srsCheck[0].l1_email === trimmedEmail) role = 'L1'
-      else if (srsCheck[0].l2_email === trimmedEmail) role = 'L2'
+  // Check srs_raw for L1/L2 to override legacy roles table
+  const { data: srsCheck } = await supabase
+    .from('srs_raw')
+    .select('l1_email, l2_email')
+    .or(`l1_email.eq.${trimmedEmail},l2_email.eq.${trimmedEmail}`)
+
+  if (srsCheck && srsCheck.length > 0) {
+    // Check if this person is an L1 for ANY seller
+    const isL1 = srsCheck.some(row => row.l1_email === trimmedEmail)
+    // Check if this person is an L2 for ANY seller
+    const isL2 = srsCheck.some(row => row.l2_email === trimmedEmail)
+    
+    if (isL1) {
+      role = 'L1'
+    } else if (isL2) {
+      role = 'L2'
     }
   }
 
