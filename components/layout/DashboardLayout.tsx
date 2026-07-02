@@ -23,6 +23,7 @@ const navItems = [
   { id: 'pipeline',    label: 'Pipeline',    icon: '⬇' },
   { id: 'roadmap',     label: 'Roadmap',     icon: '🗺', adminOnly: false },
   { id: 'hygiene',     label: 'Hygiene',     icon: '✦' },
+  { id: 'kpi_view',    label: 'KPI view',    icon: '⚛️', isExternal: true, url: 'https://script.google.com/a/macros/thrillophilia.com/s/AKfycbwkOEzTA9Y3RgdtDkhsVG96k8KMgkQfmKLW6nSpybkXtcB47PUfmIL67HCDsoepL4MQxA/exec' },
 ]
 
 export default function DashboardLayout({
@@ -64,7 +65,13 @@ export default function DashboardLayout({
             <button
               key={item.id}
               className={`${styles.navItem} ${activePage === item.id ? styles.navItemActive : ''}`}
-              onClick={() => onNavigate(item.id)}
+              onClick={() => {
+                if (item.isExternal && item.url) {
+                  window.open(item.url, '_blank')
+                } else {
+                  onNavigate(item.id)
+                }
+              }}
             >
               <span className={styles.navIcon}>{item.icon}</span>
               {!collapsed && <span className={styles.navLabel}>{item.label}</span>}
