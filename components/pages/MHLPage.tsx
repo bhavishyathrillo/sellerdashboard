@@ -13,6 +13,7 @@ interface Lead {
   l1: string | null
   l2: string | null
   seller_name?: string
+  owner_open_leads?: number
 }
 
 interface HomePageProps {
@@ -52,87 +53,99 @@ function daysSinceCall(val: string | null): number | null {
   } catch { return null }
 }
 
+function MhePill({ pct }: { pct: number }) {
+  const color = pct >= 30 ? '#EF4444' : pct >= 15 ? '#F59E0B' : '#22C55E'
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', padding: '2px 8px',
+      borderRadius: '20px', fontSize: '0.6rem', fontWeight: 700,
+      background: `${color}18`, color, border: `1px solid ${color}30`,
+      letterSpacing: '0.02em'
+    }}>
+      {pct}% MHE
+    </span>
+  )
+}
+
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
 
 .ov {
   font-family: 'Inter', -apple-system, sans-serif;
   max-width: 1160px;
   margin: 0 auto;
-  padding: 28px 24px;
-  color: #E8E4DD;
-  animation: ovIn 0.7s cubic-bezier(0.16,1,0.3,1);
-  position: relative;
+  padding: 28px 24px 48px;
+  color: #F0EDE8;
+  animation: ovIn 0.4s ease both;
 }
-.ov::before {
-  content: '';
-  position: fixed;
-  top: -200px; right: -200px;
-  width: 600px; height: 600px;
-  background: radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-/* Particles */
-.ov-particles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; border-radius: inherit; }
-.ov-particle { position: absolute; bottom: -20px; background: rgba(201,168,76,0.3); border-radius: 50%; box-shadow: 0 0 12px rgba(201,168,76,0.8); animation: floatUp linear infinite; }
-@keyframes floatUp { 0% { transform: translateY(0) scale(0); opacity: 0; } 10% { opacity: 1; transform: translateY(-20px) scale(1); } 90% { opacity: 1; } 100% { transform: translateY(-800px) scale(0.5); opacity: 0; } }
-@keyframes ovIn { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+@keyframes ovIn { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
 @keyframes ovPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-@keyframes ovSlide { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes ovSlide { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
 @keyframes spin { to{transform:rotate(360deg)} }
 
 /* Header */
-.ov-hdr { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.04); position: relative; z-index: 1; flex-wrap: wrap; gap: 16px; }
-.ov-hdr h1 { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.02em; background: linear-gradient(135deg, #D4AF37, #F5E6A3, #D4AF37); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }
-.ov-hdr-sub { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.7rem; color: #6A6258; font-weight: 500; }
-.ov-live { width: 7px; height: 7px; border-radius: 50%; background: #EF4444; animation: ovPulse 2s ease infinite; box-shadow: 0 0 10px rgba(239,68,68,0.5); }
+.ov-hdr { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap; gap: 16px; }
+.ov-hdr h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.025em; background: linear-gradient(135deg, #D4AF37, #F5E6A3, #D4AF37); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }
+.ov-hdr-sub { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.75rem; color: #8A8278; font-weight: 500; }
+.ov-live { width: 7px; height: 7px; border-radius: 50%; background: #EF4444; animation: ovPulse 2s ease infinite; box-shadow: 0 0 8px rgba(239,68,68,0.5); flex-shrink: 0; }
+
+/* Summary Bar */
+.ov-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.ov-stat { background: #111111; border: 1px solid #1E1E1E; border-radius: 10px; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
+.ov-stat-val { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1; }
+.ov-stat-lbl { font-size: 0.6rem; color: #8A8278; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
 
 /* Controls */
-.ov-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; z-index: 1; position: relative; }
-.ov-toggle { display: flex; gap: 4px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 3px; }
-.ov-toggle-btn { padding: 6px 14px; border: none; border-radius: 8px; background: transparent; color: #8A8278; cursor: pointer; font-size: 0.72rem; font-weight: 600; transition: all 0.2s; font-family: 'Inter', sans-serif; }
-.ov-toggle-btn-act { background: rgba(244,99,30,0.15); color: #F4631E; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.ov-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.ov-toggle { display: flex; gap: 3px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 3px; }
+.ov-toggle-btn { padding: 6px 14px; border: none; border-radius: 7px; background: transparent; color: #8A8278; cursor: pointer; font-size: 0.72rem; font-weight: 600; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+.ov-toggle-btn-act { background: rgba(244,99,30,0.15); color: #F4631E; }
 
 .ov-search-wrap { position: relative; }
-.ov-search-ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #4A4438; pointer-events: none; }
-.ov-search { width: 220px; padding: 8px 12px 8px 32px; background: rgba(18,18,18,0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; color: #E8E4DD; font-size: 0.75rem; outline: none; transition: all 0.3s; font-family: 'Inter', sans-serif; }
-.ov-search:focus { border-color: rgba(244,99,30,0.35); background: rgba(18,18,18,0.95); box-shadow: 0 0 0 4px rgba(244,99,30,0.06); }
-.ov-select { padding: 8px 12px; background: rgba(18,18,18,0.8); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; color: #E8E4DD; font-size: 0.75rem; cursor: pointer; outline: none; font-family: 'Inter', sans-serif; }
+.ov-search-ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #5A5448; pointer-events: none; }
+.ov-search { width: 220px; padding: 8px 12px 8px 32px; background: #111111; border: 1px solid #1E1E1E; border-radius: 10px; color: #F0EDE8; font-size: 0.75rem; outline: none; transition: border-color 0.2s; font-family: 'Inter', sans-serif; }
+.ov-search:focus { border-color: rgba(244,99,30,0.4); }
+.ov-select { padding: 8px 12px; background: #111111; border: 1px solid #1E1E1E; border-radius: 10px; color: #F0EDE8; font-size: 0.75rem; cursor: pointer; outline: none; font-family: 'Inter', sans-serif; }
 .ov-select option { background: #141414; }
 
 /* Table */
-.ov-tbl-wrap { background: rgba(14,14,14,0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.25); z-index: 1; position: relative; }
-.ov-tbl { width: 100%; border-collapse: collapse; font-size: 0.74rem; }
-.ov-tbl thead tr { background: linear-gradient(90deg, rgba(201,168,76,0.03), transparent); }
-.ov-tbl th { padding: 14px 18px; text-align: left; font-size: 0.6rem; font-weight: 800; color: #5A5448; text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px solid rgba(255,255,255,0.06); }
-.ov-tbl td { padding: 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.025); }
-.ov-sel { animation: ovSlide 0.25s both; transition: background 0.2s; }
+.ov-tbl-wrap { background: #111111; border: 1px solid #1E1E1E; border-radius: 14px; overflow: hidden; }
+.ov-tbl { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.ov-tbl thead tr { background: rgba(255,255,255,0.02); }
+.ov-tbl th { padding: 12px 16px; text-align: left; font-size: 0.62rem; font-weight: 700; color: #6A6258; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid #1E1E1E; }
+.ov-tbl td { padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
+.ov-tbl tr:last-child td { border-bottom: none; }
+.ov-sel { animation: ovSlide 0.2s both; transition: background 0.15s; }
 .ov-sel:hover { background: rgba(255,255,255,0.02) !important; }
 
 /* Accordions */
-.ov-accs { display: flex; flex-direction: column; gap: 12px; z-index: 1; position: relative; }
-.ov-acc { background: rgba(14,14,14,0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.2); transition: all 0.3s; }
-.ov-acc:hover { border-color: rgba(255,255,255,0.1); }
-.ov-acc-hdr { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; user-select: none; transition: background 0.25s; }
-.ov-acc-hdr:hover { background: rgba(255,255,255,0.03); }
-.ov-acc-hdr-open { background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.04); }
-.ov-acc-title { display: flex; align-items: center; gap: 10px; font-weight: 700; color: #E8E4DD; font-size: 0.8rem; }
-.ov-acc-chev { width: 22px; height: 22px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.5rem; background: rgba(244,99,30,0.1); color: #F4631E; border: 1px solid rgba(244,99,30,0.15); transition: transform 0.3s; }
-.ov-acc-chev-open { transform: rotate(90deg); background: rgba(244,99,30,0.2); }
+.ov-accs { display: flex; flex-direction: column; gap: 10px; }
+.ov-acc { background: #111111; border: 1px solid #1E1E1E; border-radius: 12px; overflow: hidden; transition: border-color 0.2s; }
+.ov-acc:hover { border-color: #2a2a2a; }
+.ov-acc-hdr { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; user-select: none; transition: background 0.2s; }
+.ov-acc-hdr:hover { background: rgba(255,255,255,0.02); }
+.ov-acc-hdr-open { background: rgba(255,255,255,0.015); border-bottom: 1px solid #1E1E1E; }
+.ov-acc-title { display: flex; align-items: center; gap: 10px; font-weight: 700; color: #F0EDE8; font-size: 0.82rem; }
+.ov-acc-chev { width: 20px; height: 20px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.46rem; background: rgba(244,99,30,0.1); color: #F4631E; border: 1px solid rgba(244,99,30,0.15); transition: transform 0.25s; }
+.ov-acc-chev-open { transform: rotate(90deg); background: rgba(244,99,30,0.18); }
+.ov-acc-meta { display: flex; align-items: center; gap: 8px; }
 
-.ov-badge { font-size: 0.52rem; font-weight: 600; color: #8A8278; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.04); padding: 2px 8px; border-radius: 6px; letter-spacing: 0.04em; }
-.ov-stage { display: inline-flex; padding: 3px 10px; border-radius: 12px; font-size: 0.62rem; font-weight: 700; border: 1px solid; text-transform: uppercase; letter-spacing: 0.04em; }
+.ov-badge { font-size: 0.58rem; font-weight: 600; color: #8A8278; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 6px; letter-spacing: 0.03em; }
+.ov-stage { display: inline-flex; padding: 3px 10px; border-radius: 12px; font-size: 0.6rem; font-weight: 700; border: 1px solid; text-transform: uppercase; letter-spacing: 0.04em; }
 .ov-lead-id { color: #F4631E; font-weight: 600; text-decoration: none; transition: color 0.2s; font-family: monospace; font-size: 0.8rem; }
 .ov-lead-id:hover { color: #FFA07A; }
 .ov-date { color: #8A8278; font-size: 0.72rem; }
 
-.ov-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50vh; gap: 16px; color: #8A8278; font-size: 0.8rem; font-weight: 600; }
-.ov-spinner { width: 40px; height: 40px; border: 3px solid rgba(244,99,30,0.1); border-top-color: #F4631E; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.ov-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50vh; gap: 14px; color: #8A8278; font-size: 0.8rem; font-weight: 600; }
+.ov-spinner { width: 38px; height: 38px; border: 3px solid rgba(244,99,30,0.1); border-top-color: #F4631E; border-radius: 50%; animation: spin 0.75s linear infinite; }
 `
 
 export default function MHLPage({ session }: HomePageProps) {
   const [leads, setLeads] = useState<Lead[]>([])
+  const [totalOpenLeads, setTotalOpenLeads] = useState(0)
+  const [openCountMap, setOpenCountMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [view, setView] = useState<'mine' | 'team'>(
@@ -146,15 +159,6 @@ export default function MHLPage({ session }: HomePageProps) {
 
   const isManager = ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(session.role)
 
-  const particles = useMemo(() => {
-    return Array.from({ length: 25 }).map(() => ({
-      left: `${Math.random() * 100}%`,
-      delay: `${Math.random() * 8}s`,
-      dur: `${6 + Math.random() * 10}s`,
-      size: `${2 + Math.random() * 4}px`
-    }))
-  }, [])
-
   useEffect(() => {
     const load = async () => {
       setLoading(true)
@@ -164,7 +168,9 @@ export default function MHLPage({ session }: HomePageProps) {
         const res = await fetch(`/api/mhl?${params}`)
         const json = await res.json()
         if (!res.ok) { setError(json.error || 'Failed to load'); return }
-        setLeads(json)
+        setLeads(json.leads || [])
+        setTotalOpenLeads(json.totalOpenLeads || 0)
+        setOpenCountMap(json.openCountMap || {})
       } catch { setError('Failed to load leads') }
       finally { setLoading(false) }
     }
@@ -199,25 +205,25 @@ export default function MHLPage({ session }: HomePageProps) {
     : null
 
   const sellerSummary = view === 'team'
-    ? Object.entries(groupedLeads || {}).map(([owner, leads]: [string, any]) => ({
+    ? Object.entries(groupedLeads || {}).map(([owner, ownerLeads]: [string, any]) => ({
         owner,
-        name: leads[0]?.seller_name || owner.split('@')[0],
-        total: leads.length,
-        lastCall: leads.reduce((latest: string, l:Lead) => l.last_call && (!latest || l.last_call > latest) ? l.last_call : latest, '')
-      }))
+        name: ownerLeads[0]?.seller_name || owner.split('@')[0],
+        total: ownerLeads.length,
+        openLeads: openCountMap[owner] || 0,
+        mhePct: openCountMap[owner] ? Math.round((ownerLeads.length / openCountMap[owner]) * 100) : 0,
+        lastCall: ownerLeads.reduce((latest: string, l: Lead) => l.last_call && (!latest || l.last_call > latest) ? l.last_call : latest, '')
+      })).sort((a, b) => b.mhePct - a.mhePct)
     : []
 
   const toggleSeller = (owner: string) => setExpandedSellers(prev=>({...prev,[owner]:!prev[owner]}))
   const toggleStage = (stage: string) => setExpandedStages(prev=>({...prev,[stage]:!prev[stage]}))
 
+  // Overall MHE%
+  const overallMhePct = totalOpenLeads > 0 ? Math.round((filtered.length / totalOpenLeads) * 100) : 0
+
   return (
     <><style>{CSS}</style>
     <div className="ov">
-      <div className="ov-particles">
-        {particles.map((p, i) => (
-          <div key={i} className="ov-particle" style={{ left: p.left, animationDelay: p.delay, animationDuration: p.dur, width: p.size, height: p.size }}/>
-        ))}
-      </div>
 
       {/* ── Header ── */}
       <div className="ov-hdr">
@@ -225,7 +231,7 @@ export default function MHLPage({ session }: HomePageProps) {
           <h1>Mishandled Enquiries</h1>
           <div className="ov-hdr-sub">
             <span className="ov-live" />
-            <span>{filtered.length} Leads matching criteria</span>
+            <span>{filtered.length} mishandled · {totalOpenLeads} total open</span>
           </div>
         </div>
         
@@ -250,6 +256,24 @@ export default function MHLPage({ session }: HomePageProps) {
         </div>
       </div>
 
+      {/* ── Summary Bar ── */}
+      {!loading && !error && (
+        <div className="ov-summary">
+          <div className="ov-stat">
+            <span className="ov-stat-val" style={{ color: '#EF4444' }}>{filtered.length}</span>
+            <span className="ov-stat-lbl">Mishandled Leads</span>
+          </div>
+          <div className="ov-stat">
+            <span className="ov-stat-val" style={{ color: '#F0EDE8' }}>{totalOpenLeads}</span>
+            <span className="ov-stat-lbl">Total Open Leads</span>
+          </div>
+          <div className="ov-stat" style={{ borderColor: overallMhePct >= 30 ? 'rgba(239,68,68,0.3)' : overallMhePct >= 15 ? 'rgba(245,158,11,0.3)' : 'rgba(34,197,94,0.3)' }}>
+            <span className="ov-stat-val" style={{ color: overallMhePct >= 30 ? '#EF4444' : overallMhePct >= 15 ? '#F59E0B' : '#22C55E' }}>{overallMhePct}%</span>
+            <span className="ov-stat-lbl">MHE Rate</span>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="ov-loading"><div className="ov-spinner" /><p>Fetching Mishandled Leads...</p></div>
       ) : error ? (
@@ -259,12 +283,20 @@ export default function MHLPage({ session }: HomePageProps) {
       ) : view === 'team' && tableView ? (
         <div className="ov-tbl-wrap">
           <table className="ov-tbl">
-            <thead><tr><th>Seller</th><th>Total Leads</th><th>Last Call</th></tr></thead>
+            <thead><tr>
+              <th>Seller</th>
+              <th>Mishandled</th>
+              <th>Open Leads</th>
+              <th>MHE %</th>
+              <th>Last Call</th>
+            </tr></thead>
             <tbody>
               {sellerSummary.map((s, i)=>(
                 <tr key={s.owner} className="ov-sel" style={{ animationDelay: `${i*0.03}s` }}>
-                  <td style={{fontWeight:600, color:'#E8E4DD'}}>{s.name}</td>
-                  <td style={{fontWeight:800, color:'#D4AF37'}}>{s.total}</td>
+                  <td style={{fontWeight:600, color:'#F0EDE8'}}>{s.name}</td>
+                  <td style={{fontWeight:700, color:'#EF4444'}}>{s.total}</td>
+                  <td style={{color:'#8A8278'}}>{s.openLeads || '—'}</td>
+                  <td><MhePill pct={s.mhePct} /></td>
                   <td className="ov-date">{s.lastCall ? formatLastCall(s.lastCall) : '—'}</td>
                 </tr>
               ))}
@@ -273,9 +305,11 @@ export default function MHLPage({ session }: HomePageProps) {
         </div>
       ) : view === 'team' && groupedLeads ? (
         <div className="ov-accs">
-          {Object.entries(groupedLeads).map(([owner, leads]: [string, any]) => {
-            const sellerName = leads[0]?.seller_name || owner.split('@')[0]
+          {Object.entries(groupedLeads).map(([owner, ownerLeads]: [string, any]) => {
+            const sellerName = ownerLeads[0]?.seller_name || owner.split('@')[0]
             const isExpanded = expandedSellers[owner] === true
+            const openCount = openCountMap[owner] || 0
+            const mhePct = openCount > 0 ? Math.round((ownerLeads.length / openCount) * 100) : 0
             return (
               <div key={owner} className="ov-acc">
                 <div className={`ov-acc-hdr ${isExpanded?'ov-acc-hdr-open':''}`} onClick={()=>toggleSeller(owner)}>
@@ -283,12 +317,16 @@ export default function MHLPage({ session }: HomePageProps) {
                     <span className={`ov-acc-chev ${isExpanded?'ov-acc-chev-open':''}`}>▶</span>
                     {sellerName}
                   </div>
-                  <span className="ov-badge">Total: {leads.length}</span>
+                  <div className="ov-acc-meta">
+                    <MhePill pct={mhePct} />
+                    <span className="ov-badge">{ownerLeads.length} mishandled</span>
+                    {openCount > 0 && <span className="ov-badge" style={{color:'#8A8278'}}>/ {openCount} open</span>}
+                  </div>
                 </div>
                 {isExpanded && (
                   <table className="ov-tbl">
                     <thead><tr><th>Lead ID</th><th>Stage</th><th>Last Call</th><th>Days</th></tr></thead>
-                    <tbody>{leads.map((lead:Lead, i:number)=>{
+                    <tbody>{ownerLeads.map((lead:Lead, i:number)=>{
                       const days=daysSinceCall(lead.last_call)
                       const sc=stageColors[lead.stage?.toLowerCase()]||'#4A4642'
                       return (
@@ -312,7 +350,7 @@ export default function MHLPage({ session }: HomePageProps) {
         </div>
       ) : (
         <div className="ov-accs">
-          {stageGroups && Object.entries(stageGroups).map(([stage, leads]: [string, any]) => {
+          {stageGroups && Object.entries(stageGroups).map(([stage, stageLeads]: [string, any]) => {
             const isExpanded = expandedStages[stage] === true
             const sc = stageColors[stage?.toLowerCase()]||'#4A4642'
             return (
@@ -322,12 +360,12 @@ export default function MHLPage({ session }: HomePageProps) {
                     <span className={`ov-acc-chev ${isExpanded?'ov-acc-chev-open':''}`}>▶</span>
                     <span className="ov-stage" style={{background:`${sc}18`,color:sc,borderColor:`${sc}30`}}>{stage||'Unknown'}</span>
                   </div>
-                  <span className="ov-badge">Total: {leads.length}</span>
+                  <span className="ov-badge">{stageLeads.length} leads</span>
                 </div>
                 {isExpanded && (
                   <table className="ov-tbl">
                     <thead><tr><th>Lead ID</th><th>Last Call</th><th>Days</th></tr></thead>
-                    <tbody>{leads.map((lead:Lead, i:number)=>{
+                    <tbody>{stageLeads.map((lead:Lead, i:number)=>{
                       const days=daysSinceCall(lead.last_call)
                       return (
                         <tr key={lead.id} className="ov-sel" style={{ animationDelay: `${i*0.03}s` }}>

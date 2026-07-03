@@ -93,188 +93,156 @@ function Spark({ color = '#C9A84C' }: { color?: string }) {
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
+*, *::before, *::after { box-sizing: border-box; }
+
 .ov {
   font-family: 'Inter', -apple-system, sans-serif;
-  max-width: 1160px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 28px 24px;
-  color: #E8E4DD;
-  animation: ovIn 0.7s cubic-bezier(0.16,1,0.3,1);
-  position: relative;
+  padding: 32px 28px 48px;
+  color: #F0EDE8;
+  animation: ovFadeIn 0.45s ease both;
 }
-.ov::before {
-  content: '';
-  position: fixed;
-  top: -200px; right: -200px;
-  width: 600px; height: 600px;
-  background: radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-@keyframes ovIn { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+
+@keyframes ovFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ovShimmer { 0%{background-position:0% center} 100%{background-position:200% center} }
 @keyframes ovPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-@keyframes ovFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
-@keyframes ovShine { 0%{left:-100%} 100%{left:200%} }
-@keyframes ovGlow { 0%,100%{box-shadow:0 0 20px rgba(201,168,76,0.08)} 50%{box-shadow:0 0 40px rgba(201,168,76,0.15)} }
 @keyframes ovSpin { to{transform:rotate(360deg)} }
-@keyframes ovSlide { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
-@keyframes ovCount { from{opacity:0;transform:scale(0.8)} to{opacity:1;transform:scale(1)} }
+@keyframes ovSlide { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+@keyframes ovCount { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
 
 /* ── Header ── */
 .ov-hdr {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  position: relative;
+  margin-bottom: 40px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  gap: 24px;
+  flex-wrap: wrap;
 }
 .ov-hdr h1 {
-  font-size: 1.8rem;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  background: linear-gradient(135deg, #D4AF37, #F5E6A3, #D4AF37);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #D4AF37 0%, #F5E6A3 50%, #D4AF37 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin: 0;
-  animation: ovShimmer 4s linear infinite;
+  margin: 0 0 8px;
+  animation: ovShimmer 5s linear infinite;
 }
-@keyframes ovShimmer { 0%{background-position:0% center} 100%{background-position:200% center} }
 .ov-hdr-sub {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 6px;
-  font-size: 0.7rem;
-  color: #6A6258;
+  font-size: 0.78rem;
+  color: #8A8278;
   font-weight: 500;
 }
 .ov-live {
-  width: 7px; height: 7px;
+  width: 8px; height: 8px;
   border-radius: 50%;
   background: #22C55E;
-  animation: ovPulse 2s ease infinite;
-  box-shadow: 0 0 10px rgba(34,197,94,0.5);
+  animation: ovPulse 2.2s ease infinite;
+  box-shadow: 0 0 8px rgba(34,197,94,0.6);
+  flex-shrink: 0;
 }
 
-/* Overall ring */
+/* ── Ring Widgets ── */
+.ov-rings {
+  display: flex;
+  gap: 16px;
+  flex-shrink: 0;
+}
 .ov-ring-wrap {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10px 18px;
+  padding: 14px 20px;
   background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 16px;
-  animation: ovGlow 4s ease infinite;
+  min-width: 160px;
 }
 .ov-ring-pct {
-  font-size: 1.6rem;
-  font-weight: 900;
-  letter-spacing: -0.02em;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 .ov-ring-label {
-  font-size: 0.58rem;
+  font-size: 0.65rem;
+  color: #8A8278;
+  font-weight: 500;
+  margin-top: 4px;
+  letter-spacing: 0.02em;
+}
+.ov-ring-sub {
+  font-size: 0.7rem;
   color: #6A6258;
+  margin-top: 2px;
   font-weight: 500;
 }
 
-/* Particles */
-.ov-particles {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-  border-radius: inherit;
-}
-.ov-particle {
-  position: absolute;
-  bottom: -20px;
-  background: rgba(201,168,76,0.3);
-  border-radius: 50%;
-  box-shadow: 0 0 12px rgba(201,168,76,0.8);
-  animation: floatUp linear infinite;
-}
-@keyframes floatUp {
-  0% { transform: translateY(0) scale(0); opacity: 0; }
-  10% { opacity: 1; transform: translateY(-20px) scale(1); }
-  90% { opacity: 1; }
-  100% { transform: translateY(-800px) scale(0.5); opacity: 0; }
-}
-
 /* ── KPI Section ── */
-.ov-kpi-sec {
-  margin-bottom: 20px;
-}
+.ov-kpi-sec { margin-bottom: 36px; }
+
 .ov-kpi-tag {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.58rem;
+  gap: 6px;
+  font-size: 0.65rem;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 20px;
-  margin-bottom: 10px;
-  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 .ov-kpi-tag-bl {
-  background: linear-gradient(135deg, rgba(244,99,30,0.15), rgba(244,99,30,0.05));
+  background: rgba(244,99,30,0.1);
   color: #F4631E;
   border: 1px solid rgba(244,99,30,0.2);
 }
 .ov-kpi-tag-tl {
-  background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05));
+  background: rgba(34,197,94,0.1);
   color: #22C55E;
   border: 1px solid rgba(34,197,94,0.2);
 }
+
 .ov-kpi-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 320px));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
+
 .ov-kpi {
   position: relative;
-  overflow: hidden;
-  border-radius: 14px;
-  padding: 14px 16px;
-  transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+  border-radius: 16px;
+  padding: 20px 22px 18px;
+  background: #111111;
+  border: 1px solid #1E1E1E;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   cursor: default;
-}
-.ov-kpi:hover {
-  transform: translateY(-3px) scale(1.01);
-  box-shadow: 0 12px 36px rgba(0,0,0,0.3);
+  overflow: hidden;
 }
 .ov-kpi::before {
   content: '';
   position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02), rgba(255,255,255,0.06));
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 16px 16px 0 0;
 }
-.ov-kpi::after {
-  content: '';
-  position: absolute;
-  top: 0; left: -100%;
-  width: 60%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
-  animation: ovShine 6s ease infinite;
-  pointer-events: none;
-}
-.ov-kpi-bl {
-  background: linear-gradient(145deg, rgba(244,99,30,0.06) 0%, rgba(15,15,15,0.95) 50%, rgba(244,99,30,0.03) 100%);
-}
-.ov-kpi-tl {
-  background: linear-gradient(145deg, rgba(34,197,94,0.06) 0%, rgba(15,15,15,0.95) 50%, rgba(34,197,94,0.03) 100%);
+.ov-kpi-bl::before { background: linear-gradient(90deg, #F4631E, rgba(244,99,30,0.3)); }
+.ov-kpi-tl::before { background: linear-gradient(90deg, #22C55E, rgba(34,197,94,0.3)); }
+
+.ov-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  border-color: #2a2a2a;
 }
 .ov-kpi-top {
   display: flex;
@@ -282,22 +250,23 @@ const CSS = `
   justify-content: space-between;
 }
 .ov-kpi-lbl {
-  font-size: 0.58rem;
-  font-weight: 700;
-  color: #5A5448;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #8A8278;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 6px;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
 }
 .ov-kpi-val {
-  font-size: 1.15rem;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  animation: ovCount 0.8s cubic-bezier(0.16,1,0.3,1);
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  animation: ovCount 0.6s cubic-bezier(0.16,1,0.3,1);
 }
 .ov-kpi-val-bl { color: #F4631E; }
 .ov-kpi-val-tl { color: #22C55E; }
-.ov-kpi-val-def { color: #E8E4DD; }
+.ov-kpi-val-def { color: #F0EDE8; }
 
 /* ── Search ── */
 .ov-search-wrap {
@@ -310,92 +279,90 @@ const CSS = `
   top: 50%;
   transform: translateY(-50%);
   font-size: 0.85rem;
-  color: #4A4438;
+  color: #5A5448;
   pointer-events: none;
   z-index: 1;
 }
 .ov-search {
   width: 100%;
-  padding: 14px 44px 14px 44px;
-  background: rgba(18,18,18,0.8);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 14px;
-  color: #E8E4DD;
-  font-size: 0.82rem;
+  padding: 13px 44px 13px 44px;
+  background: #111111;
+  border: 1px solid #1E1E1E;
+  border-radius: 12px;
+  color: #F0EDE8;
+  font-size: 0.85rem;
   font-family: 'Inter', sans-serif;
-  font-weight: 500;
+  font-weight: 400;
   outline: none;
-  transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.ov-search::placeholder { color: #3A3428; font-weight: 400; }
+.ov-search::placeholder { color: #5A5448; }
 .ov-search:focus {
-  border-color: rgba(201,168,76,0.35);
-  box-shadow: 0 0 0 4px rgba(201,168,76,0.06), 0 8px 32px rgba(0,0,0,0.3);
-  background: rgba(18,18,18,0.95);
+  border-color: rgba(212,175,55,0.4);
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.06);
 }
 .ov-search-x {
   position: absolute;
   right: 14px;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
   color: #8A8278;
-  width: 24px; height: 24px;
+  width: 26px; height: 26px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
 }
-.ov-search-x:hover { background: rgba(255,255,255,0.1); color: #E8E4DD; }
+.ov-search-x:hover { background: rgba(255,255,255,0.1); color: #F0EDE8; }
 
 /* ── Table ── */
 .ov-tbl-wrap {
-  background: rgba(14,14,14,0.7);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 20px;
+  background: #111111;
+  border: 1px solid #1E1E1E;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .ov-tbl {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
 }
 .ov-tbl thead tr {
-  background: linear-gradient(90deg, rgba(201,168,76,0.03), transparent, rgba(201,168,76,0.03));
+  background: rgba(255,255,255,0.02);
 }
 .ov-tbl th {
-  padding: 16px 18px;
+  padding: 14px 18px;
   text-align: right;
-  font-size: 0.6rem;
-  font-weight: 800;
-  color: #5A5448;
+  font-size: 0.63rem;
+  font-weight: 700;
+  color: #6A6258;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid #1E1E1E;
+  white-space: nowrap;
 }
 .ov-tbl th:first-child { text-align: left; }
 .ov-tbl td {
   padding: 14px 18px;
   text-align: right;
-  border-bottom: 1px solid rgba(255,255,255,0.025);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  vertical-align: middle;
 }
 .ov-tbl td:first-child { text-align: left; }
+.ov-tbl tr:last-child td { border-bottom: none; }
 
 /* CM Row */
 .ov-cm {
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
+  transition: background 0.2s;
 }
-.ov-cm:hover { background: rgba(201,168,76,0.04) !important; }
-.ov-cm:active { transform: scale(0.998); }
-.ov-cm-open { background: rgba(201,168,76,0.025) !important; }
+.ov-cm:hover { background: rgba(212,175,55,0.04) !important; }
+.ov-cm-open { background: rgba(212,175,55,0.025) !important; }
 
 .ov-cm-name {
   display: flex;
@@ -403,7 +370,7 @@ const CSS = `
   gap: 10px;
   font-weight: 700;
   color: #D4AF37;
-  font-size: 0.82rem;
+  font-size: 0.86rem;
 }
 .ov-chev {
   width: 22px; height: 22px;
@@ -411,37 +378,35 @@ const CSS = `
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.5rem;
+  font-size: 0.48rem;
   flex-shrink: 0;
-  transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
+  transition: transform 0.3s ease, background 0.2s;
   background: rgba(212,175,55,0.1);
   color: #D4AF37;
   border: 1px solid rgba(212,175,55,0.15);
 }
 .ov-chev-open {
   transform: rotate(90deg);
-  background: rgba(212,175,55,0.2);
+  background: rgba(212,175,55,0.18);
 }
 .ov-badge {
-  font-size: 0.52rem;
+  font-size: 0.58rem;
   font-weight: 600;
-  color: #5A5448;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.04);
-  padding: 2px 8px;
+  color: #6A6258;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 3px 8px;
   border-radius: 6px;
-  letter-spacing: 0.04em;
 }
 
 /* Achieved pill */
 .ov-ach {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-weight: 800;
-  font-size: 0.75rem;
-  letter-spacing: -0.01em;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.78rem;
 }
 .ov-ach-g { background: rgba(34,197,94,0.1); color: #22C55E; border: 1px solid rgba(34,197,94,0.15); }
 .ov-ach-o { background: rgba(244,99,30,0.1); color: #F4631E; border: 1px solid rgba(244,99,30,0.15); }
@@ -449,8 +414,8 @@ const CSS = `
 /* Progress */
 .ov-prog {
   height: 3px;
-  width: 56px;
-  background: rgba(255,255,255,0.04);
+  width: 52px;
+  background: rgba(255,255,255,0.05);
   border-radius: 3px;
   overflow: hidden;
   display: inline-block;
@@ -466,18 +431,18 @@ const CSS = `
 /* Region Row */
 .ov-reg {
   cursor: pointer;
-  animation: ovSlide 0.3s cubic-bezier(0.16,1,0.3,1);
-  transition: all 0.25s;
+  animation: ovSlide 0.25s ease both;
+  transition: background 0.2s;
 }
-.ov-reg:hover { background: rgba(244,99,30,0.025) !important; }
+.ov-reg:hover { background: rgba(244,99,30,0.03) !important; }
 .ov-reg-name {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-left: 20px;
+  padding-left: 22px;
   color: #B0A898;
   font-weight: 600;
-  font-size: 0.76rem;
+  font-size: 0.8rem;
 }
 .ov-reg-chev {
   width: 18px; height: 18px;
@@ -485,33 +450,33 @@ const CSS = `
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.45rem;
+  font-size: 0.42rem;
   flex-shrink: 0;
-  transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
+  transition: transform 0.3s ease, background 0.2s;
   background: rgba(244,99,30,0.08);
   color: #F4631E;
-  border: 1px solid rgba(244,99,30,0.1);
+  border: 1px solid rgba(244,99,30,0.12);
 }
 .ov-reg-chev-open {
   transform: rotate(90deg);
-  background: rgba(244,99,30,0.15);
+  background: rgba(244,99,30,0.14);
 }
 .ov-reg-cnt {
-  font-size: 0.52rem;
-  color: #4A4438;
+  font-size: 0.6rem;
+  color: #5A5448;
   font-weight: 500;
 }
 
 /* Seller Row */
 .ov-sel {
-  animation: ovSlide 0.25s cubic-bezier(0.16,1,0.3,1);
-  transition: all 0.2s;
+  animation: ovSlide 0.2s ease both;
+  transition: background 0.2s;
 }
-.ov-sel:hover { background: rgba(255,255,255,0.015) !important; }
+.ov-sel:hover { background: rgba(255,255,255,0.02) !important; }
 .ov-sel-name {
   padding-left: 48px;
-  color: #7A7268;
-  font-size: 0.72rem;
+  color: #8A8278;
+  font-size: 0.78rem;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -521,7 +486,15 @@ const CSS = `
   width: 6px; height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 6px currentColor;
+  box-shadow: 0 0 5px currentColor;
+}
+
+/* Flag Table */
+.ov-flag-tbl-wrap {
+  overflow-x: auto;
+  background: #111111;
+  border-radius: 12px;
+  border: 1px solid #1E1E1E;
 }
 
 /* Loading */
@@ -531,26 +504,34 @@ const CSS = `
   align-items: center;
   justify-content: center;
   height: 55vh;
-  gap: 20px;
+  gap: 16px;
 }
 .ov-spinner {
-  width: 44px; height: 44px;
+  width: 40px; height: 40px;
   border: 3px solid rgba(212,175,55,0.1);
   border-top-color: #D4AF37;
   border-radius: 50%;
-  animation: ovSpin 0.8s linear infinite;
+  animation: ovSpin 0.75s linear infinite;
 }
-.ov-loading p { font-size: 0.78rem; color: #5A5448; font-weight: 600; letter-spacing: 0.03em; }
+.ov-loading p {
+  font-size: 0.8rem;
+  color: #6A6258;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
+  .ov-kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .ov { padding: 20px 16px; }
+  .ov-hdr h1 { font-size: 1.5rem; }
+  .ov-rings { flex-wrap: wrap; }
+  .ov-ring-wrap { min-width: 140px; }
+}
+@media (max-width: 600px) {
   .ov-kpi-row { grid-template-columns: 1fr; }
-  .ov { padding: 16px; }
-  .ov-hdr h1 { font-size: 1.3rem; }
-  .ov-kpi-val { font-size: 1.3rem; }
-  .ov-tbl { font-size: 0.68rem; }
-  .ov-ring-wrap { display: none; }
 }
 `
+
 
 export default function AdminOverviewPage({ session }: { session?: any }) {
   const [apiData, setApiData] = useState<any>(null)
@@ -561,15 +542,6 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
   const [flagModal, setFlagModal] = useState<{ cmName: string, l2Name?: string, flag: string } | null>(null)
   const [search, setSearch] = useState('')
   const adminName = session?.name || 'Admin'
-
-  const particles = useMemo(() => {
-    return Array.from({ length: 30 }).map(() => ({
-      left: `${Math.random() * 100}%`,
-      delay: `${Math.random() * 8}s`,
-      dur: `${6 + Math.random() * 10}s`,
-      size: `${2 + Math.random() * 4}px`
-    }))
-  }, [])
 
   useEffect(() => {
     fetch('/api/admin/overview', { cache: 'no-store' })
@@ -709,11 +681,6 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
       </div>
     )}
     <div className="ov">
-      <div className="ov-particles">
-        {particles.map((p, i) => (
-          <div key={i} className="ov-particle" style={{ left: p.left, animationDelay: p.delay, animationDuration: p.dur, width: p.size, height: p.size }}/>
-        ))}
-      </div>
 
       {/* ── Header ── */}
       <div className="ov-hdr">
@@ -724,35 +691,37 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
             <span>{processed.length} Category Managers</span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '24px' }}>
+        <div className="ov-rings">
           <div className="ov-ring-wrap">
-            <svg width={56} height={56} style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx={28} cy={28} r={23} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={5}/>
-              <circle cx={28} cy={28} r={23} fill="none"
-                stroke={oPctBl >= 100 ? '#22C55E' : '#F4631E'} strokeWidth={5}
-                strokeDasharray={2 * Math.PI * 23}
-                strokeDashoffset={2 * Math.PI * 23 - (Math.min(oPctBl, 100) / 100) * 2 * Math.PI * 23}
+            <svg width={52} height={52} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+              <circle cx={26} cy={26} r={21} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={4}/>
+              <circle cx={26} cy={26} r={21} fill="none"
+                stroke={oPctBl >= 100 ? '#22C55E' : '#F4631E'} strokeWidth={4}
+                strokeDasharray={2 * Math.PI * 21}
+                strokeDashoffset={2 * Math.PI * 21 - (Math.min(oPctBl, 100) / 100) * 2 * Math.PI * 21}
                 strokeLinecap="round"
                 style={{ transition: 'stroke-dashoffset 1.5s cubic-bezier(0.16,1,0.3,1)' }}/>
             </svg>
             <div>
               <div className="ov-ring-pct" style={{ color: oPctBl >= 100 ? '#22C55E' : '#F4631E' }}>{oPctBl}%</div>
-              <div className="ov-ring-label">{fmt(gBlA)} / {fmt(gBlG)} (BL)</div>
+              <div className="ov-ring-label">Bottom Line</div>
+              <div className="ov-ring-sub">{fmt(gBlA)} / {fmt(gBlG)}</div>
             </div>
           </div>
           <div className="ov-ring-wrap">
-            <svg width={56} height={56} style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx={28} cy={28} r={23} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={5}/>
-              <circle cx={28} cy={28} r={23} fill="none"
-                stroke={oPctTl >= 100 ? '#22C55E' : '#22C55E'} strokeWidth={5}
-                strokeDasharray={2 * Math.PI * 23}
-                strokeDashoffset={2 * Math.PI * 23 - (Math.min(oPctTl, 100) / 100) * 2 * Math.PI * 23}
+            <svg width={52} height={52} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+              <circle cx={26} cy={26} r={21} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={4}/>
+              <circle cx={26} cy={26} r={21} fill="none"
+                stroke="#22C55E" strokeWidth={4}
+                strokeDasharray={2 * Math.PI * 21}
+                strokeDashoffset={2 * Math.PI * 21 - (Math.min(oPctTl, 100) / 100) * 2 * Math.PI * 21}
                 strokeLinecap="round"
                 style={{ transition: 'stroke-dashoffset 1.5s cubic-bezier(0.16,1,0.3,1)' }}/>
             </svg>
             <div>
               <div className="ov-ring-pct" style={{ color: '#22C55E' }}>{oPctTl}%</div>
-              <div className="ov-ring-label">{fmt(gTlA)} / {fmt(gTlG)} (TL)</div>
+              <div className="ov-ring-label">Top Line</div>
+              <div className="ov-ring-sub">{fmt(gTlA)} / {fmt(gTlG)}</div>
             </div>
           </div>
         </div>
