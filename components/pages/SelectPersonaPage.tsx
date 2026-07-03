@@ -33,7 +33,7 @@ const personaTabs = [
   { id: 'pipeline', label: 'Pipeline' },
   { id: 'priority', label: 'Priority / QB Stats' },
   { id: 'leaderboard', label: 'Leaderboard' },
-  { id: 'seller-view', label: 'Lead Allocation' },
+  { id: 'seller-view', label: 'LTA' },
   { id: 'performance', label: 'Performance' },
   { id: 'rewards', label: 'Rewards' },
   { id: 'mhl', label: 'Mishandled' },

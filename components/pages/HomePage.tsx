@@ -192,21 +192,27 @@ export default function HomePage({ session }: HomePageProps) {
           <p className={styles.statLabel}>% Achieved</p>
           <p className={styles.statValue}>{pct.toFixed(1)}%</p>
           <div className={styles.progressBar}>
-            <div className={styles.progressFill} style={{ width: `${Math.min(pct, 100)}%` }} />
+            <div className={styles.progressFill} style={{ width: `${Math.min(data.goal_achieved_percent, 100)}%` }} />
           </div>
-          {(() => {
-            const sbhPct = data.should_have_been_monthly > 0 ? (data.actual_achieved_monthly / data.should_have_been_monthly) * 100 : 0
-            const diff = sbhPct - 100
-            const above = diff >= 0
-            return (
-              <p className={styles.statHint}>
-                <span className={above ? styles.hintGreen : styles.hintRed}>
-                  {above ? '↑' : '↓'} {Math.abs(diff).toFixed(1)}% {above ? 'ahead of SHB pace' : 'behind SHB pace'}
-                </span>
-              </p>
-            )
-          })()}
+          <p className={styles.statHint}>
+            <span className={data.goal_achieved_percent >= 100 ? styles.hintGreen : styles.hintRed}>
+              {data.goal_achieved_percent >= 100 ? '↑' : '↓'} {Math.abs(data.goal_achieved_percent - 100).toFixed(1)}% {data.goal_achieved_percent >= 100 ? 'ahead of' : 'behind'} SHB pace
+            </span>
+          </p>
         </div>
+        {(() => {
+          const ltaMatch = data.one_liner?.match(/Your LTA is\s+(\d+(?:\.\d+)?)/i)
+          if (ltaMatch) {
+            return (
+              <div className={styles.statCard}>
+                <p className={styles.statLabel}>LTA</p>
+                <p className={`${styles.statValue} ${styles.brandColor}`}>{ltaMatch[1]}</p>
+                <p className={styles.statHint}><span className={styles.hintNeutral}>Lead Time Availability</span></p>
+              </div>
+            )
+          }
+          return null
+        })()}
       </div>
 
       <div className={styles.section}>
