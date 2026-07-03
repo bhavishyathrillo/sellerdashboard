@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './TeamPage.module.css'
+import Loader from '@/components/ui/Loader'
 
 interface Props { session: UserSession }
 
@@ -14,7 +15,7 @@ export default function TeamPage({ session }: Props) {
       .then(r => r.json()).then(d => { setData(d); setLoading(false) })
   }, [])
 
-  if (loading) return <div className={styles.loading}>Loading team data...</div>
+  if (loading) return <Loader text="Loading team data..." />
   if (!data || data.error) return <div className={styles.empty}>{data?.error || 'No team data'}</div>
 
   return (

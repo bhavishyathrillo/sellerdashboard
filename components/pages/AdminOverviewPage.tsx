@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import styles from './HomePage.module.css'
+import Loader from '@/components/ui/Loader'
 
 function fmt(n: number) {
   if (!n && n !== 0) return '₹0'
@@ -114,9 +115,7 @@ export default function AdminOverviewPage() {
     return { ...l1, l2_groups: filteredL2, total_sellers: filteredL2.reduce((s: number, l2: any) => s + l2.seller_count, 0) }
   }).filter((l1: any) => l1.total_sellers > 0)
 
-  if (loading) return (
-    <div className={styles.loadingWrap}><div className={styles.spinner}/><p>Loading...</p></div>
-  )
+  if (loading) return <Loader text="Loading..." />
 
   const allSellersFlat: any[] = []
   filteredL1Data.forEach((l1: any) => {

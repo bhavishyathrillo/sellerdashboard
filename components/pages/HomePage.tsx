@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './HomePage.module.css'
+import Loader from '@/components/ui/Loader'
 
 interface SellerData {
   seller_email: string
@@ -109,12 +110,7 @@ export default function HomePage({ session }: HomePageProps) {
     load()
   }, [session.email])
 
-  if (loading) return (
-    <div className={styles.loadingWrap}>
-      <div className={styles.spinner} />
-      <p>Loading your overview...</p>
-    </div>
-  )
+  if (loading) return <Loader text="Loading..." />
 
   if (error) return (
     <div className={styles.errorWrap}><p>{error}</p></div>

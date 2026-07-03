@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './SellerViewPage.module.css'
+import Loader from '@/components/ui/Loader'
 
 interface MonthlyTotals {
   total_leads_allotted: number
@@ -176,7 +177,7 @@ function pct(value: number, total: number): number {
   return total > 0 ? Math.round((value / total) * 100) : 0
 }
 
-export default function SellerViewPage({ session }: { session: UserSession }) {
+export default function SellerViewPage({ session, headerCenterContent }: { session: UserSession, headerCenterContent?: React.ReactNode }) {
   const [data, setData] = useState<SellerViewData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -455,7 +456,7 @@ export default function SellerViewPage({ session }: { session: UserSession }) {
     { label: '4+ pax', value: monthly?.pax_4_plus || 0, color: '#6B7280' },
   ]
 
-  if (loading) return <div className={styles.loadingWrap}><div className={styles.spinner} /><p className={styles.loadingText}>Loading…</p></div>
+  if (loading) return <Loader text="Loading..." />
   if (error) return <div className={styles.errorWrap}><span className={styles.errorIcon}>⚠</span><p>{error}</p></div>
 
   return (
@@ -466,6 +467,11 @@ export default function SellerViewPage({ session }: { session: UserSession }) {
           <h1 className={styles.pageTitle}>Lead <span className={styles.pageTitleAccent}>Allocation</span></h1>
           <p className={styles.pageSubtitle}>{session.name} · {isToday ? 'Today' : selectedDate}</p>
         </div>
+        {headerCenterContent && (
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            {headerCenterContent}
+          </div>
+        )}
         <div className={styles.headerRight}>
           <button className={`${styles.todayBtn} ${isToday ? styles.todayBtnActive : ''}`} onClick={() => setSelectedDate(todayStr())}>Today</button>
           <input type="date" className={styles.dateInput} value={selectedDate} onChange={e => setSelectedDate(e.target.value)} max={todayStr()} />
@@ -540,6 +546,83 @@ export default function SellerViewPage({ session }: { session: UserSession }) {
           </div>
         )}
         <div className={styles.timelineContainer}>
+          {(() => {
+            const timelineStartMin = 9 * 60;
+            const timelineEndMin = 21 * 60;
+            const formatMarkerTime = (mins: number) => {
+              const h = Math.floor(mins / 60);
+              const m = mins % 60;
+              const ampm = h >= 12 ? 'PM' : 'AM';
+              let h12 = h % 12;
+              if (h12 === 0) h12 = 12;
+              return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+            };
+            const renderMarker = (minOfDay: number | null, color: string, label: string, isTriangle: boolean) => {
+              if (minOfDay === null) return null;
+              let percent = ((minOfDay - timelineStartMin) / (timelineEndMin - timelineStartMin)) * 100;
+              if (percent < 0) percent = 0;
+              if (percent > 100) percent = 100;
+              
+              // alternate height for appetite vs login to reduce overlap
+              const paddingBottom = isTriangle ? '0' : '8px';
+              
+              return (
+                <div key={label} className="timeline-marker-group" style={{
+                  position: 'absolute', left: `${percent}%`, bottom: '100%', transform: 'translateX(-50%)',
+                  zIndex: 20, pointerEvents: 'auto', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  paddingBottom
+                }}>
+                  <div style={{ fontSize: '9px', color: '#fff', fontWeight: 600, marginBottom: '2px', whiteSpace: 'nowrap', backgroundColor: color, padding: '2px 4px', borderRadius: '3px', boxShadow: '0 1px 2px rgba(0,0,0,0.3)', minWidth: '40px', textAlign: 'center' }}>
+                    <span className="timeline-marker-label">{label}</span>
+                    <span className="timeline-marker-time" style={{ display: 'none' }}>{formatMarkerTime(minOfDay)}</span>
+                  </div>
+                  {isTriangle ? (
+                    <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: `5px solid ${color}` }} />
+                  ) : (
+                    <div style={{ width: '2px', height: isTriangle ? '6px' : '28px', background: color, borderRadius: '1px' }} />
+                  )}
+                </div>
+              )
+            }
+            const firstLoginMin = kekaTime ? (extractTimeParts(kekaTime)?.h || 0) * 60 + (extractTimeParts(kekaTime)?.m || 0) : null;
+            const lastLogoutMin = lastLogout ? (extractTimeParts(lastLogout)?.h || 0) * 60 + (extractTimeParts(lastLogout)?.m || 0) : null;
+
+            let runningLeads = 0;
+            let time50: number | null = null;
+            let time100: number | null = null;
+            const target50 = finalLtaVal / 2;
+            const target100 = finalLtaVal;
+
+            for (const hour of HOUR_SLOTS) {
+              if (time50 && time100) break;
+              runningLeads += (hourlyMap[hour] || 0);
+
+              let isAm = hour.includes('AM');
+              let hStr = hour.replace(/[A-Z]/g, '');
+              let h = parseInt(hStr, 10);
+              if (isAm && h === 12) h = 0;
+              if (!isAm && h !== 12) h += 12;
+              const minOfDay = h * 60 + 30; // center of the bucket
+
+              if (finalLtaVal > 0) {
+                if (runningLeads >= target50 && time50 === null) time50 = minOfDay;
+                if (runningLeads >= target100 && time100 === null) time100 = minOfDay;
+              }
+            }
+
+            return (
+              <>
+                <style>{`
+                  .timeline-marker-group:hover .timeline-marker-label { display: none !important; }
+                  .timeline-marker-group:hover .timeline-marker-time { display: inline !important; }
+                `}</style>
+                {renderMarker(firstLoginMin, '#3B82F6', 'Login', true)}
+                {renderMarker(lastLogoutMin, '#EF4444', 'Logout', true)}
+                {renderMarker(time50, '#EAB308', '50% Appetite', false)}
+                {renderMarker(time100, '#22C55E', '100% Appetite', false)}
+              </>
+            )
+          })()}
           <div className={styles.timelineBlocksRow}>
             {(() => {
               const timelineStartMin = 9 * 60
@@ -685,6 +768,14 @@ export default function SellerViewPage({ session }: { session: UserSession }) {
 
               // 3. Render
               return mergedSegments.map((seg, idx) => {
+                const midPoint = seg.start + (seg.end - seg.start) / 2
+                const percent = ((midPoint - timelineStartMin) / (timelineEndMin - timelineStartMin)) * 100
+                const ttVars = percent < 15 
+                  ? { '--tt-left': '0', '--tt-right': 'auto', '--tt-tx': '0' }
+                  : percent > 85 
+                    ? { '--tt-left': 'auto', '--tt-right': '0', '--tt-tx': '0' }
+                    : { '--tt-left': '50%', '--tt-right': 'auto', '--tt-tx': '-50%' }
+
                 return (
                   <div key={idx} className={styles.tooltipContainer} style={{ flex: seg.widthPercent }}>
                     <button 
@@ -705,7 +796,7 @@ export default function SellerViewPage({ session }: { session: UserSession }) {
                         )
                       ) : null}
                     </button>
-                    <div className={styles.tooltip}>
+                    <div className={styles.tooltip} style={ttVars as any}>
                       <div className={styles.tooltipTime}>{seg.timePrefix}{formatTime(seg.start)} – {formatTime(seg.end)}</div>
                       <div className={styles.tooltipText}>{seg.hoverText}</div>
                     </div>

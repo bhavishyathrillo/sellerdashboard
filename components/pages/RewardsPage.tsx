@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './RewardsPage.module.css'
 import Confetti from '@/components/ui/Confetti'
+import Loader from '@/components/ui/Loader'
 
 interface Props { session: UserSession }
 
@@ -206,7 +207,7 @@ export default function RewardsPage({ session }: Props) {
 
   useEffect(()=>{const t=setTimeout(()=>{if(!rewards||!rewards.goalDone)drawLockedWheel();else drawWheel(0)},200)},[rewards,selectedWheel])
 
-  if(loading)return<div className={styles.loadingWrap}><div className={styles.loadingSpinner}/><p>Loading...</p></div>
+  if (loading) return <Loader text="Loading..." />
   const goalDone=rewards?.goalDone;const pct=rewards?.pct||0;const gapToGoal=Math.max(0,100-pct)
 
   return (

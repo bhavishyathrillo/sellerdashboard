@@ -5,6 +5,7 @@ import { UserSession } from '@/lib/session'
 import styles from './L2SellerViewPage.module.css'
 import sellerStyles from './SellerViewPage.module.css'
 import SellerViewPage from './SellerViewPage'
+import Loader from '@/components/ui/Loader'
 
 const HOUR_SLOTS = ['9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM', '9PM']
 
@@ -199,23 +200,16 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   const members = teamData?.members || []
 
   if (viewMode === 'personal') {
-    return (
-      <div className={styles.page} style={{ paddingTop: '16px', paddingBottom: 0 }}>
-        {members.length > 1 && (
-          <div className={styles.toggleContainer} style={{ marginLeft: '16px', marginTop: '8px', width: 'fit-content' }}>
-            <button className={`${styles.toggleBtn} ${styles.toggleBtnActive}`} onClick={() => setViewMode('personal')}>Personal</button>
-            <button className={styles.toggleBtn} onClick={() => setViewMode('team')}>My Team ({members.length})</button>
-          </div>
-        )}
-        {/* We reuse the exact SellerViewPage completely isolated */}
-        <div style={{ margin: '-24px' }}>
-          <SellerViewPage session={session} />
-        </div>
+    const toggleNode = members.length > 1 ? (
+      <div className={styles.toggleContainer}>
+        <button className={`${styles.toggleBtn} ${(viewMode as string) === 'personal' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('personal')}>Personal</button>
+        <button className={`${styles.toggleBtn} ${(viewMode as string) === 'team' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('team')}>My Team ({members.length})</button>
       </div>
-    )
+    ) : undefined;
+    return <SellerViewPage session={session} headerCenterContent={toggleNode} />
   }
 
-  if (loading) return <div className={styles.page}>Loading TL dashboard...</div>
+  if (loading) return <Loader text="Loading TL dashboard..." />
 
   
   // Make sure the TL is in the members list if not already (backend usually does, but just in case)
@@ -251,17 +245,17 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
     }
   })
   
-  const teamPlanned = enrichedMembers.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : m.lta.planned), 0)
-  const teamDynLta = enrichedMembers.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : m.lta.dynLta), 0)
-  const teamHygLta = enrichedMembers.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : m.lta.hygLta), 0)
-  const teamRev1Lta = enrichedMembers.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : m.lta.rev1Lta), 0)
-  const teamActual = enrichedMembers.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : m.lta.actual), 0)
+  const teamPlanned = enrichedMembers.reduce((sum: number, m: any) => sum + m.lta.planned, 0)
+  const teamDynLta = enrichedMembers.reduce((sum: number, m: any) => sum + m.lta.dynLta, 0)
+  const teamHygLta = enrichedMembers.reduce((sum: number, m: any) => sum + m.lta.hygLta, 0)
+  const teamRev1Lta = enrichedMembers.reduce((sum: number, m: any) => sum + m.lta.rev1Lta, 0)
+  const teamActual = enrichedMembers.reduce((sum: number, m: any) => sum + m.lta.actual, 0)
   
-  const teamDynLost = enrichedMembers.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : m.lta.dynLost), 0)
-  const teamHygLost = enrichedMembers.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : m.lta.hygLost), 0)
-  const teamRev1Lost = enrichedMembers.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : m.lta.rev1Lost), 0)
-  const teamRev2Lost = enrichedMembers.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : m.lta.rev2Lost), 0)
-  const teamLost = enrichedMembers.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : m.lta.totalLost), 0)
+  const teamDynLost = enrichedMembers.reduce((sum: number, m: any) => sum + m.lta.dynLost, 0)
+  const teamHygLost = enrichedMembers.reduce((sum: number, m: any) => sum + m.lta.hygLost, 0)
+  const teamRev1Lost = enrichedMembers.reduce((sum: number, m: any) => sum + m.lta.rev1Lost, 0)
+  const teamRev2Lost = enrichedMembers.reduce((sum: number, m: any) => sum + m.lta.rev2Lost, 0)
+  const teamLost = enrichedMembers.reduce((sum: number, m: any) => sum + m.lta.totalLost, 0)
   
   // Real Top Summary Metrics
   const totalRtg = enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.rtg_leads || 0), 0)
@@ -378,8 +372,8 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
         {members.length > 1 && (
           <div className={styles.toggleContainer}>
-            <button className={styles.toggleBtn} onClick={() => setViewMode('personal')}>Personal</button>
-            <button className={`${styles.toggleBtn} ${styles.toggleBtnActive}`} onClick={() => setViewMode('team')}>My Team ({members.length})</button>
+            <button className={`${styles.toggleBtn} ${(viewMode as string) === 'personal' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('personal')}>Personal</button>
+            <button className={`${styles.toggleBtn} ${(viewMode as string) === 'team' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('team')}>My Team ({members.length})</button>
           </div>
         )}
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
@@ -497,7 +491,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's1' ? null : 's1')}>
         <div className={styles.headerLeft}>
           <span className={styles.chevron} style={{ transform: activeSectionModal === 's1' ? 'rotate(90deg)' : 'none' }}>▶</span>
-          <h2 className={styles.sectionTitle}>S1 · Login & Availability</h2>
+          <h2 className={styles.sectionTitle}>Login & Availability</h2>
         </div>
       </div>
       {activeSectionModal === 's1' && (
@@ -525,7 +519,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                       const b = parseBreaks(m.attendance?.break_timestamps)
                       const delta = minutesBetween(m.attendance?.first_login, m.cti?.logged_in_at)
                       return (
-                        <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} style={late ? { backgroundColor: 'rgba(239,68,68,0.05)' } : {}} onClick={() => setDrillSellerS1(m)}>
+                        <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} style={{ ...(late ? { backgroundColor: 'rgba(239,68,68,0.05)' } : {}), cursor: 'pointer' }} onClick={() => setDrillSellerS1(m)}>
                           <td>
                             {m.seller_name}
                             {m.seller_email === session.email && <span className={styles.youBadge}>(You)</span>}
@@ -550,7 +544,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's2' ? null : 's2')}>
         <div className={styles.headerLeft}>
           <span className={styles.chevron} style={{ transform: activeSectionModal === 's2' ? 'rotate(90deg)' : 'none' }}>▶</span>
-          <h2 className={styles.sectionTitle}>S2 · Break / Unavailability</h2>
+          <h2 className={styles.sectionTitle}>Break / Unavailability</h2>
         </div>
       </div>
       {activeSectionModal === 's2' && (
@@ -601,7 +595,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                         if (b.seller_email === session.email) return 1;
                         return b.b.totalMinutes - a.b.totalMinutes;
                       }).map((m: any) => (
-                        <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerS2(m)}>
+                        <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}` }>
                           <td>
                             {m.seller_name}
                             {m.seller_email === session.email && <span className={styles.youBadge}>(You)</span>}
@@ -624,7 +618,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's3' ? null : 's3')}>
         <div className={styles.headerLeft}>
           <span className={styles.chevron} style={{ transform: activeSectionModal === 's3' ? 'rotate(90deg)' : 'none' }}>▶</span>
-          <h2 className={styles.sectionTitle}>S3 · RTG vs Non-RTG</h2>
+          <h2 className={styles.sectionTitle}>RTG vs Non-RTG</h2>
         </div>
         {activeSectionModal !== 's3' && (
           <div className={styles.headerRight}>
@@ -746,7 +740,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's7' ? null : 's7')}>
         <div className={styles.headerLeft}>
           <span className={styles.chevron} style={{ transform: activeSectionModal === 's7' ? 'rotate(90deg)' : 'none' }}>▶</span>
-          <h2 className={styles.sectionTitle}>S7 · LTA (Lead Time Availability)</h2>
+          <h2 className={styles.sectionTitle}>LTA (Lead Time Availability)</h2>
         </div>
         {activeSectionModal !== 's7' && (
           <div className={styles.headerRight}>
@@ -798,7 +792,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                       return 0;
                     }).map((m: any) => {
                       const isYou = m.seller_email === session.email
-                      const lostPct = (m.lta.totalLost / m.lta.planned) * 100
+                      const lostPct = m.lta.planned > 0 ? (m.lta.totalLost / m.lta.planned) * 100 : 0
                       const actualColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#F59E0B' : '#EF4444'
                       const lostColor = m.lta.totalLost < 3 ? '#22C55E' : m.lta.totalLost <= 6 ? '#F59E0B' : '#EF4444'
                       
@@ -812,13 +806,13 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                             {isYou && <span className={styles.youBadge}>(You)</span>}
                             {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
                           </td>
-                          <td>{m.isAbsent ? '—' : m.lta.planned}</td>
-                          <td style={{color: m.isAbsent ? 'inherit' : actualColor, fontWeight: 600}}>
-                            {m.isAbsent ? '—' : m.lta.actual}
+                          <td>{m.lta.planned}</td>
+                          <td style={{color: actualColor, fontWeight: 600}}>
+                            {m.lta.actual}
                           </td>
-                          <td>{m.isAbsent ? '—' : leads}</td>
-                          <td style={{ color: m.isAbsent ? 'inherit' : fulfPct >= 90 ? '#22C55E' : fulfPct >= 70 ? '#F59E0B' : '#EF4444' }}>
-                            {m.isAbsent ? '—' : `${fulfPct}%`}
+                          <td>{leads}</td>
+                          <td style={{ color: fulfPct >= 90 ? '#22C55E' : fulfPct >= 70 ? '#F59E0B' : '#EF4444' }}>
+                            {`${fulfPct}%`}
                           </td>
                         </tr>
                       )
@@ -833,7 +827,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's8' ? null : 's8')}>
         <div className={styles.headerLeft}>
           <span className={styles.chevron} style={{ transform: activeSectionModal === 's8' ? 'rotate(90deg)' : 'none' }}>▶</span>
-          <h2 className={styles.sectionTitle}>S8 · Goal % & At-Risk</h2>
+          <h2 className={styles.sectionTitle}>Goal % & At-Risk</h2>
         </div>
       </div>
       {activeSectionModal === 's8' && (
@@ -1466,10 +1460,10 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                   const getFunnelDropText = (diff: number, stage: string) => diff < 0 ? `↑ Gained ${Math.abs(diff)} in ${stage}` : `↓ Lost ${diff} in ${stage}`
                   const stages = [
                     { id: 'planned', label: 'PLANNED LTA', value: lta.planned, color: '#3B82F6', dropText: getFunnelDropText(lta.dynLost, 'Dynamic'), width: '100%' },
-                    { id: 'dynamic', label: 'DYNAMIC LTA', value: lta.dynLta, color: '#EAB308', dropText: getFunnelDropText(lta.hygLost, 'Hygiene'), width: '85%' },
-                    { id: 'hygiene', label: 'HYGIENE LTA', value: lta.hygLta, color: '#F97316', dropText: getFunnelDropText(lta.rev1Lost, 'Goal Complete'), width: '70%' },
+                    { id: 'dynamic', label: 'DYNAMIC LTA', value: lta.dynLta, color: '#EAB308', dropText: getFunnelDropText(lta.hygLost, 'Hygiene'), width: '88%' },
+                    { id: 'hygiene', label: 'HYGIENE LTA', value: lta.hygLta, color: '#F97316', dropText: getFunnelDropText(lta.rev1Lost, 'Goal Complete'), width: '74%' },
                     { id: 'goalComplete', label: 'GOAL COMPLETE LTA', value: lta.rev1Lta, color: '#8B5CF6', dropText: getFunnelDropText(lta.rev2Lost, 'Final'), width: '60%' },
-                    { id: 'final', label: 'FINAL LTA', value: lta.actual, color: '#22C55E', dropText: null, width: '50%' },
+                    { id: 'final', label: 'FINAL LTA', value: lta.actual, color: '#22C55E', dropText: null, width: '48%' },
                   ]
                   return stages.map((step, idx) => (
                     <div key={step.id} className={sellerStyles.ltaFunnelStepWrap} style={{ animationDelay: `${idx * 0.15}s` } as any}>
@@ -1499,7 +1493,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       {/* Team Funnel Modal */}
       {showTeamFunnel && (
         <div className={sellerStyles.modalOverlay} onClick={() => setShowTeamFunnel(false)}>
-          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '400px' }}>
+          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '500px', width: '540px' }}>
             <button className={sellerStyles.modalClose} onClick={() => setShowTeamFunnel(false)}>✕</button>
             <div className={sellerStyles.modalHeader}>
               <span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} />
@@ -1584,12 +1578,122 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
               </div>
             </div>
             
-            <div className={sellerStyles.timelineSection} style={{ padding: '24px', background: '#1a1a1a', margin: 0 }}>
+            <div className={sellerStyles.timelineSection}>
               <div className={sellerStyles.timelineHeader}>
                 <div className={sellerStyles.timelineTitle}>Today's lead timeline</div>
                 <div className={sellerStyles.timelineSub}>9 AM – 9 PM · hover for details</div>
               </div>
               <div className={sellerStyles.timelineContainer}>
+                {(() => {
+                  const timelineStartMin = 9 * 60;
+                  const timelineEndMin = 21 * 60;
+                  const formatMarkerTime = (mins: number) => {
+                    const h = Math.floor(mins / 60);
+                    const m = mins % 60;
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    let h12 = h % 12;
+                    if (h12 === 0) h12 = 12;
+                    return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+                  };
+
+                  const renderMarker = (minOfDay: number | null, color: string, label: string, isTriangle: boolean) => {
+                    if (minOfDay === null) return null;
+                    let percent = ((minOfDay - timelineStartMin) / (timelineEndMin - timelineStartMin)) * 100;
+                    if (percent < 0) percent = 0;
+                    if (percent > 100) percent = 100;
+                    
+                    const paddingBottom = isTriangle ? '0' : '8px';
+                    
+                    return (
+                      <div key={label} className="timeline-marker-group" style={{
+                        position: 'absolute', left: `${percent}%`, bottom: '100%', transform: 'translateX(-50%)',
+                        zIndex: 20, pointerEvents: 'auto', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center',
+                        paddingBottom
+                      }}>
+                        <div style={{ fontSize: '9px', color: '#fff', fontWeight: 600, marginBottom: '2px', whiteSpace: 'nowrap', backgroundColor: color, padding: '2px 4px', borderRadius: '3px', boxShadow: '0 1px 2px rgba(0,0,0,0.3)', minWidth: '40px', textAlign: 'center' }}>
+                          <span className="timeline-marker-label">{label}</span>
+                          <span className="timeline-marker-time" style={{ display: 'none' }}>{formatMarkerTime(minOfDay)}</span>
+                        </div>
+                        {isTriangle ? (
+                          <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: `5px solid ${color}` }} />
+                        ) : (
+                          <div style={{ width: '2px', height: isTriangle ? '6px' : '28px', background: color, borderRadius: '1px' }} />
+                        )}
+                      </div>
+                    )
+                  }
+
+                  const kekaTime = drillSellerS1.attendance?.first_login;
+                  const lastLogout = drillSellerS1.attendance?.last_logout;
+                  const finalLtaVal = drillSellerS1.daily_lta?.final_lta || 0;
+
+                  const firstLoginMin = kekaTime ? (extractTimeParts(kekaTime)?.h || 0) * 60 + (extractTimeParts(kekaTime)?.m || 0) : null;
+                  const lastLogoutMin = lastLogout ? (extractTimeParts(lastLogout)?.h || 0) * 60 + (extractTimeParts(lastLogout)?.m || 0) : null;
+
+                  let runningLeads = 0;
+                  let time50: number | null = null;
+                  let time100: number | null = null;
+                  const target50 = finalLtaVal / 2;
+                  const target100 = finalLtaVal;
+
+                  const hourlyData = drillSellerS1.hourly || [];
+                  const hourlyMapTemp: Record<string, number> = {};
+                  hourlyData.forEach((h: any) => {
+                    let bucket: string = (h.hour_bucket?.toString()?.toUpperCase() || '');
+                    if (bucket.includes(':')) {
+                      const parts = extractTimeParts(bucket);
+                      if (parts) {
+                        const ampm = parts.h >= 12 ? 'PM' : 'AM';
+                        let h12 = parts.h % 12;
+                        if (h12 === 0) h12 = 12;
+                        bucket = `${h12}${ampm}`;
+                      }
+                    } else {
+                      const match = bucket.match(/^(\d+)/);
+                      if (match) {
+                        const hr = parseInt(match[1], 10);
+                        const ampm = hr >= 12 ? 'PM' : 'AM';
+                        let h12 = hr % 12;
+                        if (h12 === 0) h12 = 12;
+                        bucket = `${h12}${ampm}`;
+                      } else {
+                        bucket = bucket.replace(/\s+/g, '');
+                      }
+                    }
+                    const numLeads = Number(h.leads_allotted_in_bucket) || 0;
+                    hourlyMapTemp[bucket] = (hourlyMapTemp[bucket] || 0) + numLeads;
+                  });
+
+                  for (const hour of HOUR_SLOTS) {
+                    if (time50 && time100) break;
+                    runningLeads += (hourlyMapTemp[hour] || 0);
+
+                    let isAm = hour.includes('AM');
+                    let hStr = hour.replace(/[A-Z]/g, '');
+                    let h = parseInt(hStr, 10);
+                    if (isAm && h === 12) h = 0;
+                    if (!isAm && h !== 12) h += 12;
+                    const minOfDay = h * 60 + 30; // center of the bucket
+
+                    if (finalLtaVal > 0) {
+                      if (runningLeads >= target50 && time50 === null) time50 = minOfDay;
+                      if (runningLeads >= target100 && time100 === null) time100 = minOfDay;
+                    }
+                  }
+
+                  return (
+                    <>
+                      <style>{`
+                        .timeline-marker-group:hover .timeline-marker-label { display: none !important; }
+                        .timeline-marker-group:hover .timeline-marker-time { display: inline !important; }
+                      `}</style>
+                      {renderMarker(firstLoginMin, '#3B82F6', 'Login', true)}
+                      {renderMarker(lastLogoutMin, '#EF4444', 'Logout', true)}
+                      {renderMarker(time50, '#EAB308', '50% Appetite', false)}
+                      {renderMarker(time100, '#22C55E', '100% Appetite', false)}
+                    </>
+                  )
+                })()}
                 <div className={sellerStyles.timelineBlocksRow}>
                   {(() => {
                     const timelineStartMin = 9 * 60;
@@ -1635,7 +1739,32 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                     }
 
                     const hourlyData = drillSellerS1.hourly || [];
-                    const hourlyMap = Object.fromEntries(hourlyData.map((h: any) => [h.hour_bucket, h.leads_allotted_in_bucket || 0]));
+                    const hourlyMap: Record<string, number> = {};
+                    hourlyData.forEach((h: any) => {
+                      let bucket: string = (h.hour_bucket?.toString()?.toUpperCase() || '');
+                      if (bucket.includes(':')) {
+                        const parts = extractTimeParts(bucket);
+                        if (parts) {
+                          const ampm = parts.h >= 12 ? 'PM' : 'AM';
+                          let h12 = parts.h % 12;
+                          if (h12 === 0) h12 = 12;
+                          bucket = `${h12}${ampm}`;
+                        }
+                      } else {
+                        const match = bucket.match(/^(\d+)/);
+                        if (match) {
+                          const hr = parseInt(match[1], 10);
+                          const ampm = hr >= 12 ? 'PM' : 'AM';
+                          let h12 = hr % 12;
+                          if (h12 === 0) h12 = 12;
+                          bucket = `${h12}${ampm}`;
+                        } else {
+                          bucket = bucket.replace(/\s+/g, '');
+                        }
+                      }
+                      const numLeads = Number(h.leads_allotted_in_bucket) || 0;
+                      hourlyMap[bucket] = (hourlyMap[bucket] || 0) + numLeads;
+                    });
                     const availableLeads = { ...hourlyMap };
                     
                     const formatMinTime = (mins: number) => {
@@ -1726,30 +1855,39 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                     }
                     if (current) mergedSegments.push(current);
 
-                    return mergedSegments.map((seg, idx) => (
-                      <div key={idx} className={sellerStyles.tooltipContainer} style={{ flex: seg.widthPercent }}>
-                        <button 
-                          className={[sellerStyles.timelineBlock, seg.blockClass].join(' ')} 
-                          style={{ width: '100%' }}
-                          onClick={() => setActiveBlockS1({ hour: seg.hourBucket, leads: seg.leads, eligible: seg.eligible, isBreak: seg.isBreak, isLateAllocation: seg.isLateAllocation, isReady: seg.isReady })}
-                        >
-                          {seg.widthPercent >= 3 ? (
-                            seg.leads > 0 ? (
-                              <>
-                                <span className={sellerStyles.blockLeadCount}>{seg.leads}</span>
-                                {seg.isBreak && !seg.eligible && <span className={sellerStyles.blockBreakText}>BREAK</span>}
-                              </>
-                            ) : (
-                              seg.isBreak && seg.widthPercent >= 6 ? <span className={sellerStyles.blockBreakText} style={{marginTop: 0}}>BREAK</span> : null
-                            )
-                          ) : null}
-                        </button>
-                        <div className={sellerStyles.tooltip}>
-                          <div className={sellerStyles.tooltipTime}>{seg.timePrefix}{formatMinTime(seg.start)} – {formatMinTime(seg.end)}</div>
-                          <div className={sellerStyles.tooltipText}>{seg.hoverText}</div>
+                    return mergedSegments.map((seg, idx) => {
+                      const midPoint = seg.start + (seg.end - seg.start) / 2;
+                      const percent = ((midPoint - timelineStartMin) / (timelineEndMin - timelineStartMin)) * 100;
+                      const ttVars = percent < 15
+                        ? { '--tt-left': '0', '--tt-right': 'auto', '--tt-tx': '0' }
+                        : percent > 85
+                          ? { '--tt-left': 'auto', '--tt-right': '0', '--tt-tx': '0' }
+                          : { '--tt-left': '50%', '--tt-right': 'auto', '--tt-tx': '-50%' };
+                      return (
+                        <div key={idx} className={sellerStyles.tooltipContainer} style={{ flex: seg.widthPercent }}>
+                          <button
+                            className={[sellerStyles.timelineBlock, seg.blockClass].join(' ')}
+                            style={{ width: '100%' }}
+                            onClick={() => setActiveBlockS1({ hour: seg.hourBucket, leads: seg.leads, eligible: seg.eligible, isBreak: seg.isBreak, isLateAllocation: seg.isLateAllocation, isReady: seg.isReady })}
+                          >
+                            {seg.widthPercent >= 3 ? (
+                              seg.leads > 0 ? (
+                                <>
+                                  <span className={sellerStyles.blockLeadCount}>{seg.leads}</span>
+                                  {seg.isBreak && !seg.eligible && <span className={sellerStyles.blockBreakText}>BREAK</span>}
+                                </>
+                              ) : (
+                                seg.isBreak && seg.widthPercent >= 6 ? <span className={sellerStyles.blockBreakText} style={{marginTop: 0}}>BREAK</span> : null
+                              )
+                            ) : null}
+                          </button>
+                          <div className={sellerStyles.tooltip} style={ttVars as any}>
+                            <div className={sellerStyles.tooltipTime}>{seg.timePrefix}{formatMinTime(seg.start)} – {formatMinTime(seg.end)}</div>
+                            <div className={sellerStyles.tooltipText}>{seg.hoverText}</div>
+                          </div>
                         </div>
-                      </div>
-                    ));
+                      );
+                    });
                   })()}
                 </div>
                 <div className={sellerStyles.timelineLabelsRow} style={{ position: 'relative', height: '20px', marginTop: '4px' }}>

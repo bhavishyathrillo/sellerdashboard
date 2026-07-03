@@ -26,7 +26,7 @@ export async function GET() {
       let query = supabase
         .from('mhl_mho')
         .select('id, lead_id, stage, owner_email, last_call, mhl_mho, updated_at')
-        .eq('mhl_mho', 'Mishandled')
+        .ilike('mhl_mho', 'MISHANDLED')
         .order('id', { ascending: true })
         .limit(pageSize)
 

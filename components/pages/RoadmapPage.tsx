@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './RoadmapPage.module.css'
+import Loader from '@/components/ui/Loader'
 
 interface RoadmapData {
   seller_email: string; seller_name: string; l2_name: string; l1_name: string
@@ -301,12 +302,7 @@ export default function RoadmapPage({ session }: Props) {
   const toggleL2 = (email: string) => setExpandedL2((p:any)=>({...p,[email]:!p[email]}))
   const toggleSeller = (email: string) => setExpandedSellers((p:any)=>({...p,[email]:!p[email]}))
 
-  if (loading) return (
-    <div className={styles.loading}>
-      <div className={styles.spinner}/>
-      <p style={{color:'#8A8278',marginTop:'12px'}}>Loading roadmap...</p>
-    </div>
-  )
+  if (loading) return <Loader text="Loading..." />
 
   // ========== L1 VIEW ==========
   if (isL1) {

@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './PerformancePage.module.css'
+import Loader from '@/components/ui/Loader'
 
 interface Props { session: UserSession }
 
@@ -203,7 +204,7 @@ export default function PerformancePage({ session }: Props) {
     return false
   }
 
-  if (loading) return <div className={styles.loading}>Loading...</div>
+  if (loading) return <Loader text="Loading..." />
   if (!data && !isL1) return <div className={styles.empty}>No performance data found</div>
 
   const team = (teamData?.team || []).filter(filterSeller)

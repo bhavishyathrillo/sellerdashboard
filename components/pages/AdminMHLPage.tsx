@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import styles from './MHLPage.module.css'
+import Loader from '@/components/ui/Loader'
 
 interface Lead {
   id: number
@@ -98,7 +99,7 @@ export default function AdminMHLPage() {
 
   const toggleStage = (stage: string) => setExpandedStage((p: any) => ({ ...p, [stage]: !p[stage] }))
 
-  if (loading) return <div className={styles.loadingWrap}><div className={styles.spinner}/><p>Loading...</p></div>
+  if (loading) return <Loader text="Loading..." />
 
   const totalLeads = l1Data.reduce((s: number, l: any) => s + l.total_leads, 0)
 

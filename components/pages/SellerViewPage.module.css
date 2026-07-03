@@ -352,7 +352,7 @@
     display: flex;
     align-items: baseline;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 40px;
   }
 
   .timelineTitle {
@@ -368,6 +368,7 @@
 
   .timelineContainer {
     position: relative;
+    margin: 50px 24px 0 24px;
   }
 
   .timelineBlocksRow {
@@ -465,6 +466,7 @@
     display: flex;
     padding-right: 4px;
     box-sizing: border-box;
+    min-width: 0;
   }
   
   .tooltipContainer:last-child {
@@ -476,8 +478,9 @@
     opacity: 0;
     position: absolute;
     bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%) translateY(4px);
+    left: var(--tt-left, 50%);
+    right: var(--tt-right, auto);
+    transform: translateX(var(--tt-tx, -50%)) translateY(4px);
     background: #1A1A1A;
     border: 1px solid #333;
     color: #fff;
@@ -507,7 +510,7 @@
   .tooltipContainer:hover .tooltip {
     visibility: visible;
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateX(var(--tt-tx, -50%)) translateY(0);
   }
 
   /* ── Modals ── */
