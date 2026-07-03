@@ -165,7 +165,7 @@ export default function Home() {
           {activePage === 'roadmap' && <RoadmapPage session={session} />}
 
           {activePage === 'home' && isAdmin && (
-            <AdminOverviewPage />
+            <AdminOverviewPage session={session} />
           )}
           {activePage === 'home' && !isAdmin && session.role === 'L1' && (
             <L1HomePage session={session} />

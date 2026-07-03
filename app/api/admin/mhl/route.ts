@@ -26,6 +26,7 @@ export async function GET() {
       let query = supabase
         .from('mhl_mho')
         .select('id, lead_id, stage, owner_email, last_call, mhl_mho, updated_at')
+        .ilike('mhl_mho', '%mishandled%')
         .order('id', { ascending: true })
         .limit(pageSize)
 
@@ -51,6 +52,7 @@ export async function GET() {
     srsData.forEach((row: any) => {
       const l1Email = cleanEmail(row.l1_email || '')
       if (!l1Email) return
+      
       if (!l1Map.has(l1Email)) l1Map.set(l1Email, {
         l1_name: row.l1_name || l1Email.split('@')[0],
         l1_email: l1Email,
