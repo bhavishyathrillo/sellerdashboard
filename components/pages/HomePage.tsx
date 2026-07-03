@@ -216,10 +216,10 @@ export default function HomePage({ session }: HomePageProps) {
             const wpct = w.goal > 0 ? (w.achieved / w.goal) * 100 : 0
             return (
               <div key={w.label} className={styles.weekCard}>
-                <div className={styles.weekHeader}><span className={styles.weekLabel}>{w.label}</span><span className={styles.weekPct}>{wpct.toFixed(0)}%</span></div>
-                <div className={styles.weekRow}><span className={styles.weekSub}>Goal</span><span className={styles.weekVal}>{fmt(w.goal)}</span></div>
-                <div className={styles.weekRow}><span className={styles.weekSub}>Achieved</span><span className={`${styles.weekVal} ${styles.brandColor}`}>{fmt(w.achieved)}</span></div>
-                <div className={styles.weekBar}><div className={styles.weekBarFill} style={{ width: `${Math.min(wpct, 100)}%` }} /></div>
+                <div className={styles.weekHeader}><span className={styles.weekLabel}>{w.label}</span></div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'center',flex:1,color:'#8A8278',fontSize:'0.75rem',marginTop:'1rem',marginBottom:'1rem'}}>
+                  Data will come soon
+                </div>
               </div>
             )
           })}
@@ -229,9 +229,9 @@ export default function HomePage({ session }: HomePageProps) {
       <div className={styles.bottomGrid}>
         <div className={styles.infoCard}>
           <h3 className={styles.infoTitle}>Incentives</h3>
-          <div className={styles.infoRow}><span className={styles.infoLabel}>Final Incentive</span><span className={styles.infoValue}>{fmt(data.final_incentives)}</span></div>
-          <div className={styles.infoRow}><span className={styles.infoLabel}>To be Disbursed</span><span className={`${styles.infoValue} ${styles.brandColor}`}>{fmt(data.final_amount_to_be_disbursed)}</span></div>
-          <div className={styles.infoRow}><span className={styles.infoLabel}>Last Payment</span><span className={styles.infoValue}>{data.last_payment_date || '-'}</span></div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'80px',color:'#8A8278',fontSize:'0.75rem'}}>
+            Data will come soon
+          </div>
         </div>
         <div className={styles.infoCard}>
           <h3 className={styles.infoTitle}>Flight Adoption</h3>
@@ -241,9 +241,9 @@ export default function HomePage({ session }: HomePageProps) {
         </div>
         <div className={styles.infoCard}>
           <h3 className={styles.infoTitle}>Impacts</h3>
-          <div className={styles.infoRow}><span className={styles.infoLabel}>Cancellation</span><span className={styles.infoValue} style={{ color: data.cancellation_impact < 0 ? '#EF4444' : '#F0EDE8' }}>{fmt(data.cancellation_impact)}</span></div>
-          <div className={styles.infoRow}><span className={styles.infoLabel}>Escalation</span><span className={styles.infoValue} style={{ color: data.escalation_impacts < 0 ? '#EF4444' : '#F0EDE8' }}>{fmt(data.escalation_impacts)}</span></div>
-          <div className={styles.infoRow}><span className={styles.infoLabel}>L1 Manager</span><span className={styles.infoValue}>{data.l2_name}</span></div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'80px',color:'#8A8278',fontSize:'0.75rem'}}>
+            Data will come soon
+          </div>
         </div>
       </div>
     </div>

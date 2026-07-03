@@ -14,7 +14,8 @@ export async function GET(req: Request) {
 
   if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
 
-  const today = new Date().toISOString().split('T')[0]
+  // Add 5.5 hours (19800000 ms) to get IST date string
+  const today = new Date(Date.now() + 19800000).toISOString().split('T')[0]
 
   // Get seller's required daily from srs_raw
 const { data: srsData } = await supabase
@@ -96,7 +97,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Email and value required' }, { status: 400 })
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  // Add 5.5 hours (19800000 ms) to get IST date string
+  const today = new Date(Date.now() + 19800000).toISOString().split('T')[0]
 
   // Check already submitted
   const { data: existing } = await supabase

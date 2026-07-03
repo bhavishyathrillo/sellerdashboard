@@ -49,7 +49,7 @@ export default function ThrillNews({ email, role }: Props) {
 
         // 3. Pipeline check
         try {
-          const today = new Date().toISOString().split('T')[0]
+          const today = new Date(Date.now() + 19800000).toISOString().split('T')[0]
           const pipelineRes = await fetch(`/api/pipeline/check?email=${encodeURIComponent(email)}&date=${today}`)
           const pipelineCheck = await pipelineRes.json()
           if (pipelineCheck?.submitted) {

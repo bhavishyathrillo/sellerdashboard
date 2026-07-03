@@ -22,8 +22,7 @@ export async function GET() {
     const l1Data: any[] = []
     for (const [l1Email, l1Name] of l1Map.entries()) {
       const sellers = allRows.filter((s: any) => s.l1_email?.toLowerCase().trim() === l1Email)
-      const team = sellers.filter((s: any) => s.seller_email?.toLowerCase().trim() !== l1Email)
-
+      const team = sellers;
       const totalGoal = team.reduce((s: number, r: any) => s + (r.bottomline_goal_monthly || 0), 0)
       const totalAch = team.reduce((s: number, r: any) => s + (r.actual_achieved_monthly || 0), 0)
       const totalShb = team.reduce((s: number, r: any) => s + (r.should_have_been_monthly || 0), 0)
@@ -35,13 +34,13 @@ export async function GET() {
       const l2Groups = l2Emails.map((l2Email: string) => {
         const key = l2Email.toLowerCase().trim()
         const l2 = allRows.find((r: any) => r.seller_email?.toLowerCase().trim() === key) || {}
-        const l2Sellers = team.filter((s: any) => s.l2_email?.toLowerCase().trim() === key && s.seller_email?.toLowerCase().trim() !== key)
+        const l2Sellers = team.filter((s: any) => s.l2_email?.toLowerCase().trim() === key)
         const l2Goal = l2.bottomline_goal_monthly || 0
         const l2Ach = l2.actual_achieved_monthly || 0
         const l2Shb = l2.should_have_been_monthly || 0
         const l2Pct = l2Goal > 0 ? (l2Ach / l2Goal) * 100 : 0
         return {
-          l2_name: l2.seller_name || l2Email.split('@')[0], l2_email: l2Email,
+          l2_name: l2Sellers[0]?.l2_name || l2.seller_name || l2Email.split('@')[0], l2_email: l2Email,
           goal: l2Goal, achieved: l2Ach, shb: l2Shb, pct: l2Pct,
           seller_count: l2Sellers.length,
           sellers: l2Sellers.map((s: any) => ({

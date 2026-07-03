@@ -68,7 +68,8 @@ export default function Home() {
 
   const checkPipelineAndRoute = async (s: UserSession) => {
     try {
-      const today = new Date().toISOString().split('T')[0]
+      // Add 5.5 hours (19800000 ms) to get IST date string
+      const today = new Date(Date.now() + 19800000).toISOString().split('T')[0]
       const res = await fetch(`/api/pipeline/check?email=${s.email}&date=${today}`)
       const json = await res.json()
       setState(json.submitted ? 'dashboard' : 'pipeline_gate')
@@ -146,25 +147,6 @@ export default function Home() {
             <SelectPersonaPage session={session} />
           )}
 
-          {activePage === 'home' && isAdmin && (
-            <AdminOverviewPage />
-          )}
-
-          {activePage === 'home' && !isAdmin && session.role === 'L1' && (
-            <L1HomePage session={session} />
-          )}
-
-          {activePage === 'home' && !isAdmin && session.role !== 'L1' && (
-            <HomePage session={session} />
-          )}
-
-          {activePage === 'performance' && isAdmin && (
-            <AdminPerformancePage />
-          )}
-          {activePage === 'performance' && !isAdmin && (
-            <PerformancePage session={session} />
-          )}
-
           {activePage === 'mhl' && isAdmin && (
             <AdminMHLPage />
           )}
@@ -177,6 +159,29 @@ export default function Home() {
           )}
           {activePage === 'pipeline' && !isAdmin && (
             <PipelinePage session={session} />
+          )}
+
+          {activePage === 'priority' && (
+            <PriorityPage session={session} />
+          )}
+
+          {activePage === 'roadmap' && <RoadmapPage session={session} />}
+
+          {activePage === 'home' && isAdmin && (
+            <AdminOverviewPage session={session} />
+          )}
+          {activePage === 'home' && !isAdmin && session.role === 'L1' && (
+            <L1HomePage session={session} />
+          )}
+          {activePage === 'home' && !isAdmin && session.role !== 'L1' && (
+            <HomePage session={session} />
+          )}
+
+          {activePage === 'performance' && isAdmin && (
+            <AdminPerformancePage />
+          )}
+          {activePage === 'performance' && !isAdmin && (
+            <PerformancePage session={session} />
           )}
 
           {activePage === 'hygiene' && isAdmin && (
@@ -201,9 +206,7 @@ export default function Home() {
           {activePage === 'seller-view' && !isAdmin && session.role !== 'L1' && session.role !== 'L2' && (
             <SellerViewPage session={session} />
           )}
-
           {activePage === 'leaderboard' && <LeaderboardPage session={session} />}
-          {activePage === 'roadmap'     && <RoadmapPage session={session} />}
           {activePage === 'rewards'     && <RewardsPage session={session} />}
           {activePage === 'calendar'    && <CalendarPage session={session} />}
           {activePage === 'ttk'         && <TTKPage />}

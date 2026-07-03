@@ -68,6 +68,7 @@ export default function LeaderboardPage({ session }: Props) {
   const [showAll, setShowAll] = useState(false)
   const [allRegions, setAllRegions] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<'overall' | 'team'>('overall')
+  const [month, setMonth] = useState<'current' | 'prev'>('current')
 
   // Admin has no team toggle — removed ADMIN from isManager
   const isManager = ['L1', 'L2', 'MODERATOR'].includes(session.role)
@@ -75,7 +76,7 @@ export default function LeaderboardPage({ session }: Props) {
 
   useEffect(() => {
     loadData()
-  }, [haul, region])
+  }, [haul, region, month])
 
   async function loadData() {
     setLoading(true)
@@ -83,6 +84,7 @@ export default function LeaderboardPage({ session }: Props) {
       const params = new URLSearchParams()
       if (haul) params.set('haul', haul)
       if (region) params.set('region', region)
+      params.set('month', month)
       
       const res = await fetch(`/api/seller/leaderboard?${params}`)
       const data = await res.json()
@@ -96,7 +98,7 @@ export default function LeaderboardPage({ session }: Props) {
     
     if (isManager) {
       try {
-        const teamRes = await fetch(`/api/seller/team-performance?email=${encodeURIComponent(session.email)}&role=${session.role}`)
+        const teamRes = await fetch(`/api/seller/team-performance?email=${encodeURIComponent(session.email)}&role=${session.role}&month=${month}`)
         const teamData = await teamRes.json()
         if (teamData?.team) {
           const sorted = [...teamData.team].sort((a: any, b: any) => 
@@ -146,30 +148,51 @@ export default function LeaderboardPage({ session }: Props) {
           <span className={styles.heroEmoji}><CrownIcon /></span>
           <h1 className={styles.heroTitle}>Leaderboard</h1>
           <p className={styles.heroSub}>Where legends are made</p>
+          
+          {/* Month Toggle Centered */}
+          <div style={{display:'flex',justifyContent:'center',marginTop:'16px'}}>
+            <div style={{display:'flex',gap:'3px',background:'#141414',border:'1px solid #232323',borderRadius:'8px',padding:'3px',boxShadow:'0 4px 12px rgba(0,0,0,0.2)'}}>
+              <button onClick={() => setMonth('current')} style={{
+                padding:'7px 16px',border:'none',borderRadius:'6px',
+                background: month==='current'?'rgba(244,99,30,0.15)':'transparent',
+                color: month==='current'?'#F4631E':'#8A8278',
+                cursor:'pointer',fontSize:'0.75rem',fontWeight:600,transition:'all 0.2s'
+              }}>This Month</button>
+              <button onClick={() => setMonth('prev')} style={{
+                padding:'7px 16px',border:'none',borderRadius:'6px',
+                background: month==='prev'?'rgba(244,99,30,0.15)':'transparent',
+                color: month==='prev'?'#F4631E':'#8A8278',
+                cursor:'pointer',fontSize:'0.75rem',fontWeight:600,transition:'all 0.2s'
+              }}>Prev Month</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Toggle + Filters */}
-      <div style={{display:'flex',justifyContent:'center',gap:'12px',marginBottom:'16px',flexWrap:'wrap',alignItems:'center'}}>
-        {/* Only show My Team toggle for non-admin managers */}
+      {/* Header & View Toggles */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'24px',flexWrap:'wrap',gap:'16px'}}>
+        <div />
+
         {isManager && !isAdmin && (
-          <div style={{display:'flex',gap:'4px',background:'#141414',borderRadius:'8px',padding:'3px'}}>
+          <div style={{display:'flex',gap:'3px',background:'#141414',border:'1px solid #232323',borderRadius:'8px',padding:'3px'}}>
             <button onClick={() => setViewMode('overall')} style={{
-              padding:'8px 16px',border:'none',borderRadius:'6px',
-              background: viewMode === 'overall' ? '#F4631E' : 'transparent',
-              color: viewMode === 'overall' ? '#fff' : '#8A8278',
-              cursor:'pointer',fontSize:'0.72rem',fontWeight:600,transition:'all 0.2s'
+              padding:'7px 16px',border:'none',borderRadius:'6px',
+              background: viewMode==='overall'?'rgba(244,99,30,0.15)':'transparent',
+              color: viewMode==='overall'?'#F4631E':'#8A8278',
+              cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
             }}>Overall</button>
             <button onClick={() => setViewMode('team')} style={{
-              padding:'8px 16px',border:'none',borderRadius:'6px',
-              background: viewMode === 'team' ? '#F4631E' : 'transparent',
-              color: viewMode === 'team' ? '#fff' : '#8A8278',
-              cursor:'pointer',fontSize:'0.72rem',fontWeight:600,transition:'all 0.2s'
-            }}>My Team ({teamSellers.length})</button>
+              padding:'7px 16px',border:'none',borderRadius:'6px',
+              background: viewMode==='team'?'rgba(244,99,30,0.15)':'transparent',
+              color: viewMode==='team'?'#F4631E':'#8A8278',
+              cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
+            }}>My Team</button>
           </div>
         )}
+      </div>
 
-        {/* Haul/Region filters for overall view */}
+      {/* Filters */}
+      <div style={{display:'flex',justifyContent:'center',gap:'12px',marginBottom:'16px',flexWrap:'wrap',alignItems:'center'}}>
         {viewMode === 'overall' && (
           <>
             <select value={haul} onChange={e => setHaul(e.target.value)} className={styles.filter}>
