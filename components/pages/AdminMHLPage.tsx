@@ -193,14 +193,7 @@ export default function AdminMHLPage() {
     }).filter(l1 => l1.total_leads > 0)
   }, [rawL1Data, stageFilter])
 
-  const particles = useMemo(() => {
-    return Array.from({ length: 30 }).map(() => ({
-      left: `${Math.random() * 100}%`,
-      delay: `${Math.random() * 8}s`,
-      dur: `${6 + Math.random() * 10}s`,
-      size: `${2 + Math.random() * 4}px`
-    }))
-  }, [])
+  // particles removed
 
   useEffect(() => {
     fetch('/api/admin/mhl')
@@ -247,11 +240,6 @@ export default function AdminMHLPage() {
   return (
     <><style>{CSS}</style>
     <div className="ov">
-      <div className="ov-particles">
-        {particles.map((p, i) => (
-          <div key={i} className="ov-particle" style={{ left: p.left, animationDelay: p.delay, animationDuration: p.dur, width: p.size, height: p.size }}/>
-        ))}
-      </div>
 
       <div className="ov-hdr">
         <div>
@@ -327,6 +315,15 @@ export default function AdminMHLPage() {
                 <div style={{textAlign:'right'}}>
                   <div style={{fontWeight:900,fontSize:'1.4rem',color:'#EF4444',lineHeight:'1'}}>{l1.total_leads}</div>
                   <div style={{fontSize:'0.6rem',color:'#8A8278',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:'4px'}}>Leads</div>
+                  {l1.mhe_pct !== undefined && (
+                    <div style={{ marginTop: '6px', fontSize: '0.65rem', fontWeight: 700,
+                      color: l1.mhe_pct >= 30 ? '#EF4444' : l1.mhe_pct >= 15 ? '#F59E0B' : '#22C55E',
+                      background: l1.mhe_pct >= 30 ? 'rgba(239,68,68,0.1)' : l1.mhe_pct >= 15 ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)',
+                      border: `1px solid ${l1.mhe_pct >= 30 ? 'rgba(239,68,68,0.2)' : l1.mhe_pct >= 15 ? 'rgba(245,158,11,0.2)' : 'rgba(34,197,94,0.2)'}`,
+                      padding: '2px 8px', borderRadius: '20px', display: 'inline-block' }}>
+                      {l1.mhe_pct}% MHE
+                    </div>
+                  )}
                 </div>
               </div>
               <div style={{height:'4px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',overflow:'hidden'}}>
@@ -346,7 +343,16 @@ export default function AdminMHLPage() {
                   <div style={{fontWeight:600, fontSize:'0.85rem', color:'#E8E4DD'}}>{l2.l2_name}</div>
                   <div style={{fontSize:'0.65rem', color:'#8A8278', marginTop:'4px'}}>{l2.seller_count} Sellers</div>
                 </div>
-                <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                  {l2.mhe_pct !== undefined && (
+                    <span style={{ fontSize: '0.6rem', fontWeight: 700,
+                      color: l2.mhe_pct >= 30 ? '#EF4444' : l2.mhe_pct >= 15 ? '#F59E0B' : '#22C55E',
+                      background: l2.mhe_pct >= 30 ? 'rgba(239,68,68,0.1)' : l2.mhe_pct >= 15 ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)',
+                      border: `1px solid ${l2.mhe_pct >= 30 ? 'rgba(239,68,68,0.2)' : l2.mhe_pct >= 15 ? 'rgba(245,158,11,0.2)' : 'rgba(34,197,94,0.2)'}`,
+                      padding: '2px 8px', borderRadius: '20px' }}>
+                      {l2.mhe_pct}% MHE
+                    </span>
+                  )}
                   <span className="ov-badge" style={{color:'#D4AF37', background:'rgba(212,175,76,0.1)', borderColor:'rgba(212,175,76,0.2)'}}>{l2.total_leads} Leads</span>
                   <span className="ov-acc-chev" style={{transform:'rotate(0deg)'}}>▶</span>
                 </div>
@@ -363,8 +369,18 @@ export default function AdminMHLPage() {
               <div key={s.seller_email} onClick={() => setSelectedSeller(s)} className="ov-acc" style={{padding:'14px 18px',cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <div>
                   <span style={{fontWeight:700,fontSize:'0.85rem',color:'#E8E4DD',display:'block'}}>{s.seller_name}</span>
+                  {s.total_open_leads > 0 && <span style={{fontSize:'0.65rem',color:'#8A8278'}}>{s.total_open_leads} open leads</span>}
                 </div>
-                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  {s.mhe_pct !== undefined && (
+                    <span style={{ fontSize: '0.6rem', fontWeight: 700,
+                      color: s.mhe_pct >= 30 ? '#EF4444' : s.mhe_pct >= 15 ? '#F59E0B' : '#22C55E',
+                      background: s.mhe_pct >= 30 ? 'rgba(239,68,68,0.1)' : s.mhe_pct >= 15 ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)',
+                      border: `1px solid ${s.mhe_pct >= 30 ? 'rgba(239,68,68,0.2)' : s.mhe_pct >= 15 ? 'rgba(245,158,11,0.2)' : 'rgba(34,197,94,0.2)'}`,
+                      padding: '2px 8px', borderRadius: '20px' }}>
+                      {s.mhe_pct}% MHE
+                    </span>
+                  )}
                   <span className="ov-badge" style={{color:'#EF4444',background:'rgba(239,68,68,0.1)',borderColor:'rgba(239,68,68,0.2)'}}>{s.total_leads} Leads</span>
                   <span className="ov-acc-chev" style={{transform:'rotate(0deg)'}}>▶</span>
                 </div>

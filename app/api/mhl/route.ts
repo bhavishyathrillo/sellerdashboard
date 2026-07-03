@@ -14,58 +14,74 @@ export async function GET(req: Request) {
 
   if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
 
-  let query = supabase.from('mhl_mho').select('*').ilike('mhl_mho', '%mishandled%').order('updated_at', { ascending: false })
+  // ── Resolve which seller emails are in scope ────────────────────────
+  let scopeEmails: string[] | null = null // null = individual only
 
   if (view === 'team' && ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(role || '')) {
     if (role === 'L1') {
-      const { data: teamSellers } = await supabase.from('srs_raw').select('seller_email').eq('l1_email', email)
-      const emails = (teamSellers || []).map(s => s.seller_email).filter(e => e.toLowerCase() !== email.toLowerCase())
-      if (emails.length > 0) query = query.in('owner_email', emails)
-      else query = query.eq('owner_email', '__none__')
+      const { data } = await supabase.from('srs_raw').select('seller_email').eq('l1_email', email)
+      scopeEmails = (data || []).map(s => s.seller_email).filter(e => e.toLowerCase() !== email.toLowerCase())
     } else if (role === 'L2') {
-      const { data: teamSellers } = await supabase.from('srs_raw').select('seller_email').eq('l2_email', email)
-      const emails = (teamSellers || []).map(s => s.seller_email).filter(e => e.toLowerCase() !== email.toLowerCase())
-      if (emails.length > 0) query = query.in('owner_email', emails)
-      else query = query.eq('owner_email', '__none__')
+      const { data } = await supabase.from('srs_raw').select('seller_email').eq('l2_email', email)
+      scopeEmails = (data || []).map(s => s.seller_email).filter(e => e.toLowerCase() !== email.toLowerCase())
     }
-  } else {
-    query = query.eq('owner_email', email)
   }
 
-  // 🔥 Fetch ALL rows using pagination
+  // ── Scope helper ────────────────────────────────────────────────────
+  function applyScope<T extends object>(q: any, emailCol: string): any {
+    if (scopeEmails !== null) {
+      return scopeEmails.length > 0 ? q.in(emailCol, scopeEmails) : q.eq(emailCol, '__none__')
+    }
+    return q.eq(emailCol, email)
+  }
+
+  // ── 1) Paginate mishandled leads from mhl_mho ───────────────────────
   let allData: any[] = []
   let page = 0
   const pageSize = 1000
   let hasMore = true
 
   while (hasMore) {
-    const start = page * pageSize
-    const end = (page + 1) * pageSize - 1
-
-    const { data: chunk, error } = await query.range(start, end)
-
+    const base = supabase.from('mhl_mho').select('*').ilike('mhl_mho', '%mishandled%').order('updated_at', { ascending: false })
+    const { data: chunk, error } = await applyScope(base, 'owner_email').range(page * pageSize, (page + 1) * pageSize - 1)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-    if (!chunk || chunk.length === 0) {
-      hasMore = false
-    } else {
-      allData = allData.concat(chunk)
-      if (chunk.length < pageSize) {
-        hasMore = false
-      } else {
-        page++
-      }
-    }
+    if (!chunk || chunk.length === 0) { hasMore = false }
+    else { allData = allData.concat(chunk); if (chunk.length < pageSize) hasMore = false; else page++ }
   }
 
-  // Add seller names
+  // ── 2) Paginate total open leads from mhl_mho (no mhl_mho filter) ───
+  //    This is the denominator: all leads in the pipeline that aren't closed
+  let allOpen: any[] = []
+  let openPage = 0
+  let openHasMore = true
+
+  while (openHasMore) {
+    const base = supabase.from('mhl_mho').select('owner_email').not('stage', 'ilike', '%closed%').order('id', { ascending: true })
+    const { data: chunk } = await applyScope(base, 'owner_email').range(openPage * pageSize, (openPage + 1) * pageSize - 1)
+    if (!chunk || chunk.length === 0) { openHasMore = false }
+    else { allOpen = allOpen.concat(chunk); if (chunk.length < pageSize) openHasMore = false; else openPage++ }
+  }
+
+  // ── Build open count map keyed by owner_email ───────────────────────
+  const openCountMap: Record<string, number> = {}
+  allOpen.forEach((r: any) => {
+    const e = (r.owner_email || '').toLowerCase().trim()
+    if (e) openCountMap[e] = (openCountMap[e] || 0) + 1
+  })
+  const totalOpenLeads = Object.values(openCountMap).reduce((s, n) => s + n, 0)
+
+  // ── 3) Attach seller names to each lead ────────────────────────────
   if (allData.length > 0) {
     const emails = [...new Set(allData.map(d => d.owner_email).filter(Boolean))]
     const { data: sellers } = await supabase.from('srs_raw').select('seller_email, seller_name').in('seller_email', emails)
-    const nameMap: any = {}
-    sellers?.forEach(s => { nameMap[s.seller_email] = s.seller_name })
-    allData.forEach(d => { (d as any).seller_name = nameMap[d.owner_email] || d.owner_email?.split('@')[0] })
+    const nameMap: Record<string, string> = {}
+    sellers?.forEach(s => { nameMap[(s.seller_email || '').toLowerCase().trim()] = s.seller_name })
+    allData.forEach(d => {
+      const key = (d.owner_email || '').toLowerCase().trim()
+      ;(d as any).seller_name = nameMap[key] || d.owner_email?.split('@')[0]
+      ;(d as any).owner_open_leads = openCountMap[key] || 0
+    })
   }
 
-  return NextResponse.json(allData || [])
+  return NextResponse.json({ leads: allData, totalOpenLeads, openCountMap })
 }
