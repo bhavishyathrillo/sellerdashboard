@@ -191,9 +191,6 @@ export default function Home() {
             <HygienePage session={session} />
           )}
 
-          {activePage === 'priority' && (
-            <PriorityPage session={session} />
-          )}
 
           {activePage === 'seller-view' && !isAdmin && session.role === 'L1' && (
             <L1SellerViewPage session={session} />

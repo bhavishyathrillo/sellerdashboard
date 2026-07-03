@@ -48,6 +48,8 @@ export async function GET(request: NextRequest) {
       { data: monthlyAllotmentRows },
       { data: ltaLogData },
       { data: ltaMonthData },
+      { data: goalVsShbData },
+      { data: goalShbMonthData },
     ] = await Promise.all([
       supabase.schema('seller_day_to_day')
         .from('daily_allotment_summary')
@@ -108,7 +110,30 @@ export async function GET(request: NextRequest) {
         .gte('log_date', monthStart)
         .lte('log_date', monthEnd)
         .order('log_date', { ascending: true }),
+
+      // Goal vs SHB
+      supabasePublic
+        .from('goal_vs_shb')
+        .select('*')
+        .ilike('seller_email', `${email.split('@')[0].substring(0, 5)}%`)
+        .eq('date', date)
+        .limit(1)
+        .maybeSingle(),
+
+      // Monthly Goal vs SHB Trend
+      supabasePublic
+        .from('goal_vs_shb')
+        .select('*')
+        .ilike('seller_email', `${email.split('@')[0].substring(0, 5)}%`)
+        .gte('date', monthStart)
+        .lte('date', monthEnd)
+        .order('date', { ascending: true }),
     ])
+    
+    console.log('--- DEBUG GOAL VS SHB ---')
+    console.log('Query for:', email, date)
+    console.log('Result:', goalVsShbData)
+    console.log('-------------------------')
 
     const readyTimestamps = ctiData?.ready_timestamps || null
 
@@ -229,6 +254,8 @@ export async function GET(request: NextRequest) {
       
       daily_lta: ltaLogData || null,
       lta_trend: ltaMonthData || [],
+      goal_vs_shb: goalVsShbData || null,
+      goal_vs_shb_trend: goalShbMonthData || [],
       debug_columns: Object.keys(monthRows[0] || {})
     }
 

@@ -59,8 +59,10 @@ export async function GET(req: Request) {
   const lastDay = new Date(qy, qm, 0).getDate()
   const monthEnd = `${qy}-${String(qm).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
+  const emailFilters = emails.map(e => `seller_email.ilike.${e.split('@')[0].substring(0, 5)}%`).join(',')
+
   // Step 2: Fetch daily data for these sellers
-  const [attendanceRes, ctiRes, allotmentRes, ltaRes, hourlyRes, dotRes, monthlyAllotmentRes, monthlyLtaLogRes] = await Promise.all([
+  const [attendanceRes, ctiRes, allotmentRes, ltaRes, hourlyRes, dotRes, monthlyAllotmentRes, monthlyLtaLogRes, goalShbRes] = await Promise.all([
     supabase.schema('seller_day_to_day').from('seller_attendance').select('*').eq('work_date', queryDate).in('email', emails),
     supabase.schema('seller_day_to_day').from('seller_cti_availability').select('*').eq('work_date', queryDate).in('seller_email', emails),
     supabase.schema('seller_day_to_day').from('daily_allotment_summary').select('*').eq('allotment_date', queryDate).in('seller_email', emails),
@@ -70,10 +72,13 @@ export async function GET(req: Request) {
     supabase.schema('seller_day_to_day').from('daily_allotment_summary').select('*').gte('allotment_date', monthStart).lte('allotment_date', monthEnd).in('seller_email', emails),
     // Monthly LTA logs for MHE trend (mishandled_pct per day per seller)
     supabase.from('daily_lta_log').select('seller_email,log_date,mishandled_pct,mishandled_enquiries').gte('log_date', monthStart).lte('log_date', monthEnd).in('seller_email', emails).order('log_date', { ascending: true }),
+    // Monthly Goal vs SHB for the team
+    supabase.from('goal_vs_shb').select('*').gte('date', monthStart).lte('date', monthEnd).or(emailFilters).order('date', { ascending: true }),
   ])
 
   // Step 3: Combine
   const members = validTeam.map(seller => {
+    const shortPrefix = seller.seller_email.split('@')[0].substring(0, 5)
     return {
       ...seller,
       attendance: attendanceRes.data?.find(a => a.email === seller.seller_email) || null,
@@ -84,6 +89,7 @@ export async function GET(req: Request) {
       dot_rows: dotRes.data?.filter(d => d.seller_email === seller.seller_email) || [],
       monthly_rows: (monthlyAllotmentRes.data || []).filter((r: any) => r.seller_email === seller.seller_email),
       monthly_lta_logs: (monthlyLtaLogRes.data || []).filter((r: any) => r.seller_email === seller.seller_email),
+      monthly_goal_shb: (goalShbRes.data || []).filter((r: any) => r.seller_email.startsWith(shortPrefix)),
     }
   })
 

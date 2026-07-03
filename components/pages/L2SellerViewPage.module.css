@@ -468,8 +468,8 @@
 .blockLeadReceived { background: #22C55E; }
 .blockOrbit { background: #7C3AED; }
 .blockBreak { background: #7F1D1D; border: 1px solid #991B1B; }
-.blockEligibleNoLead { background: #172554; border: 1px solid #1D4ED8; }
-.blockNotEligible { background: #2E1065; border: 1px solid #4C1D95; }
+.blockEligibleNoLead { background: #404040; border: 1px solid #52525B; }
+.blockNotEligible { background: #27272A; border: 1px solid #3F3F46; }
 
 .timelineLabels {
   display: grid;

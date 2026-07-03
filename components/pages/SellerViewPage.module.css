@@ -438,13 +438,13 @@
   }
 
   .blockEligibleNoLead {
-    background: #172554;
-    border: 1px solid #1D4ED8;
+    background: #404040;
+    border: 1px solid #52525B;
   }
 
   .blockNotEligible {
-    background: #2E1065;
-    border: 1px solid #4C1D95;
+    background: #27272A;
+    border: 1px solid #3F3F46;
   }
 
   .timelineLabelsRow {
@@ -957,7 +957,7 @@
   }
 
   .modalCardWide {
-    max-width: 700px !important;
+    max-width: 900px !important;
   }
 
   @keyframes modalIn {

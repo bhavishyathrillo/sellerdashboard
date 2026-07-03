@@ -155,6 +155,90 @@ function MheTrendChart({ labels, values, color }: { labels: string[]; values: nu
   return <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
 }
 
+function GoalShbTrendChart({ labels, goalValues, shbValues }: { labels: string[]; goalValues: number[]; shbValues: number[] }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  
+  useEffect(() => {
+    if (!canvasRef.current || !labels.length) return
+    let instance: any = null
+    let active = true
+    import('chart.js/auto').then(mod => {
+      if (!active || !canvasRef.current) return
+      const Chart = mod.default || mod
+      const ctx = canvasRef.current.getContext('2d')
+      if (!ctx) return
+      
+      const maxDataVal = Math.max(...goalValues, ...shbValues, 0)
+      const yMax = Math.max(20, Math.ceil((maxDataVal + 5) / 10) * 10)
+
+      instance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              type: 'line',
+              label: 'SHB %',
+              data: shbValues,
+              borderColor: '#EAB308',
+              backgroundColor: 'rgba(234, 179, 8, 0.1)',
+              borderWidth: 2,
+              fill: false,
+              tension: 0.3,
+              pointBackgroundColor: '#EAB308',
+              pointRadius: 4,
+              yAxisID: 'y'
+            },
+            {
+              type: 'bar',
+              label: 'Goal %',
+              data: goalValues,
+              backgroundColor: '#3B82F6',
+              borderRadius: 4,
+              barPercentage: 0.6,
+              maxBarThickness: 32,
+              yAxisID: 'y'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, labels: { color: '#8A8278' } },
+            tooltip: {
+              callbacks: {
+                label: (ctx: any) => ` ${ctx.dataset.label}: ${ctx.parsed.y}%`
+              }
+            }
+          },
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            y: {
+              max: yMax,
+              beginAtZero: true,
+              ticks: { color: '#8A8278', font: { size: 9 }, precision: 0, callback: (v: any) => `${v}%` },
+              grid: { color: 'rgba(255,255,255,0.06)' },
+            }
+          }
+        }
+      })
+    })
+    return () => {
+      active = false
+      if (instance) instance.destroy()
+    }
+  }, [labels, goalValues, shbValues])
+
+  return <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+}
+
+function todayStr(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function L1SellerViewPage({ session }: { session: UserSession }) {
   const [teamData, setTeamData] = useState<any>(null)
   const [drillSellerTimeline, setDrillSellerTimeline] = useState<any>(null)
@@ -165,8 +249,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   const [activeSellerFunnel, setActiveSellerFunnel] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [date, setDate] = useState(() => {
-    const d = new Date()
-    return d.toISOString().split('T')[0]
+    return todayStr()
   })
 
   // Section Modal State
@@ -182,12 +265,15 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   const [expandedTlS7, setExpandedTlS7] = useState<string | null>(null)
   const [expandedTlS8, setExpandedTlS8] = useState<string | null>(null)
   const [expandedTlS9, setExpandedTlS9] = useState<string | null>(null)
-  const [expandedTlS10, setExpandedTlS10] = useState<string | null>(null)
+
 
   // Modals and drill-downs
   const [showNoLeadsModal, setShowNoLeadsModal] = useState(false)
   const [showMheTrendModal, setShowMheTrendModal] = useState(false)
   const [mheDrillSeller, setMheDrillSeller] = useState<any>(null)
+  const [showGoalShbTrendModal, setShowGoalShbTrendModal] = useState(false)
+  const [goalShbDrillSeller, setGoalShbDrillSeller] = useState<any>(null)
+  const [goalShbExpandedTl, setGoalShbExpandedTl] = useState<string | null>(null)
 
   const [activeBreakdownCard, setActiveBreakdownCard] = useState<string | null>(null)
   const [breakdownDrillSeller, setBreakdownDrillSeller] = useState<any>(null)
@@ -250,8 +336,8 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
     const absentCount = members.filter((m: any) => m.isAbsent).length
     const onlineCount = members.length - absentCount
 
-    const teamPlanned = members.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : m.lta.planned), 0)
-    const teamActual = members.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : m.lta.actual), 0)
+    const teamPlanned = members.reduce((sum: number, m: any) => sum + m.lta.planned, 0)
+    const teamActual = members.reduce((sum: number, m: any) => sum + m.lta.actual, 0)
 
     const noLeadsCount = members.filter((m: any) => ((m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)) === 0).length
 
@@ -340,6 +426,8 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   const globalNonRtg = processedGroups.reduce((sum: number, g: any) => sum + g.agg.totalNonRtg, 0)
   const globalRtgPct = globalLeads > 0 ? Math.round((globalRtg / globalLeads) * 100) : 0
   const globalNoLeads = processedGroups.reduce((sum: number, g: any) => sum + g.agg.noLeadsCount, 0)
+  const globalPlannedLta = processedGroups.reduce((sum: number, g: any) => sum + g.agg.teamPlanned, 0)
+  const globalFinalLta = processedGroups.reduce((sum: number, g: any) => sum + g.agg.teamActual, 0)
 
   // ── CM Monthly Breakdown Aggregation ──
   // Monthly allotment aggregation
@@ -442,15 +530,15 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
             Lead <span style={{ color: '#F4631E' }}>Allocation</span>
           </h1>
           <div style={{ color: '#8A8278', fontSize: '14px', marginTop: '4px' }}>
-            {session.name} &middot; {date === new Date().toISOString().split('T')[0] ? 'Today' : date}
+            {session.name} &middot; {date === todayStr() ? 'Today' : date}
           </div>
         </div>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <div className={styles.controls} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
-              className={`${styles.filterBtn} ${date === new Date().toISOString().split('T')[0] ? styles.activeFilter : ''}`}
-              onClick={() => setDate(new Date().toISOString().split('T')[0])}
-              style={{ background: date === new Date().toISOString().split('T')[0] ? 'rgba(244, 99, 30, 0.2)' : 'rgba(255, 255, 255, 0.05)', color: date === new Date().toISOString().split('T')[0] ? '#F4631E' : '#8A8278', border: date === new Date().toISOString().split('T')[0] ? '1px solid #F4631E' : '1px solid #333', padding: '6px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
+              className={`${styles.filterBtn} ${date === todayStr() ? styles.activeFilter : ''}`}
+              onClick={() => setDate(todayStr())}
+              style={{ background: date === todayStr() ? 'rgba(244, 99, 30, 0.2)' : 'rgba(255, 255, 255, 0.05)', color: date === todayStr() ? '#F4631E' : '#8A8278', border: date === todayStr() ? '1px solid #F4631E' : '1px solid #333', padding: '6px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
             >
               Today
             </button>
@@ -459,7 +547,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
+                max={todayStr()}
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #333', color: '#fff', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}
               />
             </div>
@@ -471,7 +559,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         <div className={styles.summaryCard} style={{ background: '#1A1A1A', padding: '12px 16px', borderRadius: '8px', flex: 1.5, border: '1px solid #333', display: 'flex', alignItems: 'center' }}>
           <div style={{ flex: 1 }}>
             <p className={styles.summaryValue} style={{ fontSize: '1.5rem', fontWeight: 600, color: '#F4631E', margin: '0 0 2px 0' }}>{globalLeads}</p>
-            <p className={styles.summaryLabel} style={{ fontSize: '0.7rem', color: '#8A8278', margin: 0, textTransform: 'uppercase' }}>Total Leads</p>
+            <p className={styles.summaryLabel} style={{ fontSize: '0.7rem', color: '#8A8278', margin: 0, textTransform: 'uppercase' }}>Total Leads Allotted</p>
           </div>
           <div style={{ width: '1px', alignSelf: 'stretch', background: 'linear-gradient(180deg, rgba(255,255,255,0), rgba(244,99,30,0.5), rgba(255,255,255,0))', margin: '0 12px' }} />
           <div style={{ flex: 1 }}>
@@ -883,7 +971,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                       <thead><tr><th>Team (TL) / Seller</th><th>Status</th></tr></thead>
                       <tbody>
                         {processedGroups.map((g: any) => {
-                          const noLeadsSellers = g.members.filter((m: any) => !m.isAbsent && !m.isOnBreak && (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0) === 0);
+                          const noLeadsSellers = g.members.filter((m: any) => (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0) === 0);
                           if (noLeadsSellers.length === 0) return null;
                           return (
                             <React.Fragment key={g.l2_email}>
@@ -894,8 +982,10 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                                 <tr key={m.seller_email} style={{ borderBottom: '1px solid #333' }}>
                                   <td style={{ paddingLeft: '32px' }}>{m.seller_name}</td>
                                   <td>
-                                    {!m.attendance?.first_login ? 'Not Logged In' :
-                                      !m.cti?.logged_in_at ? 'Not on Ozontell' : 'Waiting for leads'}
+                                    {m.isAbsent ? 'Absent' : 
+                                     m.isOnBreak ? 'On Break' :
+                                     !m.attendance?.first_login ? 'Not Logged In' :
+                                     !m.cti?.logged_in_at ? 'Not on Ozontell' : 'Waiting for leads'}
                                   </td>
                                 </tr>
                               ))}
@@ -1017,8 +1107,8 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                                         const mAvg = mDays > 0 ? parseFloat((mSum / mDays).toFixed(1)) : 0
                                         return (
                                           <div key={m.seller_email} onClick={() => setMheDrillSeller(m)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px 6px 24px', cursor: 'pointer', fontSize: '0.8rem', color: '#E5E5E5', borderLeft: '1px solid #333', marginLeft: '6px' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                                            <span>{m.seller_name} {m.isAbsent && <span className={styles.absentPill}>Absent</span>}</span>
-                                            <span style={{ color: mAvg <= 20 ? '#22C55E' : '#EF4444' }}>{m.isAbsent ? '—' : `${mAvg}%`}</span>
+                                            <span>{m.seller_name}</span>
+                                            <span style={{ color: mAvg <= 20 ? '#22C55E' : '#EF4444' }}>{`${mAvg}%`}</span>
                                           </div>
                                         )
                                       })}
@@ -1034,6 +1124,190 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                   </div>
                 </div>
               )}
+
+              {/* CM Goal vs SHB Trend Modal */}
+              {showGoalShbTrendModal && (() => {
+                const dayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
+                let allMembers: any[] = []
+                processedGroups.forEach((g: any) => { allMembers = allMembers.concat(g.members) })
+                
+                allMembers.forEach((m: any) => {
+                  ;(m.monthly_goal_shb || []).forEach((r: any) => {
+                    const d = r.date
+                    if (!d) return
+                    const goalPct = typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
+                    const shbPct = typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
+                    if (!dayMap[d]) dayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
+                    dayMap[d].goalSum += goalPct; dayMap[d].shbSum += shbPct; dayMap[d].count += 1
+                  })
+                })
+                
+                const sortedDays = Object.keys(dayMap).sort()
+                const paddedTeamAvg: any[] = []
+                const [y, mStr] = (date || todayStr()).split('-')
+                const daysInMonth = new Date(parseInt(y), parseInt(mStr), 0).getDate()
+                
+                for (let i = 1; i <= daysInMonth; i++) {
+                  const dStr = `${y}-${mStr}-${String(i).padStart(2, '0')}`
+                  if (dayMap[dStr]) {
+                    paddedTeamAvg.push({
+                      date: dStr,
+                      goalAvg: parseFloat((dayMap[dStr].goalSum / dayMap[dStr].count).toFixed(0)),
+                      shbAvg: parseFloat((dayMap[dStr].shbSum / dayMap[dStr].count).toFixed(0))
+                    })
+                  } else {
+                    paddedTeamAvg.push({ date: dStr, goalAvg: 0, shbAvg: 0 })
+                  }
+                }
+
+                let drillLogs: any[] = []
+                if (goalShbDrillSeller) {
+                  const logs = goalShbDrillSeller.monthly_goal_shb || []
+                  for (let i = 1; i <= daysInMonth; i++) {
+                    const dStr = `${y}-${mStr}-${String(i).padStart(2, '0')}`
+                    const existing = logs.find((r: any) => r.date === dStr)
+                    drillLogs.push({
+                      date: dStr,
+                      goalAvg: existing && typeof existing.goal_completion === 'number' ? existing.goal_completion * 100 : 0,
+                      shbAvg: existing && typeof existing.shb_percent === 'number' ? existing.shb_percent * 100 : 0
+                    })
+                  }
+                }
+
+                let tlAvgLogs: any[] = []
+                if (goalShbExpandedTl && !goalShbDrillSeller) {
+                  const tlGroup = processedGroups.find((g: any) => g.l2_email === goalShbExpandedTl)
+                  if (tlGroup) {
+                    const tlDayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
+                    tlGroup.members.forEach((m: any) => {
+                      ;(m.monthly_goal_shb || []).forEach((r: any) => {
+                        const d = r.date
+                        if (!d) return
+                        if (!tlDayMap[d]) tlDayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
+                        tlDayMap[d].goalSum += typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
+                        tlDayMap[d].shbSum += typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
+                        tlDayMap[d].count += 1
+                      })
+                    })
+                    for (let i = 1; i <= daysInMonth; i++) {
+                      const dStr = `${y}-${mStr}-${String(i).padStart(2, '0')}`
+                      if (tlDayMap[dStr]) {
+                        tlAvgLogs.push({
+                          date: dStr,
+                          goalAvg: parseFloat((tlDayMap[dStr].goalSum / tlDayMap[dStr].count).toFixed(0)),
+                          shbAvg: parseFloat((tlDayMap[dStr].shbSum / tlDayMap[dStr].count).toFixed(0))
+                        })
+                      } else {
+                        tlAvgLogs.push({ date: dStr, goalAvg: 0, shbAvg: 0 })
+                      }
+                    }
+                  }
+                }
+
+                const activeData = goalShbDrillSeller ? drillLogs : (goalShbExpandedTl ? tlAvgLogs : paddedTeamAvg)
+                const activeLabels = activeData.map((d: any) => parseInt(d.date.split('-')[2]) + ' ' + new Date(d.date).toLocaleString('default', { month: 'short' }))
+                const activeGoalValues = activeData.map((d: any) => d.goalAvg)
+                const activeShbValues = activeData.map((d: any) => d.shbAvg)
+                const hasData = activeGoalValues.some((v: number) => v > 0) || activeShbValues.some((v: number) => v > 0)
+
+                return (
+                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setShowGoalShbTrendModal(false); setGoalShbDrillSeller(null); setGoalShbExpandedTl(null); }}>
+                    <div style={{ background: '#1A1A1A', border: '1px solid #333', borderRadius: '12px', padding: '24px', width: '900px', maxWidth: '95%', height: '500px', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                      
+                      <button
+                        onClick={() => { setShowGoalShbTrendModal(false); setGoalShbDrillSeller(null); setGoalShbExpandedTl(null); }}
+                        style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1.2rem', padding: '4px', zIndex: 10 }}
+                      >×</button>
+
+                      <h2 style={{ margin: '0 0 20px 0', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {goalShbDrillSeller && (
+                          <button
+                            onClick={() => setGoalShbDrillSeller(null)}
+                            style={{ background: 'transparent', border: '1px solid #333', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A8278', cursor: 'pointer' }}
+                          >←</button>
+                        )}
+                        {goalShbDrillSeller 
+                           ? `${goalShbDrillSeller.seller_name} — Goal vs SHB Trend` 
+                           : goalShbExpandedTl 
+                              ? `${processedGroups.find((g: any) => g.l2_email === goalShbExpandedTl)?.l2_name || 'Team'} — Goal vs SHB Trend` 
+                              : 'Monthly Goal vs SHB Trend · CM Avg'}
+                      </h2>
+
+                      <div style={{ display: 'flex', gap: '24px', flex: 1, minHeight: 0 }}>
+                        <div style={{ flex: 2, background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '16px', border: '1px solid #222' }}>
+                          {hasData ? (
+                            <GoalShbTrendChart labels={activeLabels} goalValues={activeGoalValues} shbValues={activeShbValues} />
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#555', fontSize: '0.85rem', fontStyle: 'italic' }}>No Goal vs SHB data for this month yet.</div>
+                          )}
+                        </div>
+                        
+                        {!goalShbDrillSeller && (
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid #333', paddingLeft: '24px' }}>
+                            <h3 style={{ margin: '0 0 16px 0', fontSize: '0.9rem', color: '#E5E5E5' }}>Team Drill-down</h3>
+                            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
+                              {processedGroups.map((g: any) => {
+                                let gGoalSum = 0; let gShbSum = 0; let gDays = 0;
+                                g.members.forEach((m: any) => {
+                                  ;(m.monthly_goal_shb || []).forEach((r: any) => {
+                                    gGoalSum += (r.goal_completion || 0) * 100
+                                    gShbSum += (r.shb_percent || 0) * 100
+                                    gDays++
+                                  })
+                                })
+                                const gGoalAvg = gDays > 0 ? parseFloat((gGoalSum / gDays).toFixed(0)) : 0
+                                const gShbAvg = gDays > 0 ? parseFloat((gShbSum / gDays).toFixed(0)) : 0
+                                
+                                return (
+                                  <React.Fragment key={g.l2_email}>
+                                    <div 
+                                      onClick={() => setGoalShbExpandedTl(goalShbExpandedTl === g.l2_email ? null : g.l2_email)}
+                                      style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', cursor: 'pointer', fontSize: '0.85rem', color: '#E5E5E5', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', marginBottom: '4px' }}
+                                    >
+                                      <span style={{ fontWeight: 600, color: '#EAB308' }}>{goalShbExpandedTl === g.l2_email ? '▼' : '▶'} {g.l2_name}</span>
+                                      <div style={{ display: 'flex', gap: '12px' }}>
+                                         <span style={{ color: '#3B82F6' }}>{gGoalAvg}%</span>
+                                         <span style={{ color: '#EAB308' }}>{gShbAvg}%</span>
+                                      </div>
+                                    </div>
+                                    
+                                    {goalShbExpandedTl === g.l2_email && g.members.map((m: any) => {
+                                      let mGoalSum = 0; let mShbSum = 0; let mDays = 0;
+                                      ;(m.monthly_goal_shb || []).forEach((r: any) => {
+                                        mGoalSum += (r.goal_completion || 0) * 100
+                                        mShbSum += (r.shb_percent || 0) * 100
+                                        mDays++
+                                      })
+                                      const mGoalAvg = mDays > 0 ? parseFloat((mGoalSum / mDays).toFixed(0)) : 0
+                                      const mShbAvg = mDays > 0 ? parseFloat((mShbSum / mDays).toFixed(0)) : 0
+                                      
+                                      return (
+                                        <div 
+                                          key={m.seller_email} 
+                                          onClick={() => setGoalShbDrillSeller(m)} 
+                                          style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px 6px 24px', cursor: 'pointer', fontSize: '0.8rem', color: '#E5E5E5', borderLeft: '1px solid #333', marginLeft: '6px' }}
+                                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                        >
+                                          <span>{m.seller_name}</span>
+                                          <div style={{ display: 'flex', gap: '12px' }}>
+                                            <span style={{ color: '#3B82F6' }}>{mGoalAvg}%</span>
+                                            <span style={{ color: '#EAB308' }}>{mShbAvg}%</span>
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </React.Fragment>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Seller Funnel Modal (S7) or Timeline */}
               {drillSellerS7 && (
@@ -1107,6 +1381,62 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
             </div>
           )
         })()}
+        
+        {/* CM Goal vs SHB KPI Card */}
+        {(() => {
+          const dayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
+          let allMembers: any[] = []
+          processedGroups.forEach((g: any) => { allMembers = allMembers.concat(g.members) })
+          allMembers.forEach((m: any) => {
+            ;(m.monthly_goal_shb || []).forEach((r: any) => {
+              const d = r.date
+              if (!d) return
+              const goalPct = typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
+              const shbPct = typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
+              if (!dayMap[d]) dayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
+              dayMap[d].goalSum += goalPct
+              dayMap[d].shbSum += shbPct
+              dayMap[d].count += 1
+            })
+          })
+          const sortedDays = Object.keys(dayMap).sort()
+          let latestDay = sortedDays[sortedDays.length - 1]
+          if (date && dayMap[date]) {
+            latestDay = date
+          }
+          
+          const latestAvgGoal = latestDay ? parseFloat((dayMap[latestDay].goalSum / dayMap[latestDay].count).toFixed(0)) : 0
+          const latestAvgShb = latestDay ? parseFloat((dayMap[latestDay].shbSum / dayMap[latestDay].count).toFixed(0)) : 0
+
+          return (
+            <div
+              className={styles.summaryCard}
+              style={{
+                background: '#1A1A1A', padding: '16px', borderRadius: '8px', flex: 1.2,
+                border: `1px solid #333`,
+                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'border-color 0.2s'
+              }}
+              onClick={() => { setGoalShbDrillSeller(null); setGoalShbExpandedTl(null); setShowGoalShbTrendModal(true); }}
+            >
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#3B82F6' }} />
+              <div style={{ fontSize: '0.6rem', color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Team Goal vs SHB</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '4px' }}>
+                <div>
+                   <div style={{ fontSize: '0.6rem', color: '#8A8278', marginBottom: '2px' }}>Goal</div>
+                   <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#3B82F6', lineHeight: 1 }}>{latestAvgGoal}%</span>
+                </div>
+                <div style={{ width: '1px', alignSelf: 'stretch', background: 'rgba(255,255,255,0.1)' }} />
+                <div>
+                   <div style={{ fontSize: '0.6rem', color: '#8A8278', marginBottom: '2px' }}>SHB</div>
+                   <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#EAB308', lineHeight: 1 }}>{latestAvgShb}%</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                <span style={{ fontSize: '0.6rem', color: '#555', marginLeft: 'auto' }}>tap to view ▶</span>
+              </div>
+            </div>
+          )
+        })()}
 
       </div>
 
@@ -1115,7 +1445,6 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
       {/* ═══════════════ 3 CARDS: DOT | ALLOTMENT | PAX ═══════════════ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '28px', marginBottom: '16px' }}>
         <span style={{ fontSize: '1rem', fontWeight: 600, color: '#F4631E', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monthly Breakdown · {monthStr}</span>
-        <span style={{ fontSize: '0.7rem', color: '#8A8278' }}>CM Combined</span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '14px', marginBottom: '24px' }}>
@@ -1253,6 +1582,224 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         </div>
       </div>
 
+<div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's9' ? null : 's9')}>
+  <div className={styles.headerLeft}>
+    <span className={styles.chevron} style={{ transform: activeSectionModal === 's9' ? 'rotate(90deg)' : 'none' }}>▶</span>
+    <h2 className={styles.sectionTitle} style={{ display: 'flex', alignItems: 'center' }}>
+      LTA (Lead Time Availability)
+      <span style={{ fontSize: '0.8rem', marginLeft: '16px', color: '#8A8278', fontWeight: 'normal', display: 'inline-flex', gap: '12px', alignItems: 'center' }}>
+        <span><span style={{ color: '#E5E5E5', fontWeight: 600 }}>{globalPlannedLta}</span> Planned</span>
+        <span style={{ color: '#444' }}>|</span>
+        <span><span style={{ color: '#22C55E', fontWeight: 600 }}>{globalFinalLta}</span> Final</span>
+      </span>
+    </h2>
+  </div>
+        <div style={{ fontSize: '0.75rem', padding: '4px 12px', background: 'rgba(201, 168, 76, 0.1)', borderRadius: '16px', color: '#C9A84C', fontWeight: 600 }}>{date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'All Time'}</div>
+</div>
+{
+  activeSectionModal === 's9' && (
+    <div className={sellerStyles.sectionContent}>
+      <div className={styles.tableWrap}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Team (TL)</th>
+              <th>Team Planned LTA</th>
+              <th>Team Final LTA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {processedGroups.map((g: any) => (
+              <React.Fragment key={g.l2_email}>
+                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS9, expandedTlS9)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                  <td style={{ fontWeight: 600, color: '#C9A84C' }}>
+                    <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS9 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
+                    {g.l2_name}
+                  </td>
+                  <td>{g.agg.teamPlanned}</td>
+                  <td style={{ color: '#22C55E', fontWeight: 600 }}>{g.agg.teamActual}</td>
+                </tr>
+
+                {expandedTlS9 === g.l2_email && (
+                  <tr className={styles.sellerRow}>
+                    <td colSpan={3} style={{ padding: '8px 16px', background: 'rgba(0,0,0,0.2)' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setActiveFunnelTl(g); setShowTeamFunnel(true); }}
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '6px 16px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                      >
+                        📊 View Team Funnel
+                      </button>
+                    </td>
+                  </tr>
+                )}
+                {expandedTlS9 === g.l2_email && g.members.map((m: any) => {
+                  const lostPct = m.lta.planned > 0 ? (m.lta.totalLost / m.lta.planned) * 100 : 0
+                  const actualColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#F59E0B' : '#EF4444'
+                  return (
+                    <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setActiveSellerFunnel(m)} style={{ cursor: 'pointer' }}>
+                      <td style={{ paddingLeft: '32px' }}>
+                        {m.seller_name}
+                        {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+                      </td>
+                      <td>{m.lta.planned}</td>
+                      <td style={{ color: m.isAbsent ? 'inherit' : actualColor, fontWeight: 600 }}>
+                        {m.lta.actual}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+{/* S4: Appetite Fulfillment & C→A Time */ }
+<div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's3' ? null : 's3')}>
+  <div className={styles.headerLeft}>
+    <span className={styles.chevron} style={{ transform: activeSectionModal === 's3' ? 'rotate(90deg)' : 'none' }}>▶</span>
+    <h2 className={styles.sectionTitle} style={{ display: 'flex', alignItems: 'center' }}>
+      RTG vs Non-RTG
+      <span style={{ fontSize: '0.8rem', marginLeft: '16px', color: '#8A8278', fontWeight: 'normal', display: 'inline-flex', gap: '12px', alignItems: 'center' }}>
+        <span><span style={{ color: '#E5E5E5', fontWeight: 600 }}>{globalLeads}</span> Total</span>
+        <span style={{ color: '#444' }}>|</span>
+        <span><span style={{ color: '#3B82F6', fontWeight: 600 }}>{globalRtg}</span> RTG</span>
+        <span style={{ color: '#444' }}>|</span>
+        <span><span style={{ color: '#F4631E', fontWeight: 600 }}>{globalNonRtg}</span> Non-RTG</span>
+        <span style={{ color: '#444' }}>|</span>
+        <span style={{ color: '#22C55E', fontWeight: 600 }}>{globalRtgPct}% RTG</span>
+      </span>
+    </h2>
+  </div>
+        <div style={{ fontSize: '0.75rem', padding: '4px 12px', background: 'rgba(201, 168, 76, 0.1)', borderRadius: '16px', color: '#C9A84C', fontWeight: 600 }}>{date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'All Time'}</div>
+</div>
+{
+  activeSectionModal === 's3' && (
+    <div className={sellerStyles.sectionContent}>
+      <div className={styles.tableWrap}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Team (TL)</th>
+              <th>Total Leads Allotted</th>
+              <th>RTG</th>
+              <th>Non-RTG</th>
+              <th>RTG %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {processedGroups.map((g: any) => (
+              <React.Fragment key={g.l2_email}>
+                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS3, expandedTlS3)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                  <td style={{ fontWeight: 600, color: '#C9A84C' }}>
+                    <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS3 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
+                    {g.l2_name}
+                  </td>
+                  <td>{g.agg.totalLeads}</td>
+                  <td>{g.agg.totalRtg}</td>
+                  <td>{g.agg.totalNonRtg}</td>
+                  <td>{pct(g.agg.totalRtg, g.agg.totalLeads)}%</td>
+                </tr>
+
+                {expandedTlS3 === g.l2_email && g.members.map((m: any) => {
+                  const rtg = m.allotment?.rtg_leads || 0
+                  const nonRtg = m.allotment?.non_rtg_leads || 0
+                  const tot = rtg + nonRtg
+                  return (
+                    <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerTimeline(m)} style={{ cursor: 'pointer' }}>
+                      <td style={{ paddingLeft: '32px' }}>
+                        {m.seller_name}
+                        {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+                      </td>
+                      <td>{tot}</td>
+                      <td>{rtg}</td>
+                      <td>{nonRtg}</td>
+                      <td>{pct(rtg, tot)}%</td>
+                    </tr>
+                  )
+                })}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+{/* S5: Pax Bifurcation (CM EXCLUSIVE) */ }
+<div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's4' ? null : 's4')}>
+  <div className={styles.headerLeft}>
+    <span className={styles.chevron} style={{ transform: activeSectionModal === 's4' ? 'rotate(90deg)' : 'none' }}>▶</span>
+    <h2 className={styles.sectionTitle}>Appetite Fulfillment & C→A Time</h2>
+  </div>
+        <div style={{ fontSize: '0.75rem', padding: '4px 12px', background: 'rgba(201, 168, 76, 0.1)', borderRadius: '16px', color: '#C9A84C', fontWeight: 600 }}>{date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'All Time'}</div>
+</div>
+{
+  activeSectionModal === 's4' && (
+    <div className={sellerStyles.sectionContent}>
+      <div className={styles.tableWrap}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Team (TL)</th>
+              <th>Appetite (Final LTA)</th>
+              <th>Leads Allotted</th>
+              <th>Fulfillment %</th>
+              <th>Avg C→A (mins)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {processedGroups.map((g: any) => (
+              <React.Fragment key={g.l2_email}>
+                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS4, expandedTlS4)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                  <td style={{ fontWeight: 600, color: '#C9A84C' }}>
+                    <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS4 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
+                    {g.l2_name}
+                  </td>
+                  <td>{g.agg.teamAppetite}</td>
+                  <td>{g.agg.totalLeads}</td>
+                  <td style={{ color: g.agg.teamAppetite > 0 && pct(g.agg.totalLeads, g.agg.teamAppetite) >= 90 ? '#22C55E' : g.agg.teamAppetite > 0 && pct(g.agg.totalLeads, g.agg.teamAppetite) >= 70 ? '#F59E0B' : '#EF4444' }}>
+                    {g.agg.teamAppetite > 0 ? pct(g.agg.totalLeads, g.agg.teamAppetite) : 0}%
+                  </td>
+                  <td>{g.agg.teamMedianCA != null ? `${g.agg.teamMedianCA}m` : '—'}</td>
+                </tr>
+
+                {expandedTlS4 === g.l2_email && g.members.map((m: any) => {
+                  const appetite = m.daily_lta?.final_lta || 0
+                  const leads = (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)
+                  const ca = m.allotment?.median_creation_to_allotment_mins
+                  const fulfPct = appetite > 0 ? pct(leads, appetite) : 0
+                  return (
+                    <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerTimeline(m)} style={{ cursor: 'pointer' }}>
+                      <td style={{ paddingLeft: '32px' }}>
+                        {m.seller_name}
+                        {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+                      </td>
+                      <td>{m.isAbsent ? '—' : appetite}</td>
+                      <td>{leads}</td>
+                      <td style={{ color: m.isAbsent ? 'inherit' : fulfPct >= 90 ? '#22C55E' : fulfPct >= 70 ? '#F59E0B' : '#EF4444' }}>
+                        {m.isAbsent ? '—' : `${fulfPct}%`}
+                      </td>
+                      <td>{m.isAbsent ? '—' : ca != null ? `${Math.round(ca)}m` : '—'}</td>
+                    </tr>
+                  )
+                })}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+
+{/* S10: Goal % & At-Risk (data not available yet) */ }
+<div style={{ marginBottom: '16px' }}>
       <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's1' ? null : 's1')}>
         <div className={styles.headerLeft}>
           <span className={styles.chevron} style={{ transform: activeSectionModal === 's1' ? 'rotate(90deg)' : 'none' }}>▶</span>
@@ -1377,6 +1924,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
               }
 
               const kekaTime = drillSellerTimeline.attendance?.first_login;
+              const orbitTime = (drillSellerTimeline as any)?.orbit?.first_login || null;
               const lastLogout = drillSellerTimeline.attendance?.last_logout;
               const finalLtaVal = drillSellerTimeline.daily_lta?.final_lta || 0;
 
@@ -1430,7 +1978,10 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 
                 if (finalLtaVal > 0) {
                   if (runningLeads >= target50 && time50 === null) time50 = minOfDay;
-                  if (runningLeads >= target100 && time100 === null) time100 = minOfDay;
+                  if (runningLeads >= target100 && time100 === null) {
+                    time100 = minOfDay;
+                    if (time100 === time50) time100 += 20;
+                  }
                 }
               }
 
@@ -1454,6 +2005,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                 const boundaries = new Set<number>();
                 for (let m = timelineStartMin; m <= timelineEndMin; m += 60) boundaries.add(m);
 
+                const orbitTime = (drillSellerTimeline as any)?.orbit?.first_login || null;
                 const breaks = parseBreaks(drillSellerTimeline.attendance?.break_timestamps);
                 const readyWindows = parseReadyWindows(drillSellerTimeline.cti?.logged_in_at ? `${drillSellerTimeline.cti.logged_in_at}-${drillSellerTimeline.attendance?.last_logout || new Date().toISOString()}` : null);
                 const actualReadyWindows = parseReadyWindows(drillSellerTimeline.cti?.ready_timestamps);
@@ -1545,7 +2097,8 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                     return midPoint >= s && midPoint < e;
                   });
 
-                  const eligible = !isBreak && isReady;
+                  const isOrbitOnly = !!orbitTime && isBreak && isReady;
+                  const eligible = (!isBreak && isReady) || isOrbitOnly;
                   let blockClass = sellerStyles.blockNotEligible;
                   let leads = 0;
 
@@ -1727,68 +2280,6 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 }
 
 {/* S3: RTG vs Non-RTG */ }
-<div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's3' ? null : 's3')}>
-  <div className={styles.headerLeft}>
-    <span className={styles.chevron} style={{ transform: activeSectionModal === 's3' ? 'rotate(90deg)' : 'none' }}>▶</span>
-    <h2 className={styles.sectionTitle}>RTG vs Non-RTG</h2>
-  </div>
-        <div style={{ fontSize: '0.75rem', padding: '4px 12px', background: 'rgba(201, 168, 76, 0.1)', borderRadius: '16px', color: '#C9A84C', fontWeight: 600 }}>{date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'All Time'}</div>
-</div>
-{
-  activeSectionModal === 's3' && (
-    <div className={sellerStyles.sectionContent}>
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Team (TL)</th>
-              <th>Total Leads</th>
-              <th>RTG</th>
-              <th>Non-RTG</th>
-              <th>RTG %</th>
-            </tr>
-          </thead>
-          <tbody>
-            {processedGroups.map((g: any) => (
-              <React.Fragment key={g.l2_email}>
-                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS3, expandedTlS3)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
-                  <td style={{ fontWeight: 600, color: '#C9A84C' }}>
-                    <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS3 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
-                    {g.l2_name}
-                  </td>
-                  <td>{g.agg.totalLeads}</td>
-                  <td>{g.agg.totalRtg}</td>
-                  <td>{g.agg.totalNonRtg}</td>
-                  <td>{pct(g.agg.totalRtg, g.agg.totalLeads)}%</td>
-                </tr>
-
-                {expandedTlS3 === g.l2_email && g.members.map((m: any) => {
-                  const rtg = m.allotment?.rtg_leads || 0
-                  const nonRtg = m.allotment?.non_rtg_leads || 0
-                  const tot = rtg + nonRtg
-                  return (
-                    <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerTimeline(m)} style={{ cursor: 'pointer' }}>
-                      <td style={{ paddingLeft: '32px' }}>
-                        {m.seller_name}
-                        {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
-                      </td>
-                      <td>{tot}</td>
-                      <td>{rtg}</td>
-                      <td>{nonRtg}</td>
-                      <td>{pct(rtg, tot)}%</td>
-                    </tr>
-                  )
-                })}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-{/* S5: Pax Bifurcation (CM EXCLUSIVE) */ }
 <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's5' ? null : 's5')}>
   <div className={styles.headerLeft}>
     <span className={styles.chevron} style={{ transform: activeSectionModal === 's5' ? 'rotate(90deg)' : 'none' }}>▶</span>
@@ -1927,159 +2418,6 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   )
 }
 
-{/* S9: Lead Time Availability (LTA) */ }
-<div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's9' ? null : 's9')}>
-  <div className={styles.headerLeft}>
-    <span className={styles.chevron} style={{ transform: activeSectionModal === 's9' ? 'rotate(90deg)' : 'none' }}>▶</span>
-    <h2 className={styles.sectionTitle}>LTA (Lead Time Availability)</h2>
-  </div>
-        <div style={{ fontSize: '0.75rem', padding: '4px 12px', background: 'rgba(201, 168, 76, 0.1)', borderRadius: '16px', color: '#C9A84C', fontWeight: 600 }}>{date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'All Time'}</div>
-</div>
-{
-  activeSectionModal === 's9' && (
-    <div className={sellerStyles.sectionContent}>
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Team (TL)</th>
-              <th>Team Planned LTA</th>
-              <th>Team Final LTA</th>
-            </tr>
-          </thead>
-          <tbody>
-            {processedGroups.map((g: any) => (
-              <React.Fragment key={g.l2_email}>
-                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS9, expandedTlS9)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
-                  <td style={{ fontWeight: 600, color: '#C9A84C' }}>
-                    <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS9 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
-                    {g.l2_name}
-                  </td>
-                  <td>{g.agg.teamPlanned}</td>
-                  <td style={{ color: '#22C55E', fontWeight: 600 }}>{g.agg.teamActual}</td>
-                </tr>
-
-                {expandedTlS9 === g.l2_email && (
-                  <tr className={styles.sellerRow}>
-                    <td colSpan={3} style={{ padding: '8px 16px', background: 'rgba(0,0,0,0.2)' }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setActiveFunnelTl(g); setShowTeamFunnel(true); }}
-                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '6px 16px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
-                      >
-                        📊 View Team Funnel
-                      </button>
-                    </td>
-                  </tr>
-                )}
-                {expandedTlS9 === g.l2_email && g.members.map((m: any) => {
-                  const lostPct = m.lta.planned > 0 ? (m.lta.totalLost / m.lta.planned) * 100 : 0
-                  const actualColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#F59E0B' : '#EF4444'
-                  return (
-                    <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setActiveSellerFunnel(m)} style={{ cursor: 'pointer' }}>
-                      <td style={{ paddingLeft: '32px' }}>
-                        {m.seller_name}
-                        {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
-                      </td>
-                      <td>{m.isAbsent ? '—' : m.lta.planned}</td>
-                      <td style={{ color: m.isAbsent ? 'inherit' : actualColor, fontWeight: 600 }}>
-                        {m.isAbsent ? '—' : m.lta.actual}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-{/* S4: Appetite Fulfillment & C→A Time */ }
-<div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's4' ? null : 's4')}>
-  <div className={styles.headerLeft}>
-    <span className={styles.chevron} style={{ transform: activeSectionModal === 's4' ? 'rotate(90deg)' : 'none' }}>▶</span>
-    <h2 className={styles.sectionTitle}>Appetite Fulfillment & C→A Time</h2>
-  </div>
-        <div style={{ fontSize: '0.75rem', padding: '4px 12px', background: 'rgba(201, 168, 76, 0.1)', borderRadius: '16px', color: '#C9A84C', fontWeight: 600 }}>{date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'All Time'}</div>
-</div>
-{
-  activeSectionModal === 's4' && (
-    <div className={sellerStyles.sectionContent}>
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Team (TL)</th>
-              <th>Appetite (Final LTA)</th>
-              <th>Leads Allotted</th>
-              <th>Fulfillment %</th>
-              <th>Avg C→A (mins)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {processedGroups.map((g: any) => (
-              <React.Fragment key={g.l2_email}>
-                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS4, expandedTlS4)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
-                  <td style={{ fontWeight: 600, color: '#C9A84C' }}>
-                    <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS4 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
-                    {g.l2_name}
-                  </td>
-                  <td>{g.agg.teamAppetite}</td>
-                  <td>{g.agg.totalLeads}</td>
-                  <td style={{ color: g.agg.teamAppetite > 0 && pct(g.agg.totalLeads, g.agg.teamAppetite) >= 90 ? '#22C55E' : g.agg.teamAppetite > 0 && pct(g.agg.totalLeads, g.agg.teamAppetite) >= 70 ? '#F59E0B' : '#EF4444' }}>
-                    {g.agg.teamAppetite > 0 ? pct(g.agg.totalLeads, g.agg.teamAppetite) : 0}%
-                  </td>
-                  <td>{g.agg.teamMedianCA != null ? `${g.agg.teamMedianCA}m` : '—'}</td>
-                </tr>
-
-                {expandedTlS4 === g.l2_email && g.members.map((m: any) => {
-                  const appetite = m.daily_lta?.final_lta || 0
-                  const leads = (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)
-                  const ca = m.allotment?.median_creation_to_allotment_mins
-                  const fulfPct = appetite > 0 ? pct(leads, appetite) : 0
-                  return (
-                    <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerTimeline(m)} style={{ cursor: 'pointer' }}>
-                      <td style={{ paddingLeft: '32px' }}>
-                        {m.seller_name}
-                        {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
-                      </td>
-                      <td>{m.isAbsent ? '—' : appetite}</td>
-                      <td>{leads}</td>
-                      <td style={{ color: m.isAbsent ? 'inherit' : fulfPct >= 90 ? '#22C55E' : fulfPct >= 70 ? '#F59E0B' : '#EF4444' }}>
-                        {m.isAbsent ? '—' : `${fulfPct}%`}
-                      </td>
-                      <td>{m.isAbsent ? '—' : ca != null ? `${Math.round(ca)}m` : '—'}</td>
-                    </tr>
-                  )
-                })}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-
-{/* S10: Goal % & At-Risk (data not available yet) */ }
-<div style={{ marginBottom: '16px' }}>
-  <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's10' ? null : 's10')}>
-    <div className={styles.headerLeft}>
-      <span className={styles.chevron} style={{ transform: activeSectionModal === 's10' ? 'rotate(90deg)' : 'none' }}>▶</span>
-      <h2 className={styles.sectionTitle}>Goal % & At-Risk</h2>
-    </div>
-        <div style={{ fontSize: '0.75rem', padding: '4px 12px', background: 'rgba(201, 168, 76, 0.1)', borderRadius: '16px', color: '#C9A84C', fontWeight: 600 }}>{date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'All Time'}</div>
-  </div>
-  {activeSectionModal === 's10' && (
-    <div className={sellerStyles.sectionContent}>
-      <div style={{ textAlign: 'center', padding: '40px 0', color: '#8A8278', fontStyle: 'italic' }}>
-        Goal % data not available yet
-      </div>
-    </div>
-  )}
 </div>
 
 
@@ -2087,14 +2425,14 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 {
   showTeamFunnel && activeFunnelTl && (
     <div className={sellerStyles.modalOverlay} onClick={() => setShowTeamFunnel(false)}>
-      <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '500px', width: '540px' }}>
+      <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '550px', width: '600px' }}>
         <button className={sellerStyles.modalClose} onClick={() => setShowTeamFunnel(false)}>✕</button>
         <div className={sellerStyles.modalHeader}>
           <span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} />
           <span className={sellerStyles.modalTitle}>{activeFunnelTl.l2_name} — LTA Funnel</span>
         </div>
 
-        <div className={sellerStyles.ltaFunnel3DContainer} style={{ marginTop: '20px', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
+        <div className={sellerStyles.ltaFunnel3DContainer} style={{ marginTop: '20px', width: '100%', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>
           <svg className={sellerStyles.ltaFunnelBg} preserveAspectRatio="none" viewBox="0 0 100 100">
             <polygon points="0,0 100,0 75,100 25,100" fill="url(#funnelGradTeamL1)" opacity="0.08" />
             <defs>
@@ -2157,14 +2495,14 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 {
   activeSellerFunnel && (
     <div className={sellerStyles.modalOverlay} onClick={() => setActiveSellerFunnel(null)}>
-      <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '400px' }}>
+      <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '550px', width: '600px' }}>
         <button className={sellerStyles.modalClose} onClick={() => setActiveSellerFunnel(null)}>✕</button>
         <div className={sellerStyles.modalHeader}>
           <span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} />
           <span className={sellerStyles.modalTitle}>{activeSellerFunnel.seller_name} — LTA Funnel</span>
         </div>
 
-        <div className={sellerStyles.ltaFunnel3DContainer} style={{ marginTop: '20px', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
+        <div className={sellerStyles.ltaFunnel3DContainer} style={{ marginTop: '20px', width: '100%', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>
           <svg className={sellerStyles.ltaFunnelBg} preserveAspectRatio="none" viewBox="0 0 100 100">
             <polygon points="0,0 100,0 75,100 25,100" fill="url(#funnelGradL1)" opacity="0.08" />
             <defs>

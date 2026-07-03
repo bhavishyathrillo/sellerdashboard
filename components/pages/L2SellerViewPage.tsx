@@ -140,7 +140,7 @@ function MheTrendChart({ labels, values, color }: { labels: string[]; values: nu
               max: 100,
               beginAtZero: true,
               ticks: { color: '#8A8278', font: { size: 9 }, precision: 0, callback: (v: any) => `${v}%` },
-              grid: { color: 'rgba(255,255,255,0.06)' }
+              grid: { color: 'rgba(255,255,255,0.06)' },
             }
           }
         }
@@ -150,17 +150,105 @@ function MheTrendChart({ labels, values, color }: { labels: string[]; values: nu
       active = false
       if (instance) instance.destroy()
     }
-  }, [labels.join(','), values.join(','), color])
+  }, [labels, values, color])
+
   return <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
 }
 
+function GoalShbTrendChart({ labels, goalValues, shbValues }: { labels: string[]; goalValues: number[]; shbValues: number[] }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  
+  useEffect(() => {
+    if (!canvasRef.current || !labels.length) return
+    let instance: any = null
+    let active = true
+    import('chart.js/auto').then(mod => {
+      if (!active || !canvasRef.current) return
+      const Chart = mod.default || mod
+      const ctx = canvasRef.current.getContext('2d')
+      if (!ctx) return
+      
+      const maxDataVal = Math.max(...goalValues, ...shbValues, 0)
+      const yMax = Math.max(20, Math.ceil((maxDataVal + 5) / 10) * 10)
+
+      instance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              type: 'line',
+              label: 'SHB %',
+              data: shbValues,
+              borderColor: '#EAB308',
+              backgroundColor: 'rgba(234, 179, 8, 0.1)',
+              borderWidth: 2,
+              fill: false,
+              tension: 0.3,
+              pointBackgroundColor: '#EAB308',
+              pointRadius: 4,
+              yAxisID: 'y'
+            },
+            {
+              type: 'bar',
+              label: 'Goal %',
+              data: goalValues,
+              backgroundColor: '#3B82F6',
+              borderRadius: 4,
+              barPercentage: 0.6,
+              maxBarThickness: 32,
+              yAxisID: 'y'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, labels: { color: '#8A8278' } },
+            tooltip: {
+              callbacks: {
+                label: (ctx: any) => ` ${ctx.dataset.label}: ${ctx.parsed.y}%`
+              }
+            }
+          },
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            y: {
+              max: yMax,
+              beginAtZero: true,
+              ticks: { color: '#8A8278', font: { size: 9 }, precision: 0, callback: (v: any) => `${v}%` },
+              grid: { color: 'rgba(255,255,255,0.06)' },
+            }
+          }
+        }
+      })
+    })
+    return () => {
+      active = false
+      if (instance) instance.destroy()
+    }
+  }, [labels, goalValues, shbValues])
+
+  return <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+}
+
+function todayStr(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function L2SellerViewPage({ session }: { session: UserSession }) {
-  const [viewMode, setViewMode] = useState<'personal' | 'team'>('team')
+  const [viewMode, setViewMode] = useState<'personal' | 'team'>('personal')
   const [teamData, setTeamData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [date, setDate] = useState(() => {
     const d = new Date()
-    return d.toISOString().split('T')[0]
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   })
   
   // Section Modal State
@@ -171,7 +259,9 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   
   // MHE Trend Modal
   const [showMheTrendModal, setShowMheTrendModal] = useState(false)
+  const [showGoalShbTrendModal, setShowGoalShbTrendModal] = useState(false)
   const [mheDrillSeller, setMheDrillSeller] = useState<any>(null)
+  const [goalShbDrillSeller, setGoalShbDrillSeller] = useState<any>(null)
 
   // Drill-down states
   const [drillSellerS1, setDrillSellerS1] = useState<any>(null)
@@ -367,7 +457,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
             Lead <span style={{ color: '#F4631E' }}>Allocation</span>
           </h1>
           <div style={{ color: '#8A8278', fontSize: '14px', marginTop: '4px' }}>
-            {session.name} &middot; {date === new Date().toISOString().split('T')[0] ? 'Today' : date}
+            {session.name} &middot; {date === todayStr() ? 'Today' : date}
           </div>
         </div>
         {members.length > 1 && (
@@ -379,9 +469,9 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <div className={styles.controls} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button 
-              className={`${styles.filterBtn} ${date === new Date().toISOString().split('T')[0] ? styles.activeFilter : ''}`} 
-              onClick={() => setDate(new Date().toISOString().split('T')[0])}
-              style={{ background: date === new Date().toISOString().split('T')[0] ? 'rgba(244, 99, 30, 0.2)' : 'rgba(255, 255, 255, 0.05)', color: date === new Date().toISOString().split('T')[0] ? '#F4631E' : '#8A8278', border: date === new Date().toISOString().split('T')[0] ? '1px solid #F4631E' : '1px solid #333', padding: '6px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
+              className={`${styles.filterBtn} ${date === todayStr() ? styles.activeFilter : ''}`} 
+              onClick={() => setDate(todayStr())}
+              style={{ background: date === todayStr() ? 'rgba(244, 99, 30, 0.2)' : 'rgba(255, 255, 255, 0.05)', color: date === todayStr() ? '#F4631E' : '#8A8278', border: date === todayStr() ? '1px solid #F4631E' : '1px solid #333', padding: '6px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
             >
               Today
             </button>
@@ -390,7 +480,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                 type="date" 
                 value={date} 
                 onChange={(e) => setDate(e.target.value)} 
-                max={new Date().toISOString().split('T')[0]} 
+                max={todayStr()} 
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #333', color: '#fff', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}
               />
             </div>
@@ -485,6 +575,61 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
             </div>
           )
         })()}
+
+        {/* Goal vs SHB KPI Card */}
+        {(() => {
+          const dayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
+          enrichedMembers.forEach((m: any) => {
+            ;(m.monthly_goal_shb || []).forEach((r: any) => {
+              const d = r.date
+              if (!d) return
+              const goalPct = typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
+              const shbPct = typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
+              if (!dayMap[d]) dayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
+              dayMap[d].goalSum += goalPct
+              dayMap[d].shbSum += shbPct
+              dayMap[d].count += 1
+            })
+          })
+          const sortedDays = Object.keys(dayMap).sort()
+          
+          let latestDay = sortedDays[sortedDays.length - 1]
+          if (date && dayMap[date]) {
+            latestDay = date
+          }
+          
+          const latestAvgGoal = latestDay ? parseFloat((dayMap[latestDay].goalSum / dayMap[latestDay].count).toFixed(0)) : 0
+          const latestAvgShb = latestDay ? parseFloat((dayMap[latestDay].shbSum / dayMap[latestDay].count).toFixed(0)) : 0
+          
+          return (
+            <div
+              className={styles.summaryCard}
+              style={{
+                background: '#1A1A1A', padding: '16px', borderRadius: '8px', flex: 1.2,
+                border: `1px solid #333`,
+                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'border-color 0.2s'
+              }}
+              onClick={() => { setGoalShbDrillSeller(null); setShowGoalShbTrendModal(true); }}
+            >
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#3B82F6' }} />
+              <div style={{ fontSize: '0.6rem', color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Team Goal vs SHB</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '4px' }}>
+                <div>
+                   <div style={{ fontSize: '0.6rem', color: '#8A8278', marginBottom: '2px' }}>Goal</div>
+                   <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#3B82F6', lineHeight: 1 }}>{latestAvgGoal}%</span>
+                </div>
+                <div style={{ width: '1px', alignSelf: 'stretch', background: 'rgba(255,255,255,0.1)' }} />
+                <div>
+                   <div style={{ fontSize: '0.6rem', color: '#8A8278', marginBottom: '2px' }}>SHB</div>
+                   <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#EAB308', lineHeight: 1 }}>{latestAvgShb}%</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                <span style={{ fontSize: '0.6rem', color: '#555', marginLeft: 'auto' }}>tap to view ▶</span>
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* S1: Login & Availability */}
@@ -501,8 +646,8 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                   <thead>
                     <tr>
                       <th>Seller</th>
-                      <th>Keka Login</th>
-                      <th>Ready Time</th>
+                      <th>Orbit Login</th>
+                      <th>Ozontell Ready</th>
                       <th>Delta</th>
                       <th>First Lead</th>
                       <th>Total Break</th>
@@ -823,25 +968,10 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
       )}
 
-      {/* S8: Goal % & At-Risk */}
-      <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's8' ? null : 's8')}>
-        <div className={styles.headerLeft}>
-          <span className={styles.chevron} style={{ transform: activeSectionModal === 's8' ? 'rotate(90deg)' : 'none' }}>▶</span>
-          <h2 className={styles.sectionTitle}>Goal % & At-Risk</h2>
-        </div>
-      </div>
-      {activeSectionModal === 's8' && (
-        <div className={sellerStyles.sectionContent}>
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#8A8278', fontStyle: 'italic' }}>
-                Data coming soon...
-              </div>
-        </div>
-      )}
 
       {/* ═══════════════ 3 CARDS: DOT | ALLOTMENT | PAX ═══════════════ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '28px', marginBottom: '16px' }}>
         <span style={{ fontSize: '1rem', fontWeight: 600, color: '#F4631E', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monthly Breakdown · {monthStr}</span>
-        <span style={{ fontSize: '0.7rem', color: '#8A8278' }}>Team Combined</span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', marginBottom: '24px' }}>
@@ -1323,6 +1453,164 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         )
       })()}
 
+      {/* ═══════════════ Goal vs SHB Modal ═══════════════ */}
+      {showGoalShbTrendModal && (() => {
+        // Build day-wise data
+        const dayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
+        enrichedMembers.forEach((m: any) => {
+          ;(m.monthly_goal_shb || []).forEach((r: any) => {
+            const d = r.date; if (!d) return
+            const goalPct = typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
+            const shbPct = typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
+            if (!dayMap[d]) dayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
+            dayMap[d].goalSum += goalPct; dayMap[d].shbSum += shbPct; dayMap[d].count += 1
+          })
+        })
+        const sortedDays = Object.keys(dayMap).sort()
+
+        let displayDate = sortedDays[sortedDays.length - 1]
+        if (date && sortedDays.includes(date)) {
+          displayDate = date
+        }
+
+        // Pad data up to the current date so we see days 1, 2, 3 etc. even if they are 0
+        const [qy, qm] = (date || todayStr()).split('-').map(Number)
+        const endDate = new Date(date || todayStr()).getDate()
+        const paddedTeamAvg = []
+        for (let i = 1; i <= endDate; i++) {
+          const dStr = `${qy}-${String(qm).padStart(2, '0')}-${String(i).padStart(2, '0')}`
+          if (dayMap[dStr]) {
+            paddedTeamAvg.push({
+              date: dStr,
+              goalAvg: parseFloat((dayMap[dStr].goalSum / dayMap[dStr].count).toFixed(0)),
+              shbAvg: parseFloat((dayMap[dStr].shbSum / dayMap[dStr].count).toFixed(0))
+            })
+          } else {
+            paddedTeamAvg.push({ date: dStr, goalAvg: 0, shbAvg: 0 })
+          }
+        }
+
+        // Per-seller summary
+        const sellerSummaries = enrichedMembers.map((m: any) => {
+          const logs = m.monthly_goal_shb || []
+          const todaysData = logs.find((l: any) => l.date === displayDate)
+          return { 
+            ...m, 
+            goalToday: todaysData ? (todaysData.goal_completion * 100) : 0,
+            shbToday: todaysData ? (todaysData.shb_percent * 100) : 0
+          }
+        }).sort((a: any, b: any) => b.shbToday - a.shbToday)
+
+        // Drill: current seller logs padded
+        let drillLogs: any[] = []
+        if (goalShbDrillSeller) {
+          for (let i = 1; i <= endDate; i++) {
+            const dStr = `${qy}-${String(qm).padStart(2, '0')}-${String(i).padStart(2, '0')}`
+            const existing = (goalShbDrillSeller.monthly_goal_shb || []).find((r: any) => r.date === dStr)
+            drillLogs.push({
+              date: dStr,
+              goalAvg: existing && typeof existing.goal_completion === 'number' ? existing.goal_completion * 100 : 0,
+              shbAvg: existing && typeof existing.shb_percent === 'number' ? existing.shb_percent * 100 : 0
+            })
+          }
+        }
+
+        const activeData = goalShbDrillSeller ? drillLogs : paddedTeamAvg
+        const activeLabels = activeData.map((d: any) => new Date(d.date).getDate().toString())
+        const activeGoalValues = activeData.map((d: any) => d.goalAvg)
+        const activeShbValues = activeData.map((d: any) => d.shbAvg)
+
+        return (
+          <div
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.78)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => { setShowGoalShbTrendModal(false); setGoalShbDrillSeller(null); }}
+          >
+            <div
+              style={{ background: '#1A1A1A', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '28px', width: '820px', maxWidth: '96vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.6)', position: 'relative' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                onClick={() => { setShowGoalShbTrendModal(false); setGoalShbDrillSeller(null); }}
+                style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.06)', border: '1px solid #333', color: '#E5E7EB', cursor: 'pointer', fontSize: '1rem', padding: '4px 10px', borderRadius: '6px', lineHeight: 1 }}
+              >✕</button>
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                {goalShbDrillSeller && (
+                  <button
+                    onClick={() => setGoalShbDrillSeller(null)}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: '#E5E5E5', padding: '5px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.78rem' }}
+                  >← Team</button>
+                )}
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3B82F6', flexShrink: 0 }} />
+                <h3 style={{ color: '#fff', margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
+                  {goalShbDrillSeller ? `${goalShbDrillSeller.seller_name} — Goal vs SHB` : 'Team Avg Goal vs SHB Trend'}
+                </h3>
+                <span style={{ fontSize: '0.7rem', color: '#8A8278', marginLeft: '4px' }}>{monthStr}</span>
+              </div>
+              <p style={{ color: '#8A8278', fontSize: '0.75rem', margin: '0 0 20px 20px' }}>
+                {goalShbDrillSeller ? 'Day-wise Goal and SHB % for this seller.' : 'Day-wise avg Goal and SHB % across all team sellers.'}
+              </p>
+
+              {/* Chart */}
+              <div style={{ height: '260px', marginBottom: '24px' }}>
+                {activeData.length > 0 ? (
+                  <GoalShbTrendChart labels={activeLabels} goalValues={activeGoalValues} shbValues={activeShbValues} />
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#555', fontSize: '0.85rem', fontStyle: 'italic' }}>No Goal vs SHB data for this month yet.</div>
+                )}
+              </div>
+
+              {/* Seller list (only in team view) */}
+              {!goalShbDrillSeller && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '10px' }}>
+                     <div style={{ fontSize: '0.68rem', color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Seller Breakdown</div>
+                     <div style={{ fontSize: '0.65rem', color: '#8A8278' }}>Showing data for: <span style={{color: '#fff'}}>{displayDate}</span></div>
+                  </div>
+                  <div style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid #222' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                      <thead>
+                        <tr style={{ background: '#111', color: '#666', textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                          <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 500 }}>Seller Name</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 500 }}>Goal %</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 500 }}>SHB %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sellerSummaries.map((s: any, idx: number) => {
+                          const rowBg = idx % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent'
+                          return (
+                            <tr
+                              key={s.seller_email}
+                              style={{ background: rowBg, cursor: 'pointer', transition: 'background 0.15s' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)' }}
+                              onMouseLeave={e => { e.currentTarget.style.background = rowBg }}
+                              onClick={() => setGoalShbDrillSeller(s)}
+                            >
+                              <td style={{ padding: '12px 16px', borderBottom: '1px solid #1e1e1e', color: '#E5E7EB', fontWeight: 500 }}>
+                                {s.seller_name}
+                                {s.seller_email === session.email && <span style={{ background: '#3B82F6', color: '#fff', fontSize: '0.58rem', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', fontWeight: 600 }}>(You)</span>}
+                              </td>
+                              <td style={{ padding: '12px 16px', borderBottom: '1px solid #1e1e1e', textAlign: 'right', fontWeight: 700, color: '#3B82F6', fontVariantNumeric: 'tabular-nums' }}>
+                                {s.goalToday.toFixed(0)}%
+                              </td>
+                              <td style={{ padding: '12px 16px', borderBottom: '1px solid #1e1e1e', textAlign: 'right', fontWeight: 700, color: '#EAB308', fontVariantNumeric: 'tabular-nums' }}>
+                                {s.shbToday.toFixed(0)}%
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* No Leads Modal */}
       {showNoLeadsModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowNoLeadsModal(false)}>
@@ -1373,7 +1661,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
 
               {activeTileS1 === 'keka' && (
                 <>
-                  <div className={sellerStyles.modalHeader}><span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} /><span className={sellerStyles.modalTitle}>Keka Login</span></div>
+                  <div className={sellerStyles.modalHeader}><span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} /><span className={sellerStyles.modalTitle}>Orbit Login</span></div>
                   <p className={sellerStyles.modalInsight}>Logged in at {formatTime(kekaTime)}.</p>
                   <div className={sellerStyles.modalStatGrid}>
                     <div className={sellerStyles.modalStat}><span>Login</span><strong>{formatTime(kekaTime)}</strong></div>
@@ -1386,10 +1674,10 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
               {activeTileS1 === 'ozontell' && (
                 <>
                   <div className={sellerStyles.modalHeader}><span className={sellerStyles.modalDot} style={{ background: '#33C2C9' }} /><span className={sellerStyles.modalTitle}>Ozontell Ready</span></div>
-                  <p className={sellerStyles.modalInsight}>{deltaOzontellFromKeka !== null && deltaOzontellFromKeka <= 5 ? `Ready in ${deltaOzontellFromKeka} min — great!` : `Ready ${deltaOzontellFromKeka ?? '—'} min after Keka.`}</p>
+                  <p className={sellerStyles.modalInsight}>{deltaOzontellFromKeka !== null && deltaOzontellFromKeka <= 5 ? `Ready in ${deltaOzontellFromKeka} min — great!` : `Ready ${deltaOzontellFromKeka ?? '—'} min after Orbit.`}</p>
                   <div className={sellerStyles.modalStatGrid}>
                     <div className={sellerStyles.modalStat}><span>Ready at</span><strong>{formatTime(ozontellReady)}</strong></div>
-                    <div className={sellerStyles.modalStat}><span>After Keka</span><strong className={sellerStyles.statGood}>{deltaOzontellFromKeka}m</strong></div>
+                    <div className={sellerStyles.modalStat}><span>After Orbit</span><strong className={sellerStyles.statGood}>{deltaOzontellFromKeka}m</strong></div>
                     <div className={sellerStyles.modalStat}><span>To lead</span><strong>{deltaOzontellToFirst !== null ? `${deltaOzontellToFirst}m` : '—'}</strong></div>
                   </div>
                 </>
@@ -1400,7 +1688,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                   <p className={sellerStyles.modalInsight}>{deltaKekaToFirst !== null && deltaKekaToFirst <= 30 ? `First lead in ${deltaKekaToFirst} min!` : `First lead at ${formatTime(firstLead)}.`}</p>
                   <div className={sellerStyles.modalStatGrid}>
                     <div className={sellerStyles.modalStat}><span>Time</span><strong>{formatTime(firstLead)}</strong></div>
-                    <div className={sellerStyles.modalStat}><span>After Keka</span><strong className={sellerStyles.statGood}>{deltaKekaToFirst}m</strong></div>
+                    <div className={sellerStyles.modalStat}><span>After Orbit</span><strong className={sellerStyles.statGood}>{deltaKekaToFirst}m</strong></div>
                     <div className={sellerStyles.modalStat}><span>Total</span><strong>{drillSellerS1.allotment?.rtg_leads || drillSellerS1.allotment?.non_rtg_leads ? (drillSellerS1.allotment?.rtg_leads || 0) + (drillSellerS1.allotment?.non_rtg_leads || 0) : '—'}</strong></div>
                     <div className={sellerStyles.modalStat}><span>Auto/Manual</span><strong>{drillSellerS1.allotment?.auto_allotted || 0}/{drillSellerS1.allotment?.manual_allotted || 0}</strong></div>
                   </div>
@@ -1424,7 +1712,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
               {activeBlockS1.isLateAllocation
                 ? (activeBlockS1.leads > 0 ? `${activeBlockS1.leads} late allocation lead${activeBlockS1.leads > 1 ? 's' : ''} landed.` : 'Eligible for late allocation (6PM/7PM catch-up).')
                 : activeBlockS1.isBreak
-                  ? (activeBlockS1.leads > 0 ? `${activeBlockS1.leads} manual lead${activeBlockS1.leads > 1 ? 's' : ''} landed while on break.` : 'On break (logged out of Keka). Not eligible for auto-allocation.')
+                  ? (activeBlockS1.leads > 0 ? `${activeBlockS1.leads} manual lead${activeBlockS1.leads > 1 ? 's' : ''} landed while on break.` : 'On break (logged out of Orbit). Not eligible for auto-allocation.')
                   : !activeBlockS1.isReady
                     ? (activeBlockS1.leads > 0 ? `${activeBlockS1.leads} manual lead${activeBlockS1.leads > 1 ? 's' : ''} landed.` : 'Not ready on Ozontell. Not eligible for auto-allocation.')
                     : (activeBlockS1.leads > 0 ? `${activeBlockS1.leads} auto lead${activeBlockS1.leads > 1 ? 's' : ''} landed.` : 'Eligible, no lead.')
@@ -1437,14 +1725,14 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       {/* Funnel Modal */}
       {drillSellerS7 && (
         <div className={sellerStyles.modalOverlay} onClick={() => setDrillSellerS7(null)}>
-          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '400px' }}>
+          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '550px', width: '600px' }}>
             <button className={sellerStyles.modalClose} onClick={() => setDrillSellerS7(null)}>✕</button>
             <div className={sellerStyles.modalHeader}>
               <span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} />
               <span className={sellerStyles.modalTitle}>{drillSellerS7.seller_name} — LTA Funnel</span>
             </div>
             
-            <div className={sellerStyles.ltaFunnel3DContainer} style={{ marginTop: '20px', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
+            <div className={sellerStyles.ltaFunnel3DContainer} style={{ marginTop: '20px', width: '100%', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>
               <svg className={sellerStyles.ltaFunnelBg} preserveAspectRatio="none" viewBox="0 0 100 100">
                 <polygon points="0,0 100,0 75,100 25,100" fill="url(#funnelGrad2)" opacity="0.08" />
                 <defs>
@@ -1493,14 +1781,14 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       {/* Team Funnel Modal */}
       {showTeamFunnel && (
         <div className={sellerStyles.modalOverlay} onClick={() => setShowTeamFunnel(false)}>
-          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '500px', width: '540px' }}>
+          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '550px', width: '600px' }}>
             <button className={sellerStyles.modalClose} onClick={() => setShowTeamFunnel(false)}>✕</button>
             <div className={sellerStyles.modalHeader}>
               <span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} />
               <span className={sellerStyles.modalTitle}>My Team — LTA Funnel</span>
             </div>
             
-            <div className={sellerStyles.ltaFunnel3DContainer} style={{ marginTop: '20px', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
+            <div className={sellerStyles.ltaFunnel3DContainer} style={{ marginTop: '20px', width: '100%', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>
               <svg className={sellerStyles.ltaFunnelBg} preserveAspectRatio="none" viewBox="0 0 100 100">
                 <polygon points="0,0 100,0 75,100 25,100" fill="url(#funnelGradTeam)" opacity="0.08" />
                 <defs>
@@ -1560,7 +1848,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
               <div style={{ color: '#8A8278', fontSize: '0.8rem', marginBottom: '16px' }}>Click on a metric to view exact timeline details.</div>
               <div className={styles.kpiRow} style={{ margin: 0, padding: 0 }}>
                 <div className={styles.kpiItem} style={{ cursor: 'pointer', transition: 'background 0.2s', border: '1px solid transparent', flex: 1 }} onClick={() => setActiveTileS1('keka')} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <span className={styles.kpiLabel}>Keka Login</span>
+                  <span className={styles.kpiLabel}>Orbit Login</span>
                   <span className={styles.kpiValue}>{formatTime(drillSellerS1.attendance?.first_login)}</span>
                 </div>
                 <div className={styles.kpiItem} style={{ cursor: 'pointer', transition: 'background 0.2s', border: '1px solid transparent', flex: 1 }} onClick={() => setActiveTileS1('ozontell')} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>

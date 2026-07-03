@@ -44,6 +44,8 @@ interface SellerViewData {
     pax_4_plus: number
   }
   monthly: MonthlyTotals
+  goal_vs_shb_trend?: any[]
+  goal_vs_shb?: any
   attendance: {
     first_login: string | null
     last_logout: string | null
@@ -299,6 +301,8 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
 
   // Chart: MHE % Trend
   const mheChartRef = useRef<HTMLCanvasElement | null>(null)
+  const goalShbChartRef = useRef<HTMLCanvasElement | null>(null)
+  const goalShbChartInstance = useRef<any>(null)
   useEffect(() => {
     if (activeTile !== 'mhe' || !mheChartRef.current || !data?.mhe_trend) return
 
@@ -312,6 +316,8 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
           return `${dt.getDate()}`
         })
         const pcts = data.mhe_trend!.map((d: any) => d.mhePct)
+        const maxMheVal = Math.max(...pcts.map(Number), 0);
+        const yMaxMhe = Math.max(20, Math.ceil((maxMheVal + 5) / 10) * 10);
 
         chartInstance = new Chart(ctx, {
           type: 'line',
@@ -337,7 +343,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
             scales: {
               x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
               y: { 
-                max: 100,
+                max: yMaxMhe,
                 ticks: { color: '#8A8278', font: { size: 9 }, precision: 0, callback: (v) => `${v}%` }, 
                 grid: { color: 'rgba(255,255,255,0.06)' }, 
                 beginAtZero: true 
@@ -351,6 +357,85 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
       if (chartInstance) chartInstance.destroy()
     }
   }, [activeTile, data?.mhe_trend])
+
+  useEffect(() => {
+    if (activeTile !== 'goal_shb' || !goalShbChartRef.current || !data?.goal_vs_shb_trend || !data?.date) return
+
+    let chartInstance: any = null
+    import('chart.js/auto').then((ChartModule) => {
+      const Chart = ChartModule.default
+      const ctx = goalShbChartRef.current?.getContext('2d')
+      if (ctx) {
+        const endDate = new Date(data.date).getDate();
+        const y = new Date(data.date).getFullYear();
+        const m = new Date(data.date).getMonth();
+        
+        const paddedData = [];
+        for (let i = 1; i <= endDate; i++) {
+          const dateStr = `${y}-${String(m+1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+          const existing = data.goal_vs_shb_trend!.find((d:any) => d.date === dateStr);
+          paddedData.push(existing || { date: dateStr, goal_completion: 0, shb_percent: 0 });
+        }
+
+        const labels = paddedData.map((d: any) => new Date(d.date).getDate().toString())
+        const goalPcts = paddedData.map((d: any) => (d.goal_completion * 100).toFixed(0))
+        const shbPcts = paddedData.map((d: any) => (d.shb_percent * 100).toFixed(0))
+
+        const maxDataVal = Math.max(...goalPcts.map(Number), ...shbPcts.map(Number), 0);
+        const yMax = Math.max(20, Math.ceil((maxDataVal + 5) / 10) * 10);
+
+        chartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                type: 'line',
+                label: 'SHB %',
+                data: shbPcts,
+                borderColor: '#EAB308',
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.3,
+                pointBackgroundColor: '#EAB308',
+                pointRadius: 4,
+                yAxisID: 'y'
+              },
+              {
+                type: 'bar',
+                label: 'Goal %',
+                data: goalPcts,
+                backgroundColor: '#3B82F6',
+                borderRadius: 4,
+                barPercentage: 0.6,
+                maxBarThickness: 32,
+                yAxisID: 'y'
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: true, labels: { color: '#8A8278' } } },
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+              x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { display: false } },
+              y: { 
+                max: yMax,
+                ticks: { color: '#8A8278', font: { size: 9 }, precision: 0, callback: (v) => `${v}%` }, 
+                grid: { color: 'rgba(255,255,255,0.06)' }, 
+                beginAtZero: true 
+              }
+            }
+          }
+        })
+      }
+    })
+    return () => {
+      if (chartInstance) chartInstance.destroy()
+    }
+  }, [activeTile, data?.goal_vs_shb_trend, data?.date])
 
   const breaks = useMemo(() => parseBreaks(data?.attendance?.break_timestamps || null), [data])
   const readyWindows = useMemo(() => parseReadyWindows(data?.cti?.ready_timestamps || null), [data])
@@ -397,11 +482,12 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
 
   const hasDailyPresence = !!kekaTime || !!orbitTime || !!ozontellReady
 
+  const deltaOrbitFromKeka = minutesBetween(kekaTime, orbitTime)
   const deltaOzontellFromKeka = minutesBetween(kekaTime, ozontellReady)
   const deltaOzontellToFirst = minutesBetween(ozontellReady, firstLead)
   const deltaKekaToFirst = minutesBetween(kekaTime, firstLead)
   const totalLoginToLogout = minutesBetween(kekaTime, lastLogout)
-  const breakAmber = breaks.count > 3 || breaks.totalMinutes > 45
+  const breakAmber = breaks.windows.length > 3 || breaks.totalMinutes > 45
 
   const monthly = data?.monthly
   const monthTotalLeads = monthly?.total_leads_allotted || 0
@@ -483,10 +569,10 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
       <div className={styles.loginStrip}>
         {[
           { key: 'keka', cls: styles.loginTileKeka, label: 'Keka Login', value: formatTime(kekaTime), sub: ' ' },
-          { key: 'orbit', cls: styles.loginTileOrbit, label: 'Orbit Login', value: '—', sub: 'Awaiting', muted: true },
-          { key: 'ozontell', cls: styles.loginTileOzontell, label: 'Ozontell Ready', value: formatTime(ozontellReady), sub: deltaOzontellFromKeka !== null ? `+${deltaOzontellFromKeka} min from Keka` : '—' },
+          { key: 'orbit', cls: styles.loginTileOrbit, label: 'Orbit Login', value: formatTime(orbitTime), sub: deltaOrbitFromKeka !== null ? `+${deltaOrbitFromKeka} min from Keka` : '—' },
+          { key: 'ozontell', cls: styles.loginTileOzontell, label: 'Ozontell Ready', value: formatTime(ozontellReady), sub: deltaOzontellFromKeka !== null ? (deltaOzontellFromKeka > 0 ? `+${deltaOzontellFromKeka} min from Keka` : `${deltaOzontellFromKeka} min from Keka`) : '—' },
           { key: 'first', cls: styles.loginTileFirst, label: 'First Lead', value: formatTime(firstLead), sub: deltaOzontellToFirst !== null ? `+${deltaOzontellToFirst} min from Ozontell` : '—' },
-        ].map(t => (
+        ].map((t: { key: string; cls: string; label: string; value: string; sub: string; muted?: boolean }) => (
           <button key={t.key} className={`${styles.loginTile} ${t.cls}`} onClick={() => setActiveTile(t.key)}>
             <div className={styles.loginTileLabel}>{t.label}</div>
             <div className={styles.loginTileValue} style={t.muted ? { color: '#6B7280' } : undefined}>{t.value}</div>
@@ -503,10 +589,23 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
           <div className={`${styles.kpiValue} ${totalLeads > 0 ? styles.kpiValueRed : styles.kpiValueMuted}`}>{totalLeads}</div>
           <div className={styles.kpiSub}>Auto: {data?.allotment?.auto_allotted || 0} · Manual: {data?.allotment?.manual_allotted || 0}</div>
         </div>
-        <div className={styles.kpiTile}>
-          <div className={styles.kpiLabel}>Goal % vs SHB</div>
-          <div className={`${styles.kpiValue} ${styles.kpiValueMuted}`}>0%</div>
-          <div className={styles.kpiSub}>₹0 / ₹0</div>
+        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setActiveTile('goal_shb')}>
+          <div className={styles.kpiLabel}>Goal % vs SHB <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span></div>
+          <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
+            <div className={styles.kpiSplitSide}>
+              <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Goal</div>
+              <div className={`${styles.kpiValue} ${data?.goal_vs_shb ? '' : styles.kpiValueMuted}`}>
+                {data?.goal_vs_shb?.goal_completion !== undefined ? `${(data.goal_vs_shb.goal_completion * 100).toFixed(0)}%` : '0%'}
+              </div>
+            </div>
+            <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
+            <div className={styles.kpiSplitSide}>
+              <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>SHB</div>
+              <div className={`${styles.kpiValue} ${data?.goal_vs_shb ? '' : styles.kpiValueMuted}`}>
+                {data?.goal_vs_shb?.shb_percent !== undefined ? `${(data.goal_vs_shb.shb_percent * 100).toFixed(0)}%` : '0%'}
+              </div>
+            </div>
+          </div>
         </div>
         <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setActiveTile('mhe')}>
           <div className={styles.kpiLabel}>MHE % <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span></div>
@@ -524,7 +623,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         </div>
         <div className={styles.kpiTile}>
           <div className={styles.kpiLabel}>Breaks today</div>
-          <div className={`${styles.kpiValue} ${breakAmber ? styles.kpiValueRed : styles.kpiValueAmber}`}>{breaks.count}</div>
+          <div className={`${styles.kpiValue} ${breakAmber ? styles.kpiValueRed : styles.kpiValueAmber}`}>{breaks.windows.length}</div>
           <div className={styles.kpiSub}>{breaks.totalMinutes > 0 ? `Total: ${breaks.totalMinutes} min` : 'No breaks'}</div>
         </div>
         <div className={`${styles.kpiTile} ${styles.kpiOrange}`}>
@@ -606,7 +705,10 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
 
               if (finalLtaVal > 0) {
                 if (runningLeads >= target50 && time50 === null) time50 = minOfDay;
-                if (runningLeads >= target100 && time100 === null) time100 = minOfDay;
+                if (runningLeads >= target100 && time100 === null) {
+                  time100 = minOfDay;
+                  if (time100 === time50) time100 += 20;
+                }
               }
             }
 
@@ -713,24 +815,24 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                 if (leads > 0) {
                     if (isOrbitOnly) {
                       blockClass = styles.blockOrbit
-                      timePrefix = 'Keka logged out · '
+                      timePrefix = 'Orbit logged out · '
                       hoverText = `${leads} lead(s) landed via Orbit`
                     } else if (eligible) {
                       blockClass = styles.blockLeadReceived
                       hoverText = `${leads} lead(s) landed`
                     } else {
-                      blockClass = styles.blockManualLead
-                      hoverText = `${leads} lead(s) landed`
+                      blockClass = styles.blockLeadReceived
+                      hoverText = `${leads} lead(s) landed (Exception)`
                       timePrefix = isBreak ? 'On break · ' : 'Not ready on Ozontell · '
                     }
                   } else {
                     if (isOrbitOnly) {
                       blockClass = styles.blockOrbit
-                      timePrefix = 'Keka logged out · '
+                      timePrefix = 'Orbit logged out · '
                       hoverText = 'Eligible via Orbit, no lead'
                     } else if (eligible) {
-                      blockClass = styles.blockEligibleNoLead
-                      hoverText = 'Eligible, no lead'
+                      blockClass = styles.blockEligible
+                      hoverText = 'Eligible for lead'
                     } else if (isBreak) {
                       blockClass = styles.blockBreak
                       hoverText = 'Not eligible'
@@ -904,12 +1006,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
             </div>
           </div>
         </div>
-        <div className={`${styles.placeholderCard} ${styles.placeholderCardFull}`}>
-          <div className={styles.placeholderTitle}>Goal % vs SHB</div>
-          <div className={styles.chartPlaceholder} style={{ maxWidth: '900px', margin: '0 auto' }}>
-            <div className={styles.chartPlaceholderText}>Bars + SHB line coming soon</div>
-          </div>
-        </div>
+
         <div className={`${styles.placeholderCard} ${styles.placeholderCardFull}`}>
           <div className={styles.placeholderTitle}>LTA Day-on-Day Trend</div>
           <div className={styles.chartPlaceholder} style={{ background: 'transparent', border: 'none', height: '200px', maxWidth: '900px', margin: '0 auto' }}>
@@ -1009,14 +1106,24 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
       {/* Modals */}
       {activeTile && (
         <div className={`${styles.modalOverlay} ${closing ? styles.modalOverlayOut : ''}`} onClick={closeModal}>
-          <div className={`${styles.modalCard} ${closing ? styles.modalCardOut : ''} ${activeTile === 'mhe' ? styles.modalCardWide : ''}`} onClick={e => e.stopPropagation()}>
+          <div className={`${styles.modalCard} ${closing ? styles.modalCardOut : ''} ${(activeTile === 'mhe' || activeTile === 'goal_shb') ? styles.modalCardWide : ''}`} onClick={e => e.stopPropagation()}>
             <button className={styles.modalClose} onClick={closeModal}>✕</button>
+
+            {activeTile === 'goal_shb' && (
+              <>
+                <div className={styles.modalHeader}><span className={styles.modalDot} style={{ background: '#3B82F6' }} /><span className={styles.modalTitle}>Goal % vs SHB Trend</span></div>
+                <p className={styles.modalInsight}>Goal vs Sales Handled Business across the current month.</p>
+                <div style={{ height: '220px', width: '100%', marginTop: '20px' }}>
+                  <canvas ref={goalShbChartRef} style={{ width: '100%', height: '100%' }} />
+                </div>
+              </>
+            )}
 
             {activeTile === 'mhe' && (
               <>
                 <div className={styles.modalHeader}><span className={styles.modalDot} style={{ background: '#3B82F6' }} /><span className={styles.modalTitle}>MHE % Trend</span></div>
                 <p className={styles.modalInsight}>Mishandled Leads over the current month.</p>
-                <div style={{ height: '300px', width: '100%', marginTop: '20px' }}>
+                <div style={{ height: '220px', width: '100%', marginTop: '20px' }}>
                   <canvas ref={mheChartRef} style={{ width: '100%', height: '100%' }} />
                 </div>
               </>
@@ -1042,11 +1149,27 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
             {activeTile === 'ozontell' && (
               <>
                 <div className={styles.modalHeader}><span className={styles.modalDot} style={{ background: '#33C2C9' }} /><span className={styles.modalTitle}>Ozontell Ready</span></div>
-                <p className={styles.modalInsight}>{deltaOzontellFromKeka !== null && deltaOzontellFromKeka <= 5 ? `Ready in ${deltaOzontellFromKeka} min — great!` : `Ready ${deltaOzontellFromKeka ?? '—'} min after Keka.`}</p>
-                <div className={styles.modalStatGrid}>
-                  <div className={styles.modalStat}><span>Ready at</span><strong>{formatTime(ozontellReady)}</strong></div>
-                  <div className={styles.modalStat}><span>After Keka</span><strong className={styles.statGood}>{deltaOzontellFromKeka}m</strong></div>
-                  <div className={styles.modalStat}><span>To lead</span><strong>{deltaOzontellToFirst !== null ? `${deltaOzontellToFirst}m` : '—'}</strong></div>
+                <div className={styles.modalCard}>
+                  <div className={styles.modalStatGrid}>
+                    <div className={styles.modalStat}><span>Login</span><strong>{formatTime(kekaTime)}</strong></div>
+                    <div className={styles.modalStat}><span>1st Lead</span><strong>{formatTime(firstLead)}</strong></div>
+                    <div className={styles.modalStat}><span>Ozontell Ready</span><strong>{formatTime(ozontellReady)}</strong></div>
+                    <div className={styles.modalStat}><span>To Ozontell</span><strong className={styles.statGood}>{deltaOzontellFromKeka !== null ? `${deltaOzontellFromKeka}m` : '—'}</strong></div>
+                  </div>
+                </div>
+                <div className={styles.modalCard}>
+                  <h4 className={styles.modalH4}>Login Speed</h4>
+                  <div className={styles.modalMetricRow}>
+                    <div className={styles.modalMetricBlock}>
+                      <div className={styles.modalMetricVal}>{deltaOzontellFromKeka !== null ? `${deltaOzontellFromKeka}m` : '—'}</div>
+                      <div className={styles.modalMetricLabel}>Keka to Ozontell</div>
+                    </div>
+                    <div className={styles.modalMetricBlock}>
+                      <div className={styles.modalMetricVal}>{deltaOzontellToFirst !== null ? `${deltaOzontellToFirst}m` : '—'}</div>
+                      <div className={styles.modalMetricLabel}>Ready to 1st Lead</div>
+                    </div>
+                  </div>
+                  <p className={styles.modalInsight}>{deltaOzontellFromKeka !== null && deltaOzontellFromKeka <= 5 ? `Ready in ${deltaOzontellFromKeka} min — great!` : `Ready ${deltaOzontellFromKeka ?? '—'} min after Keka.`}</p>
                 </div>
               </>
             )}
@@ -1078,7 +1201,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
               {activeBlock.isLateAllocation
                 ? (activeBlock.leads > 0 ? `${activeBlock.leads} late allocation lead${activeBlock.leads > 1 ? 's' : ''} landed.` : 'Eligible for late allocation (6PM/7PM catch-up).')
                 : activeBlock.isBreak
-                  ? (activeBlock.leads > 0 ? `${activeBlock.leads} manual lead${activeBlock.leads > 1 ? 's' : ''} landed while on break.` : 'On break (logged out of Keka). Not eligible for auto-allocation.')
+                  ? (activeBlock.leads > 0 ? `${activeBlock.leads} manual lead${activeBlock.leads > 1 ? 's' : ''} landed while on break.` : 'On break (logged out of Orbit). Not eligible for auto-allocation.')
                   : !activeBlock.isReady
                     ? (activeBlock.leads > 0 ? `${activeBlock.leads} manual lead${activeBlock.leads > 1 ? 's' : ''} landed.` : 'Not ready on Ozontell. Not eligible for auto-allocation.')
                     : (activeBlock.leads > 0 ? `${activeBlock.leads} auto lead${activeBlock.leads > 1 ? 's' : ''} landed.` : 'Eligible, no lead.')
