@@ -200,19 +200,6 @@ export default function HomePage({ session }: HomePageProps) {
             </span>
           </p>
         </div>
-        {(() => {
-          const ltaMatch = data.one_liner?.match(/Your LTA is\s+(\d+(?:\.\d+)?)/i)
-          if (ltaMatch) {
-            return (
-              <div className={styles.statCard}>
-                <p className={styles.statLabel}>LTA</p>
-                <p className={`${styles.statValue} ${styles.brandColor}`}>{ltaMatch[1]}</p>
-                <p className={styles.statHint}><span className={styles.hintNeutral}>Lead Time Availability</span></p>
-              </div>
-            )
-          }
-          return null
-        })()}
       </div>
 
       <div className={styles.section}>
