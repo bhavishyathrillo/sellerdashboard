@@ -12,6 +12,7 @@ import { getSession, saveSession, clearSession, UserSession } from '@/lib/sessio
 import HomePage from '@/components/pages/HomePage'
 import L1HomePage from '@/components/pages/L1HomePage'
 import AdminOverviewPage from '@/components/pages/AdminOverviewPage'
+import AdminLTAPage from '@/components/pages/AdminLTAPage'
 import AdminPerformancePage from '@/components/pages/AdminPerformancePage'
 import AdminMHLPage from '@/components/pages/AdminMHLPage'
 import AdminPipelinePage from '@/components/pages/AdminPipelinePage'
@@ -80,7 +81,7 @@ export default function Home() {
 
   const handleIntroComplete = () => setState('login')
 
- const handleLogin = async (email: string, name: string, role: string) => {
+  const handleLogin = async (email: string, name: string, role: string) => {
     saveSession(email, name, role)
     const s = getSession()
     setSession(s)
@@ -170,6 +171,9 @@ export default function Home() {
           {activePage === 'home' && isAdmin && (
             <AdminOverviewPage session={session} />
           )}
+          {activePage === 'seller-view' && isAdmin && (
+            <AdminLTAPage session={session} />
+          )}
           {activePage === 'home' && !isAdmin && session.role === 'L1' && (
             <L1HomePage session={session} />
           )}
@@ -204,10 +208,10 @@ export default function Home() {
             <SellerViewPage session={session} />
           )}
           {activePage === 'leaderboard' && <LeaderboardPage session={session} />}
-          {activePage === 'rewards'     && <RewardsPage session={session} />}
-          {activePage === 'calendar'    && <CalendarPage session={session} />}
-          {activePage === 'ttk'         && <TTKPage />}
-          {activePage === 'team'        && <TeamPage session={session} />}
+          {activePage === 'rewards' && <RewardsPage session={session} />}
+          {activePage === 'calendar' && <CalendarPage session={session} />}
+          {activePage === 'ttk' && <TTKPage />}
+          {activePage === 'team' && <TeamPage session={session} />}
         </DashboardLayout>
       )}
     </>
