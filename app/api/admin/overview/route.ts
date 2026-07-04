@@ -141,6 +141,8 @@ export async function GET() {
       
       const sEmail = row.seller_email
       if (sEmail && cmName) {
+        if (cmName.toLowerCase().includes('ram ratan mishra')) return;
+
         const flag = row.seller_flag || 'No Flag'
         allFlags.add(flag)
 
