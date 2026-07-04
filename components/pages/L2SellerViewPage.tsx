@@ -1646,6 +1646,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       {/* S1 KPI Modals */}
       {activeTileS1 && drillSellerS1 && (() => {
         const kekaTime = drillSellerS1.attendance?.first_login;
+        const orbitTime = drillSellerS1.orbit?.first_login;
         const lastLogout = drillSellerS1.attendance?.last_logout;
         const totalLoginToLogout = kekaTime && lastLogout ? minutesBetween(kekaTime, lastLogout) : null;
         const ozontellReady = drillSellerS1.cti?.logged_in_at;
@@ -1661,13 +1662,22 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
 
               {activeTileS1 === 'keka' && (
                 <>
-                  <div className={sellerStyles.modalHeader}><span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} /><span className={sellerStyles.modalTitle}>Orbit Login</span></div>
+                  <div className={sellerStyles.modalHeader}><span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} /><span className={sellerStyles.modalTitle}>Keka Login</span></div>
                   <p className={sellerStyles.modalInsight}>Logged in at {formatTime(kekaTime)}.</p>
                   <div className={sellerStyles.modalStatGrid}>
                     <div className={sellerStyles.modalStat}><span>Login</span><strong>{formatTime(kekaTime)}</strong></div>
                     <div className={sellerStyles.modalStat}><span>Logout</span><strong>{formatTime(lastLogout)}</strong></div>
                     <div className={sellerStyles.modalStat}><span>Session</span><strong>{totalLoginToLogout ? `${Math.floor(totalLoginToLogout / 60)}h ${totalLoginToLogout % 60}m` : '—'}</strong></div>
                     <div className={sellerStyles.modalStat}><span>To Ozontell</span><strong className={sellerStyles.statGood}>{deltaOzontellFromKeka !== null ? `${deltaOzontellFromKeka}m` : '—'}</strong></div>
+                  </div>
+                </>
+              )}
+              {activeTileS1 === 'orbit' && (
+                <>
+                  <div className={sellerStyles.modalHeader}><span className={sellerStyles.modalDot} style={{ background: '#8B7FE8' }} /><span className={sellerStyles.modalTitle}>Orbit Login</span></div>
+                  <p className={sellerStyles.modalInsight}>Logged into Orbit at {formatTime(orbitTime)}.</p>
+                  <div className={sellerStyles.modalStatGrid}>
+                    <div className={sellerStyles.modalStat}><span>Login</span><strong>{formatTime(orbitTime)}</strong></div>
                   </div>
                 </>
               )}
@@ -1848,8 +1858,12 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
               <div style={{ color: '#8A8278', fontSize: '0.8rem', marginBottom: '16px' }}>Click on a metric to view exact timeline details.</div>
               <div className={styles.kpiRow} style={{ margin: 0, padding: 0 }}>
                 <div className={styles.kpiItem} style={{ cursor: 'pointer', transition: 'background 0.2s', border: '1px solid transparent', flex: 1 }} onClick={() => setActiveTileS1('keka')} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <span className={styles.kpiLabel}>Orbit Login</span>
+                  <span className={styles.kpiLabel}>Keka Login</span>
                   <span className={styles.kpiValue}>{formatTime(drillSellerS1.attendance?.first_login)}</span>
+                </div>
+                <div className={styles.kpiItem} style={{ cursor: 'pointer', transition: 'background 0.2s', border: '1px solid transparent', flex: 1 }} onClick={() => setActiveTileS1('orbit')} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <span className={styles.kpiLabel}>Orbit Login</span>
+                  <span className={styles.kpiValue}>{formatTime(drillSellerS1.orbit?.first_login)}</span>
                 </div>
                 <div className={styles.kpiItem} style={{ cursor: 'pointer', transition: 'background 0.2s', border: '1px solid transparent', flex: 1 }} onClick={() => setActiveTileS1('ozontell')} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <span className={styles.kpiLabel}>Ozontell Ready</span>

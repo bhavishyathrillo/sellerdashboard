@@ -1863,6 +1863,10 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
               <span className={styles.kpiLabel}>Keka Login</span>
               <span className={styles.kpiValue}>{formatTime(drillSellerTimeline.attendance?.first_login)}</span>
             </div>
+            <div className={styles.kpiItem} style={{ cursor: 'pointer', transition: 'background 0.2s', border: '1px solid transparent', flex: 1 }} onClick={() => setActiveTileTimeline('orbit')} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <span className={styles.kpiLabel}>Orbit Login</span>
+              <span className={styles.kpiValue}>{formatTime(drillSellerTimeline.orbit?.first_login)}</span>
+            </div>
             <div className={styles.kpiItem} style={{ cursor: 'pointer', transition: 'background 0.2s', border: '1px solid transparent', flex: 1 }} onClick={() => setActiveTileTimeline('ozontell')} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               <span className={styles.kpiLabel}>Ozontell Ready</span>
               <span className={styles.kpiValue}>{formatTime(drillSellerTimeline.cti?.logged_in_at)}</span>
