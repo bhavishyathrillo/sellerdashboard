@@ -62,8 +62,9 @@ export async function GET(req: Request) {
   const emailFilters = emails.map(e => `seller_email.ilike.${e.split('@')[0].substring(0, 5)}%`).join(',')
 
   // Step 2: Fetch daily data for these sellers
-  const [attendanceRes, ctiRes, allotmentRes, ltaRes, hourlyRes, dotRes, monthlyAllotmentRes, monthlyLtaLogRes, goalShbRes] = await Promise.all([
+  const [attendanceRes, orbitRes, ctiRes, allotmentRes, ltaRes, hourlyRes, dotRes, monthlyAllotmentRes, monthlyLtaLogRes, goalShbRes] = await Promise.all([
     supabase.schema('seller_day_to_day').from('seller_attendance').select('*').eq('work_date', queryDate).in('email', emails),
+    supabase.schema('seller_day_to_day').from('seller_availability').select('*').eq('work_date', queryDate).in('seller_email', emails),
     supabase.schema('seller_day_to_day').from('seller_cti_availability').select('*').eq('work_date', queryDate).in('seller_email', emails),
     supabase.schema('seller_day_to_day').from('daily_allotment_summary').select('*').eq('allotment_date', queryDate).in('seller_email', emails),
     supabase.from('daily_lta_log').select('*').eq('log_date', queryDate).in('seller_email', emails),
@@ -79,9 +80,14 @@ export async function GET(req: Request) {
   // Step 3: Combine
   const members = validTeam.map(seller => {
     const shortPrefix = seller.seller_email.split('@')[0].substring(0, 5)
+    const orbitRecord = orbitRes.data?.find(o => o.seller_email === seller.seller_email)
+
     return {
       ...seller,
       attendance: attendanceRes.data?.find(a => a.email === seller.seller_email) || null,
+      orbit: {
+        first_login: orbitRecord?.available_timestamps_ist ? orbitRecord.available_timestamps_ist.split(' ')[0] : null,
+      },
       cti: ctiRes.data?.find(c => c.seller_email === seller.seller_email) || null,
       allotment: allotmentRes.data?.find(al => al.seller_email === seller.seller_email) || null,
       daily_lta: ltaRes.data?.find(l => l.seller_email === seller.seller_email) || null,
