@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
       { data: ltaMonthData },
       { data: goalVsShbData },
       { data: goalShbMonthData },
+      { data: orbitData },
     ] = await Promise.all([
       supabase.schema('seller_day_to_day')
         .from('daily_allotment_summary')
@@ -128,6 +129,14 @@ export async function GET(request: NextRequest) {
         .gte('date', monthStart)
         .lte('date', monthEnd)
         .order('date', { ascending: true }),
+
+      // Orbit Login Data (seller_availability)
+      supabase.schema('seller_day_to_day')
+        .from('seller_availability')
+        .select('*')
+        .eq('seller_email', email)
+        .eq('work_date', date)
+        .maybeSingle(),
     ])
     
     console.log('--- DEBUG GOAL VS SHB ---')
@@ -239,6 +248,10 @@ export async function GET(request: NextRequest) {
       cti: {
         logged_in_at: asString(ctiData?.logged_in_at),
         ready_timestamps: readyTimestamps,
+      },
+
+      orbit: {
+        first_login: orbitData?.available_timestamps_ist ? orbitData.available_timestamps_ist.split(' ')[0] : null,
       },
 
       hourly: (hourlyData || []).map((h: any) => ({
