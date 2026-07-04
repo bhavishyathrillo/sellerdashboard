@@ -233,7 +233,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         if (!ctx) return
         
         const labels = trendData.map((d: any) => new Date(d.log_date).getDate().toString())
-        const maxPlanned = Math.max(...trendData.map((d: any) => d.wd > 0 ? Math.round(d.lead_goal / d.wd) : 0), 0)
+        const maxPlanned = Math.max(...trendData.map((d: any) => d.wd > 0 ? Math.floor(d.lead_goal / d.wd) : 0), 0)
         const ySuggestedMax = maxPlanned > 5 ? 10 : 5
         
         trendChartInstance.current = new Chart(ctx, {
@@ -241,7 +241,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
           data: {
             labels,
             datasets: [
-              { label: 'Planned', data: trendData.map((d: any) => d.wd > 0 ? Math.round(d.lead_goal / d.wd) : 0), borderColor: '#3B82F6', backgroundColor: '#3B82F6', tension: 0.3, pointRadius: 2 },
+              { label: 'Planned', data: trendData.map((d: any) => d.wd > 0 ? Math.floor(d.lead_goal / d.wd) : 0), borderColor: '#3B82F6', backgroundColor: '#3B82F6', tension: 0.3, pointRadius: 2 },
               { label: 'Dynamic', data: trendData.map((d: any) => d.real_dynamic_lta || 0), borderColor: '#EAB308', backgroundColor: '#EAB308', tension: 0.3, pointRadius: 2 },
               { label: 'Hygiene', data: trendData.map((d: any) => d.hygiene_lta || 0), borderColor: '#F97316', backgroundColor: '#F97316', tension: 0.3, pointRadius: 2 },
               { label: 'Goal Complete', data: trendData.map((d: any) => d.goal_completion_logic_lta || 0), borderColor: '#8B5CF6', backgroundColor: '#8B5CF6', tension: 0.3, pointRadius: 2 },
@@ -501,7 +501,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
   const ltaLeadGoal = dailyLta.lead_goal || 0
   const ltaWd = dailyLta.wd || 0
   
-  const plannedLtaVal = ltaWd > 0 ? Math.round(ltaLeadGoal / ltaWd) : 0
+  const plannedLtaVal = ltaWd > 0 ? Math.floor(ltaLeadGoal / ltaWd) : 0
   const dynamicLtaVal = dailyLta.real_dynamic_lta || 0
   const hygieneLtaVal = dailyLta.hygiene_lta || 0
   const goalCompleteLtaVal = dailyLta.goal_completion_logic_lta || 0

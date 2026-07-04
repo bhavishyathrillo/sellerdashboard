@@ -308,7 +308,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
     const ltaLeadGoal = dailyLta.lead_goal || 0
     const ltaWd = dailyLta.wd || 0
     
-    const planned = ltaWd > 0 ? Math.round(ltaLeadGoal / ltaWd) : 0
+    const planned = ltaWd > 0 ? Math.floor(ltaLeadGoal / ltaWd) : 0
     const dynLta = dailyLta.real_dynamic_lta || 0
     const hygLta = dailyLta.hygiene_lta || 0
     const rev1Lta = dailyLta.goal_completion_logic_lta || 0
