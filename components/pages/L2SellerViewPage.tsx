@@ -488,55 +488,78 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
       </div>
 
-      <div className={styles.summaryStrip} style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-        <div className={styles.summaryCard} style={{ background: '#1A1A1A', padding: '12px 16px', borderRadius: '8px', flex: 1.5, border: '1px solid #333', display: 'flex', alignItems: 'center' }}>
-          <div style={{ flex: 1 }}>
-            <p className={styles.summaryValue} style={{ fontSize: '1.5rem', fontWeight: 600, color: '#F4631E', margin: '0 0 2px 0' }}>
-              {totalLeads}
-              <span style={{ fontSize: '0.9rem', color: '#8A8278', fontWeight: 500, marginLeft: '6px' }}>
-                of {teamActual}
-              </span>
-            </p>
-            <p className={styles.summaryLabel} style={{ fontSize: '0.7rem', color: '#8A8278', margin: 0, textTransform: 'uppercase' }}>Total</p>
+            <div className={styles.summaryStrip} style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+        
+        {/* LEADS ALLOTTED */}
+        <div className={styles.summaryCard} style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1.5, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #F4631E, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #F4631E' }} />
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F4631E', boxShadow: '0 0 10px #F4631E' }} />
+            <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Leads Allotted</div>
           </div>
-          <div style={{ width: '1px', alignSelf: 'stretch', background: 'linear-gradient(180deg, rgba(255,255,255,0), rgba(244,99,30,0.5), rgba(255,255,255,0))', margin: '0 12px' }} />
-          <div style={{ flex: 1 }}>
-            <p className={styles.summaryValue} style={{ fontSize: '1.3rem', fontWeight: 600, color: '#E5E7EB', margin: '0 0 2px 0' }}>{totalAuto}</p>
-            <p className={styles.summaryLabel} style={{ fontSize: '0.65rem', color: '#8A8278', margin: 0, textTransform: 'uppercase' }}>Auto</p>
+          
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{totalLeads}</span>
+            <span style={{ fontSize: '1rem', color: '#71717A', fontWeight: 400 }}>/ {teamActual}</span>
           </div>
-          <div style={{ width: '1px', alignSelf: 'stretch', background: 'linear-gradient(180deg, rgba(255,255,255,0), rgba(244,99,30,0.5), rgba(255,255,255,0))', margin: '0 12px' }} />
-          <div style={{ flex: 1 }}>
-            <p className={styles.summaryValue} style={{ fontSize: '1.3rem', fontWeight: 600, color: '#9CA3AF', margin: '0 0 2px 0' }}>{totalManual}</p>
-            <p className={styles.summaryLabel} style={{ fontSize: '0.65rem', color: '#8A8278', margin: 0, textTransform: 'uppercase' }}>Manual</p>
-          </div>
-        </div>
-        <div className={styles.summaryCard} style={{ background: '#1A1A1A', padding: '12px 16px', borderRadius: '8px', flex: 1, border: '1px solid #333', display: 'flex', alignItems: 'center' }}>
-          <div style={{ flex: 1 }}>
-            <p className={styles.summaryValue} style={{ fontSize: '1.5rem', fontWeight: 600, color: '#F4631E', margin: '0 0 2px 0' }}>{teamRtgPct}%</p>
-            <p className={styles.summaryLabel} style={{ fontSize: '0.7rem', color: '#8A8278', margin: 0, textTransform: 'uppercase' }}>RTG %</p>
-          </div>
-          <div style={{ width: '1px', alignSelf: 'stretch', background: 'linear-gradient(180deg, rgba(255,255,255,0), rgba(244,99,30,0.5), rgba(255,255,255,0))', margin: '0 12px' }} />
-          <div style={{ flex: 1 }}>
-            <p className={styles.summaryValue} style={{ fontSize: '1.3rem', fontWeight: 600, color: '#378ADD', margin: '0 0 2px 0' }}>{totalRtg}</p>
-            <p className={styles.summaryLabel} style={{ fontSize: '0.65rem', color: '#8A8278', margin: 0, textTransform: 'uppercase' }}>RTG Count</p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Auto</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#E5E7EB' }}>{totalAuto}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Manual</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#9CA3AF' }}>{totalManual}</span>
+            </div>
           </div>
         </div>
-        <div 
-          className={styles.summaryCard} 
-          style={{ background: '#1A1A1A', padding: '16px', borderRadius: '8px', flex: 1, border: '1px solid #333', cursor: noLeadsCount > 0 ? 'pointer' : 'default' }}
+
+        {/* RTG BREAKDOWN */}
+        <div className={styles.summaryCard} style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #378ADD, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #378ADD' }} />
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#378ADD', boxShadow: '0 0 10px #378ADD' }} />
+            <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>RTG Breakdown</div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{teamRtgPct}</span>
+            <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+            <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Count</span>
+            <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#378ADD' }}>{totalRtg}</span>
+          </div>
+        </div>
+
+        {/* SELLERS WITH NO LEADS */}
+        <div
+          className={styles.summaryCard}
+          style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: noLeadsCount > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
           onClick={() => {
-            if (noLeadsCount > 0) {
-              setShowNoLeadsModal(true);
-            }
+            if (noLeadsCount > 0) setShowNoLeadsModal(true);
           }}
+          onMouseEnter={e => { if(noLeadsCount > 0) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
         >
-          <p className={styles.summaryValue} style={{ fontSize: '1.5rem', fontWeight: 600, color: '#F4631E' }}>{noLeadsCount}</p>
-          <p className={styles.summaryLabel} style={{ fontSize: '0.8rem', color: '#8A8278', marginTop: '4px', textTransform: 'uppercase' }}>Sellers with no leads yet</p>
+          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #EF4444, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #EF4444' }} />
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444' }} />
+            <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Sellers No Leads</div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{noLeadsCount}</span>
+          </div>
         </div>
 
         {/* Monthly MHE Trend KPI Card */}
         {(() => {
-          // Build day-wise team avg MHE from monthly_lta_logs
           const dayMap: Record<string, { sum: number; count: number }> = {}
           enrichedMembers.forEach((m: any) => {
             ;(m.monthly_lta_logs || []).forEach((r: any) => {
@@ -552,30 +575,40 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
           const teamAvgMhePct = sortedDays.length > 0
             ? parseFloat((sortedDays.reduce((s, d) => s + dayMap[d].sum / dayMap[d].count, 0) / sortedDays.length).toFixed(1))
             : 0
-          const latestDay = sortedDays[sortedDays.length - 1]
-          const latestAvg = latestDay ? parseFloat((dayMap[latestDay].sum / dayMap[latestDay].count).toFixed(1)) : 0
+          const targetDay = date || todayStr();
+          const latestAvg = dayMap[targetDay] ? parseFloat((dayMap[targetDay].sum / dayMap[targetDay].count).toFixed(1)) : 0;
           const isGood = teamAvgMhePct <= 20
 
           return (
             <div
               className={styles.summaryCard}
               style={{
-                background: '#1A1A1A', padding: '16px', borderRadius: '8px', flex: 1.2,
-                border: `1px solid ${isGood ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
-                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'border-color 0.2s'
+                background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1.2,
+                border: `1px solid ${isGood ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}`, boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease'
               }}
               onClick={() => { setMheDrillSeller(null); setShowMheTrendModal(true); }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = isGood ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = isGood ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'; }}
             >
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: isGood ? '#22C55E' : '#EF4444' }} />
-              <div style={{ fontSize: '0.6rem', color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Monthly MHE Trend</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
-                <span style={{ fontSize: '1.8rem', fontWeight: 700, color: isGood ? '#22C55E' : '#EF4444', lineHeight: 1 }}>{teamAvgMhePct}%</span>
-                <span style={{ fontSize: '0.65rem', color: '#8A8278' }}>avg</span>
+              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: `linear-gradient(90deg, transparent, ${isGood ? '#22C55E' : '#EF4444'}, transparent)`, opacity: 0.6, boxShadow: `0 0 20px 2px ${isGood ? '#22C55E' : '#EF4444'}` }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isGood ? '#22C55E' : '#EF4444', boxShadow: `0 0 10px ${isGood ? '#22C55E' : '#EF4444'}` }} />
+                  <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>MHE Trend</div>
+                </div>
+                <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', marginLeft: '8px' }}>Tap to View ▶</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '0.65rem', color: '#8A8278' }}>Latest day: </span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: latestAvg <= 20 ? '#22C55E' : '#EF4444' }}>{latestAvg}%</span>
-                <span style={{ fontSize: '0.6rem', color: '#555', marginLeft: 'auto' }}>tap to view ▶</span>
+              
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{latestAvg}</span>
+                <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+                <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Target</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#22C55E' }}>20%</span>
               </div>
             </div>
           )
@@ -597,40 +630,47 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
             })
           })
           const sortedDays = Object.keys(dayMap).sort()
-          
-          let latestDay = sortedDays[sortedDays.length - 1]
-          if (date && dayMap[date]) {
-            latestDay = date
-          }
-          
-          const latestAvgGoal = latestDay ? parseFloat((dayMap[latestDay].goalSum / dayMap[latestDay].count).toFixed(0)) : 0
-          const latestAvgShb = latestDay ? parseFloat((dayMap[latestDay].shbSum / dayMap[latestDay].count).toFixed(0)) : 0
+          const targetDay = date || todayStr();
+          const latestAvgGoal = dayMap[targetDay] ? parseFloat((dayMap[targetDay].goalSum / dayMap[targetDay].count).toFixed(0)) : 0
+          const latestAvgShb = dayMap[targetDay] ? parseFloat((dayMap[targetDay].shbSum / dayMap[targetDay].count).toFixed(0)) : 0
           
           return (
             <div
               className={styles.summaryCard}
               style={{
-                background: '#1A1A1A', padding: '16px', borderRadius: '8px', flex: 1.2,
-                border: `1px solid #333`,
-                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'border-color 0.2s'
+                background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1.2,
+                border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease'
               }}
               onClick={() => { setGoalShbDrillSeller(null); setShowGoalShbTrendModal(true); }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
             >
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#3B82F6' }} />
-              <div style={{ fontSize: '0.6rem', color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Team Goal vs SHB</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '4px' }}>
-                <div>
-                   <div style={{ fontSize: '0.6rem', color: '#8A8278', marginBottom: '2px' }}>Goal</div>
-                   <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#3B82F6', lineHeight: 1 }}>{latestAvgGoal}%</span>
+              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #3B82F6, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #3B82F6' }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 10px #3B82F6' }} />
+                  <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Goal vs SHB</div>
+                </div>
+                <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', marginLeft: '8px' }}>Tap to View ▶</span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '20px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{latestAvgGoal}</span>
+                  <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
                 </div>
                 <div style={{ width: '1px', alignSelf: 'stretch', background: 'rgba(255,255,255,0.1)' }} />
-                <div>
-                   <div style={{ fontSize: '0.6rem', color: '#8A8278', marginBottom: '2px' }}>SHB</div>
-                   <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#EAB308', lineHeight: 1 }}>{latestAvgShb}%</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{latestAvgShb}</span>
+                  <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
-                <span style={{ fontSize: '0.6rem', color: '#555', marginLeft: 'auto' }}>tap to view ▶</span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+                <span style={{ fontSize: '0.65rem', color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Goal</span>
+                <span style={{ fontSize: '0.65rem', color: '#EAB308', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SHB</span>
               </div>
             </div>
           )
@@ -675,12 +715,12 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                             {m.seller_email === session.email && <span className={styles.youBadge}>(You)</span>}
                             {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
                           </td>
-                          <td>{m.isAbsent ? '—' : formatTime(m.attendance?.first_login)}</td>
-                          <td>{m.isAbsent ? '—' : formatTime(m.cti?.logged_in_at)}</td>
-                          <td>{m.isAbsent ? '—' : delta !== null ? `${delta}m` : '—'}</td>
-                          <td>{m.isAbsent ? '—' : formatTime(m.allotment?.first_lead_allotted_at_ist)}</td>
-                          <td>{m.isAbsent ? '—' : `${b.totalMinutes}m`}</td>
-                          <td>{m.isAbsent ? '—' : `${Math.round((b.totalMinutes / (9*60))*100)}%`}</td>
+                          <td>{formatTime(m.attendance?.first_login)}</td>
+                          <td>{formatTime(m.cti?.logged_in_at)}</td>
+                          <td>{delta !== null ? `${delta}m` : '—'}</td>
+                          <td>{formatTime(m.allotment?.first_lead_allotted_at_ist)}</td>
+                          <td>{b.totalMinutes > 0 ? `${b.totalMinutes}m` : '—'}</td>
+                          <td>{b.totalMinutes > 0 ? `${Math.round((b.totalMinutes / (9*60))*100)}%` : '—'}</td>
                         </tr>
                       )
                     })}
@@ -751,9 +791,9 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                             {m.seller_email === session.email && <span className={styles.youBadge}>(You)</span>}
                             {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
                           </td>
-                          <td style={{color: m.b.totalMinutes > 75 ? '#EF4444' : 'inherit'}}>{m.isAbsent ? '—' : `${m.b.totalMinutes}m`}</td>
-                          <td>{m.isAbsent ? '—' : m.b.count}</td>
-                          <td>{m.isAbsent ? '—' : `${m.b.longestMinutes}m`}</td>
+                          <td style={{color: m.b.totalMinutes > 75 ? '#EF4444' : 'inherit'}}>{m.b.totalMinutes > 0 ? `${m.b.totalMinutes}m` : '—'}</td>
+                          <td>{m.b.count > 0 ? m.b.count : '—'}</td>
+                          <td>{m.b.longestMinutes > 0 ? `${m.b.longestMinutes}m` : '—'}</td>
                           <td>{m.isAbsent ? '—' : `${Math.round((m.b.totalMinutes / (9*60))*100)}%`}</td>
                         </tr>
                       ))}
@@ -833,8 +873,8 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                 <>
                   <div className={styles.kpiRow}>
                     {(() => {
-                      const tRtg = enrichedMembers.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : (m.allotment?.rtg_leads || 0)), 0)
-                      const tNonRtg = enrichedMembers.reduce((sum: number, m: any) => sum + (m.isAbsent ? 0 : (m.allotment?.non_rtg_leads || 0)), 0)
+                      const tRtg = enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.rtg_leads || 0), 0)
+                      const tNonRtg = enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.non_rtg_leads || 0), 0)
                       const tTotal = tRtg + tNonRtg
                       return (
                         <>
@@ -859,27 +899,44 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                     })()}
                   </div>
 
-                  <div className={styles.chartContainer}>
-                    {enrichedMembers.slice().sort((a: any, b: any) => {
-                      if (a.seller_email === session.email) return -1;
-                      if (b.seller_email === session.email) return 1;
-                      return 0;
-                    }).map((m: any) => {
-                      if (m.isAbsent) return null
-                      const rtg = m.allotment?.rtg_leads || 0
-                      const non = m.allotment?.non_rtg_leads || 0
-                      const tot = rtg + non
-                      if (tot === 0) return null
-                      return (
-                        <div key={m.seller_email} className={styles.stackedBarRow} onClick={() => setDrillSellerS3(m)} style={{cursor: 'pointer'}}>
-                          <div className={styles.barLabel} style={{color: m.seller_email === session.email ? '#F4631E' : '#8A8278'}}>{m.seller_name.split(' ')[0]}</div>
-                          <div className={styles.barTrack}>
-                            <div className={styles.barSegment} style={{width: `${(rtg/tot)*100}%`, background: '#378ADD'}} title={`RTG: ${rtg}`} />
-                            <div className={styles.barSegment} style={{width: `${(non/tot)*100}%`, background: '#1D9E75'}} title={`Non-RTG: ${non}`} />
-                          </div>
-                        </div>
-                      )
-                    })}
+                  <div className={styles.tableWrap}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>Seller</th>
+                          <th>Total Leads</th>
+                          <th>RTG</th>
+                          <th>Non-RTG</th>
+                          <th>RTG %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {enrichedMembers.slice().sort((a: any, b: any) => {
+                          if (a.seller_email === session.email) return -1;
+                          if (b.seller_email === session.email) return 1;
+                          return 0;
+                        }).map((m: any) => {
+                          const rtg = m.allotment?.rtg_leads || 0
+                          const non = m.allotment?.non_rtg_leads || 0
+                          if (rtg + non === 0 && m.isAbsent) return null
+                          const tot = rtg + non
+                          if (tot === 0) return null
+                          return (
+                            <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerS3(m)} style={{cursor: 'pointer'}}>
+                              <td>
+                                {m.seller_name}
+                                {m.seller_email === session.email && <span className={styles.youBadge}>(You)</span>}
+                                {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+                              </td>
+                              <td>{tot}</td>
+                              <td>{rtg}</td>
+                              <td>{non}</td>
+                              <td>{Math.round((rtg / tot) * 100)}%</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </>
               )}
@@ -902,6 +959,19 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
               <span className={styles.headerStatLabel}>Team Final LTA</span>
               <span className={styles.headerStatValue}>{teamActual}</span>
             </div>
+            <div className={styles.headerStat}>
+              <span className={styles.headerStatLabel}>Leads Allotted</span>
+              <span className={styles.headerStatValue}>{(() => {
+                return enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0), 0)
+              })()}</span>
+            </div>
+            <div className={styles.headerStat}>
+              <span className={styles.headerStatLabel}>Fulfillment %</span>
+              <span className={styles.headerStatValue}>{(() => {
+                const leads = enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0), 0)
+                return teamActual > 0 ? Math.round((leads / teamActual) * 100) : 0
+              })()}%</span>
+            </div>
           </div>
         )}
       </div>
@@ -912,9 +982,22 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                   <span className={styles.kpiLabel}>Team Planned LTA</span>
                   <span className={styles.kpiValue}>{teamPlanned}</span>
                 </div>
-                <div className={styles.kpiItem} style={{ borderRight: 'none', paddingRight: 0 }}>
+                <div className={styles.kpiItem}>
                   <span className={styles.kpiLabel}>Team Final LTA</span>
                   <span className={styles.kpiValue}>{teamActual}</span>
+                </div>
+                <div className={styles.kpiItem}>
+                  <span className={styles.kpiLabel}>Leads Allotted</span>
+                  <span className={styles.kpiValue}>{(() => {
+                    return enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0), 0)
+                  })()}</span>
+                </div>
+                <div className={styles.kpiItem} style={{ borderRight: 'none', paddingRight: 0 }}>
+                  <span className={styles.kpiLabel}>Fulfillment %</span>
+                  <span className={styles.kpiValue}>{(() => {
+                    const leads = enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0), 0)
+                    return teamActual > 0 ? Math.round((leads / teamActual) * 100) : 0
+                  })()}%</span>
                 </div>
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: '24px' }}>
                   <button onClick={() => setShowTeamFunnel(true)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #333', color: '#E5E7EB', padding: '8px 16px', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
@@ -1006,7 +1089,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                       minWidth: bar.value > 0 ? '4px' : '0',
                     }} />
                   </div>
-                  <div style={{ width: '30px', fontSize: '0.7rem', fontWeight: 700, color: bar.value > 0 ? bar.color : '#5A5650', textAlign: 'right' }}>{bar.value}</div>
+                  <div style={{ width: '30px', fontSize: '0.6rem', fontWeight: 700, color: bar.value > 0 ? bar.color : '#5A5650', textAlign: 'right' }}>{bar.value}</div>
                   <span style={{
                     fontSize: '0.55rem', fontWeight: 600, color: bar.value > 0 ? bar.color : '#5A5650',
                     background: bar.value > 0 ? `${bar.color}15` : 'rgba(255,255,255,0.03)',
@@ -1074,16 +1157,16 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       {/* ── Breakdown Drill-Down Modal ── */}
       {activeBreakdownCard && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setActiveBreakdownCard(null); setBreakdownDrillSeller(null); }}>
-          <div style={{ background: '#1A1A1A', border: '1px solid #333', borderRadius: '12px', padding: '24px', width: breakdownDrillSeller ? '500px' : '700px', maxWidth: '95%', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', position: 'relative', transition: 'width 0.3s' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: '#1A1A1A', border: '1px solid #333', borderRadius: '12px', padding: '16px 20px', width: breakdownDrillSeller ? '500px' : '700px', maxWidth: '95%', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', position: 'relative', transition: 'width 0.3s' }} onClick={e => e.stopPropagation()}>
             <button 
               onClick={() => { setActiveBreakdownCard(null); setBreakdownDrillSeller(null); }}
-              style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1.2rem', padding: '4px' }}
+              style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1rem', padding: '4px' }}
             >×</button>
 
             {/* ── Seller Detail View (3 Cards) ── */}
             {breakdownDrillSeller ? (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                   <button 
                     onClick={() => setBreakdownDrillSeller(null)}
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: '#E5E5E5', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', transition: 'all 0.2s' }}
@@ -1151,7 +1234,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                                   <div style={{ flex: 1, height: '22px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', overflow: 'hidden' }}>
                                     <div style={{ width: `${(bar.value / sMaxDot) * 100}%`, height: '100%', background: `linear-gradient(90deg, ${bar.color}40, ${bar.color}90)`, borderRadius: '6px', transition: 'width 0.6s', minWidth: bar.value > 0 ? '4px' : '0' }} />
                                   </div>
-                                  <div style={{ width: '30px', fontSize: '0.7rem', fontWeight: 700, color: bar.value > 0 ? bar.color : '#5A5650', textAlign: 'right' }}>{bar.value}</div>
+                                  <div style={{ width: '30px', fontSize: '0.6rem', fontWeight: 700, color: bar.value > 0 ? bar.color : '#5A5650', textAlign: 'right' }}>{bar.value}</div>
                                   <span style={{ fontSize: '0.55rem', fontWeight: 600, color: bar.value > 0 ? bar.color : '#5A5650', background: bar.value > 0 ? `${bar.color}15` : 'rgba(255,255,255,0.03)', padding: '2px 8px', borderRadius: '100px', minWidth: '38px', textAlign: 'center' }}>
                                     {pct(bar.value, sTotalDOT)}%
                                   </span>
@@ -1340,13 +1423,15 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         const teamAvgByDay = sortedDays.map(d => ({ date: d, avg: parseFloat((dayMap[d].sum / dayMap[d].count).toFixed(1)) }))
 
         // Per-seller summary
+        const targetDay = date || todayStr();
         const sellerSummaries = enrichedMembers.map((m: any) => {
           const logs = m.monthly_lta_logs || []
-          const avg = logs.length > 0
-            ? parseFloat((logs.reduce((s: number, r: any) => s + (typeof r.mishandled_pct === 'number' ? r.mishandled_pct * 100 : 0), 0) / logs.length).toFixed(1))
+          const todaysData = logs.find((r: any) => r.log_date === targetDay)
+          const pct = todaysData && typeof todaysData.mishandled_pct === 'number' 
+            ? parseFloat((todaysData.mishandled_pct * 100).toFixed(1)) 
             : 0
-          return { ...m, mheAvg: avg }
-        }).sort((a: any, b: any) => b.mheAvg - a.mheAvg)
+          return { ...m, mheToday: pct }
+        }).sort((a: any, b: any) => b.mheToday - a.mheToday)
 
         // Drill: current seller logs
         const drillLogs = mheDrillSeller
@@ -1389,7 +1474,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                 <h3 style={{ color: '#fff', margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
                   {mheDrillSeller ? `${mheDrillSeller.seller_name} — MHE Trend` : 'Monthly MHE Trend · Team Avg'}
                 </h3>
-                <span style={{ fontSize: '0.7rem', color: '#8A8278', marginLeft: '4px' }}>{monthStr}</span>
+                <span style={{ fontSize: '0.6rem', color: '#8A8278', marginLeft: '4px' }}>{monthStr}</span>
               </div>
               <p style={{ color: '#8A8278', fontSize: '0.75rem', margin: '0 0 20px 20px' }}>
                 {mheDrillSeller ? 'Day-wise MHE % for this seller.' : 'Day-wise avg MHE % across all team sellers.'}
@@ -1413,14 +1498,14 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                       <thead>
                         <tr style={{ background: '#151515' }}>
                           <th style={{ padding: '10px 14px', textAlign: 'left', color: '#8A8278', fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #2a2a2a' }}>Seller</th>
-                          <th style={{ padding: '10px 14px', textAlign: 'right', color: '#8A8278', fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #2a2a2a' }}>Avg MHE %</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', color: '#8A8278', fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #2a2a2a' }}>MHE %</th>
                           <th style={{ padding: '10px 14px', textAlign: 'right', color: '#8A8278', fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #2a2a2a' }}>Days</th>
                           <th style={{ padding: '10px 14px', textAlign: 'center', color: '#8A8278', fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #2a2a2a' }}>Status</th>
                         </tr>
                       </thead>
                       <tbody>
                         {sellerSummaries.map((s: any, idx: number) => {
-                          const isGood = s.mheAvg <= 20
+                          const isGood = s.mheToday <= 20
                           const rowBg = idx % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent'
                           return (
                             <tr
@@ -1435,7 +1520,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                                 {s.seller_email === session.email && <span style={{ background: '#F4631E', color: '#fff', fontSize: '0.58rem', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', fontWeight: 600 }}>(You)</span>}
                               </td>
                               <td style={{ padding: '12px 14px', borderBottom: '1px solid #1e1e1e', textAlign: 'right', fontWeight: 700, color: isGood ? '#22C55E' : '#EF4444', fontVariantNumeric: 'tabular-nums' }}>
-                                {s.mheAvg}%
+                                {s.mheToday}%
                               </td>
                               <td style={{ padding: '12px 14px', borderBottom: '1px solid #1e1e1e', textAlign: 'right', color: '#8A8278', fontVariantNumeric: 'tabular-nums' }}>
                                 {(s.monthly_lta_logs || []).length}
@@ -1473,10 +1558,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         })
         const sortedDays = Object.keys(dayMap).sort()
 
-        let displayDate = sortedDays[sortedDays.length - 1]
-        if (date && sortedDays.includes(date)) {
-          displayDate = date
-        }
+        let displayDate = date || todayStr();
 
         // Pad data up to the current date so we see days 1, 2, 3 etc. even if they are 0
         const [qy, qm] = (date || todayStr()).split('-').map(Number)
@@ -1551,7 +1633,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                 <h3 style={{ color: '#fff', margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
                   {goalShbDrillSeller ? `${goalShbDrillSeller.seller_name} — Goal vs SHB` : 'Team Avg Goal vs SHB Trend'}
                 </h3>
-                <span style={{ fontSize: '0.7rem', color: '#8A8278', marginLeft: '4px' }}>{monthStr}</span>
+                <span style={{ fontSize: '0.6rem', color: '#8A8278', marginLeft: '4px' }}>{monthStr}</span>
               </div>
               <p style={{ color: '#8A8278', fontSize: '0.75rem', margin: '0 0 20px 20px' }}>
                 {goalShbDrillSeller ? 'Day-wise Goal and SHB % for this seller.' : 'Day-wise avg Goal and SHB % across all team sellers.'}
@@ -1619,10 +1701,10 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       {/* No Leads Modal */}
       {showNoLeadsModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowNoLeadsModal(false)}>
-          <div style={{ background: '#1A1A1A', border: '1px solid #333', borderRadius: '12px', padding: '24px', width: '400px', maxWidth: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', position: 'relative' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: '#1A1A1A', border: '1px solid #333', borderRadius: '12px', padding: '16px 20px', width: '400px', maxWidth: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', position: 'relative' }} onClick={e => e.stopPropagation()}>
             <button 
               onClick={() => setShowNoLeadsModal(false)}
-              style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1.2rem', padding: '4px' }}
+              style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1rem', padding: '4px' }}
             >×</button>
             <h3 style={{ color: '#fff', marginTop: 0, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F4631E' }} />

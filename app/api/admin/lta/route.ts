@@ -108,10 +108,10 @@ export async function GET(req: Request) {
         .select('seller_email, bottomline_goal, bl_actual_splits, bottomline_should_have_been, seller_flag')
         .limit(5000),
 
-      // Monthly LTA log for MHE trend
+      // Monthly LTA log for MHE trend and Appetite
       supabase
         .from('daily_lta_log')
-        .select('seller_email, log_date, mishandled_pct, mishandled_enquiries')
+        .select('seller_email, log_date, mishandled_pct, mishandled_enquiries, final_lta')
         .gte('log_date', monthStart)
         .lte('log_date', monthEnd)
         .limit(25000),
