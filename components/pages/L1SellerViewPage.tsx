@@ -1781,6 +1781,11 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
               return stages.map((step, idx) => (
                 <div key={step.id} className={sellerStyles.ltaFunnelStepWrap} style={{ animationDelay: `${idx * 0.15}s` } as any}>
                   <div className={sellerStyles.ltaFunnelCard} style={{ '--card-color': step.color, borderColor: step.color, width: step.width } as any}>
+                    {((step.id === 'dynamic' && teamData?.kalpit?.find((k: any) => k.name === 'dynamic')?.value === 0) ||
+                       (step.id === 'hygiene' && teamData?.kalpit?.find((k: any) => k.name === 'hygiene')?.value === 0) ||
+                       (step.id === 'goalComplete' && teamData?.kalpit?.find((k: any) => k.name === 'goal')?.value === 0)) && (
+                      <div className={sellerStyles.strikethroughLine} />
+                    )}
                     <div className={sellerStyles.ltaFunnelCardHeader}>
                       <span className={sellerStyles.ltaFunnelCardTitle} style={{ color: step.color }}>{step.label}</span>
                       {step.id === 'planned' && <span className={sellerStyles.ltaFunnelBadge} style={{ background: `${step.color}20`, color: step.color }}>Planned</span>}
@@ -1840,6 +1845,11 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
               return stages.map((step, idx) => (
                 <div key={step.id} className={sellerStyles.ltaFunnelStepWrap} style={{ animationDelay: `${idx * 0.15}s` } as any}>
                   <div className={sellerStyles.ltaFunnelCard} style={{ '--card-color': step.color, borderColor: step.color, width: step.width } as any}>
+                    {((step.id === 'dynamic' && teamData?.kalpit?.find((k: any) => k.name === 'dynamic')?.value === 0) ||
+                       (step.id === 'hygiene' && teamData?.kalpit?.find((k: any) => k.name === 'hygiene')?.value === 0) ||
+                       (step.id === 'goalComplete' && teamData?.kalpit?.find((k: any) => k.name === 'goal')?.value === 0)) && (
+                      <div className={sellerStyles.strikethroughLine} />
+                    )}
                     <div className={sellerStyles.ltaFunnelCardHeader}>
                       <span className={sellerStyles.ltaFunnelCardTitle} style={{ color: step.color }}>{step.label}</span>
                       {step.id === 'planned' && <span className={sellerStyles.ltaFunnelBadge} style={{ background: `${step.color}20`, color: step.color }}>Planned</span>}

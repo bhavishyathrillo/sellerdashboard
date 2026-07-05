@@ -42,7 +42,7 @@ interface SellerViewData {
     pax_3: number
     pax_4: number
     pax_4_plus: number
-  }
+}
   monthly: MonthlyTotals
   goal_vs_shb_trend?: any[]
   goal_vs_shb?: any
@@ -61,6 +61,7 @@ interface SellerViewData {
   daily_lta?: any
   lta_trend?: any[]
   mhe_trend?: any[]
+  kalpit?: any[]
 }
 
 const HOUR_SLOTS = ['9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM', '9PM']
@@ -954,6 +955,11 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                 return stages.map((step, idx) => (
                   <div key={step.id} className={styles.ltaFunnelStepWrap} style={{ animationDelay: `${idx * 0.15}s` } as any}>
                     <div className={styles.ltaFunnelCard} style={{ '--card-color': step.color, borderColor: step.color, width: step.width } as any}>
+                      {((step.id === 'dynamic' && data?.kalpit?.find((k: any) => k.name === 'dynamic')?.value === 0) ||
+                         (step.id === 'hygiene' && data?.kalpit?.find((k: any) => k.name === 'hygiene')?.value === 0) ||
+                         (step.id === 'goalComplete' && data?.kalpit?.find((k: any) => k.name === 'goal')?.value === 0)) && (
+                        <div className={styles.strikethroughLine} />
+                      )}
                       <div className={styles.ltaFunnelCardHeader}>
                         <span className={styles.ltaFunnelCardTitle} style={{ color: step.color }}>{step.label}</span>
                         {step.id === 'planned' && <span className={styles.ltaFunnelBadge} style={{ background: `${step.color}20`, color: step.color }}>Planned</span>}

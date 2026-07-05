@@ -46,7 +46,7 @@ export async function GET(req: Request) {
   const emailFilters = emails.map(e => `seller_email.ilike.${e.split('@')[0].substring(0, 5)}%`).join(',')
 
   // Step 2: Fetch daily data for ALL these sellers
-  const [attendanceRes, orbitRes, ctiRes, allotmentRes, ltaRes, hourlyRes, dotRes, monthlyAllotmentRes, monthlyLtaRes, goalShbRes] = await Promise.all([
+  const [attendanceRes, orbitRes, ctiRes, allotmentRes, ltaRes, hourlyRes, dotRes, monthlyAllotmentRes, monthlyLtaRes, goalShbRes, kalpitRes] = await Promise.all([
     supabase.schema('seller_day_to_day').from('seller_attendance').select('*').eq('work_date', queryDate).in('email', emails),
     supabase.schema('seller_day_to_day').from('seller_availability').select('*').eq('work_date', queryDate).in('seller_email', emails),
     supabase.schema('seller_day_to_day').from('seller_cti_availability').select('*').eq('work_date', queryDate).in('seller_email', emails),
@@ -57,6 +57,7 @@ export async function GET(req: Request) {
     supabase.schema('seller_day_to_day').from('daily_allotment_summary').select('*').gte('allotment_date', monthStart).lte('allotment_date', monthEnd).in('seller_email', emails),
     supabase.from('daily_lta_log').select('*').gte('log_date', monthStart).lte('log_date', monthEnd).in('seller_email', emails),
     supabase.from('goal_vs_shb').select('*').gte('date', monthStart).lte('date', monthEnd).or(emailFilters).order('date', { ascending: true }),
+    supabase.from('kalpit').select('*')
   ])
 
   // Map day-to-day data to sellers
@@ -106,5 +107,5 @@ export async function GET(req: Request) {
     }
   })
 
-  return NextResponse.json({ l2Groups })
+  return NextResponse.json({ l2Groups, kalpit: kalpitRes.data || [] })
 }
