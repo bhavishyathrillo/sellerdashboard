@@ -2283,39 +2283,142 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
 
 
 
-        <div className="la-kpi-row">
-          <div className="la-kpi-card">
-            <div className="la-kpi-label">Leads Allotted</div>
-            <div className="la-kpi-value" style={{ color: '#F0EDE8' }}>{org.totalLeads?.toLocaleString() || 0}</div>
-            <div className="la-kpi-sub">OUT OF {sumFinalLta.toLocaleString()}</div>
+        <div className="la-kpi-row" style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'nowrap', overflowX: 'auto' }}>
+          {/* LEADS ALLOTTED */}
+          <div className="la-kpi-card" style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1.5, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #F4631E, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #F4631E' }} />
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F4631E', boxShadow: '0 0 10px #F4631E' }} />
+              <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Leads Allotted</div>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{org.totalLeads?.toLocaleString() || 0}</span>
+              <span style={{ fontSize: '1rem', color: '#71717A', fontWeight: 400 }}>/ {sumFinalLta.toLocaleString()}</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Auto</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#E5E7EB' }}>{orgTotalAuto}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Manual</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#9CA3AF' }}>{orgTotalManual}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="la-kpi-card">
-            <div className="la-kpi-label">Org RTG %</div>
-            <div className="la-kpi-value" style={{ color: '#F4631E' }}>{org.rtgPct}%</div>
-            <div className="la-kpi-sub">RTG: {orgTotalRtg} · Non-RTG: {orgTotalNonRtg}</div>
+          {/* RTG BREAKDOWN */}
+          <div className="la-kpi-card" style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #378ADD, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #378ADD' }} />
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#378ADD', boxShadow: '0 0 10px #378ADD' }} />
+              <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>RTG Breakdown</div>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{org.rtgPct}</span>
+              <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Count</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#378ADD' }}>{orgTotalRtg}</span>
+            </div>
           </div>
 
-          <div className="la-kpi-card">
-            <div className="la-kpi-label">Auto allotment %</div>
-            <div className="la-kpi-value" style={{ color: '#F0EDE8' }}>{org.autoAllotPct}%</div>
-            <div className="la-kpi-sub">Auto: {orgTotalAuto} · Manual: {orgTotalManual}</div>
+          {/* SELLERS NO LEADS */}
+          <div
+            className="la-kpi-card clickable"
+            style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: noLeadsSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
+            onClick={() => {
+              if (noLeadsSellers.length > 0) setShowNoLeadsModal(true);
+            }}
+            onMouseEnter={e => { if(noLeadsSellers.length > 0) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
+          >
+            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #EF4444, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #EF4444' }} />
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444' }} />
+              <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Sellers No Leads</div>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{noLeadsSellers.length}</span>
+            </div>
           </div>
 
-          <div className="la-kpi-card clickable" onClick={() => setShowNoLeadsModal(true)}>
-            <div className="la-kpi-label">Sellers without leads</div>
-            <div className="la-kpi-value" style={{ color: '#EF4444' }}>{noLeadsSellers.length}</div>
+          {/* MHE TREND */}
+          <div
+            className="la-kpi-card clickable"
+            style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1.2, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: 'pointer', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
+            onClick={() => setShowMheModal(true)}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'}
+          >
+            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #22C55E, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #22C55E' }} />
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 10px #22C55E' }} />
+                <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>MHE Trend</div>
+              </div>
+              <span style={{ fontSize: '0.65rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tap to view ▸</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{computedOrgMhe}</span>
+              <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Target</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#22C55E' }}>20%</span>
+            </div>
           </div>
 
-          <div className="la-kpi-card clickable" onClick={() => setShowMheModal(true)}>
-            <div className="la-kpi-label">Org MHE % <span style={{ fontStyle: 'italic', fontWeight: 400, textTransform: 'none' }}>· tap</span></div>
-            <div className="la-kpi-value" style={{ color: '#22C55E' }}>{computedOrgMhe}%</div>
-          </div>
+          {/* GOAL VS SHB */}
+          <div
+            className="la-kpi-card clickable"
+            style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1.5, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: 'pointer', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
+            onClick={() => setShowGoalShbModal(true)}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'}
+          >
+            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #3B82F6, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #3B82F6' }} />
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 10px #3B82F6' }} />
+                <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Goal vs SHB</div>
+              </div>
+              <span style={{ fontSize: '0.65rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tap to view ▸</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{computedOrgGoal}</span>
+                <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+              </div>
+              <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)' }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{computedOrgShb}</span>
+                <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+              </div>
+            </div>
 
-          <div className="la-kpi-card clickable" onClick={() => setShowGoalShbModal(true)}>
-            <div className="la-kpi-label">Goal vs SHB <span style={{ fontStyle: 'italic', fontWeight: 400, textTransform: 'none' }}>· tap</span></div>
-            <div className="la-kpi-value" style={{ color: '#3B82F6' }}>{computedOrgGoal}%</div>
-            <div className="la-kpi-sub">SHB: {computedOrgShb}%</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Goal</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#EAB308', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SHB</span>
+              </div>
+            </div>
           </div>
         </div>
 
