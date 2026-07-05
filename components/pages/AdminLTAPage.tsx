@@ -1761,17 +1761,17 @@ function GoalShbTrendModal({ hierarchy, dateFrom, onClose }: { hierarchy: any[],
               <div className="la-drill-list">
                 {hierarchy.map(cat => {
                   const catSellers = cat.tls.flatMap((t: any) => (t.sellers || []))
-                  const cCount = catSellers.length
-                  let cGSum = 0, cSSum = 0
+                  let cGSum = 0, cSSum = 0, cValidCount = 0
                   catSellers.forEach((s: any) => {
                     const r = (s.monthly_goal_shb || []).find((x: any) => x.date === dateFrom)
                     if (r) {
                       cGSum += (r.goal_completion || 0) * 100
                       cSSum += (r.shb_percent || 0) * 100
+                      cValidCount++
                     }
                   })
-                  const cgAvg = cCount > 0 ? parseFloat((cGSum / cCount).toFixed(1)) : 0
-                  const csAvg = cCount > 0 ? parseFloat((cSSum / cCount).toFixed(1)) : 0
+                  const cgAvg = cValidCount > 0 ? parseFloat((cGSum / cValidCount).toFixed(1)) : 0
+                  const csAvg = cValidCount > 0 ? parseFloat((cSSum / cValidCount).toFixed(1)) : 0
                   
                   return (
                     <React.Fragment key={cat.category_name}>
@@ -1786,17 +1786,17 @@ function GoalShbTrendModal({ hierarchy, dateFrom, onClose }: { hierarchy: any[],
                       {expandedCatKey === cat.category_name && cat.tls.map((tl: any) => {
                         const tlKey = `${cat.category_name}-${tl.tl_name}`
                         const tlSellers = tl.sellers || []
-                        const tCount = tlSellers.length
-                        let gSum = 0, sSum = 0
+                        let gSum = 0, sSum = 0, tValidCount = 0
                         tlSellers.forEach((s: any) => {
                           const r = (s.monthly_goal_shb || []).find((x: any) => x.date === dateFrom)
                           if (r) {
                             gSum += (r.goal_completion || 0) * 100
                             sSum += (r.shb_percent || 0) * 100
+                            tValidCount++
                           }
                         })
-                        const gAvg = tCount > 0 ? parseFloat((gSum / tCount).toFixed(1)) : 0
-                        const sAvg = tCount > 0 ? parseFloat((sSum / tCount).toFixed(1)) : 0
+                        const gAvg = tValidCount > 0 ? parseFloat((gSum / tValidCount).toFixed(1)) : 0
+                        const sAvg = tValidCount > 0 ? parseFloat((sSum / tValidCount).toFixed(1)) : 0
                         
                         return (
                           <React.Fragment key={tlKey}>
@@ -2245,20 +2245,22 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
 
   const computedOrgMhe = mheCount > 0 ? parseFloat((omheSum / mheCount).toFixed(1)) : 0
 
-  // Goal vs SHB Flat Average
+  // Goal vs SHB (Calculated exactly like the graph trend)
   const allGoalShbSellers = hierarchy.flatMap((c: any) => (c.tls || []).flatMap((t: any) => (t.sellers || [])))
-  let gsCount = 0
-  let ogSum = 0, osSum = 0
-  allGoalShbSellers.forEach((s: any) => {
-    const r = (s.monthly_goal_shb || []).find((x: any) => x.date === dateFrom)
-    if (r) {
-      gsCount += 1
-      ogSum += (r.goal_completion || 0) * 100
-      osSum += (r.shb_percent || 0) * 100
-    }
+  const kpiDayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
+  allGoalShbSellers.forEach((m: any) => {
+    ;(m.monthly_goal_shb || []).forEach((r: any) => {
+      const d = r.date
+      if (!d) return
+      if (!kpiDayMap[d]) kpiDayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
+      kpiDayMap[d].goalSum += typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
+      kpiDayMap[d].shbSum += typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
+      kpiDayMap[d].count += 1
+    })
   })
-  const computedOrgGoal = gsCount > 0 ? parseFloat((ogSum / gsCount).toFixed(1)) : 0
-  const computedOrgShb = gsCount > 0 ? parseFloat((osSum / gsCount).toFixed(1)) : 0
+  const dData = kpiDayMap[dateFrom]
+  const computedOrgGoal = dData ? parseFloat((dData.goalSum / dData.count).toFixed(1)) : 0
+  const computedOrgShb = dData ? parseFloat((dData.shbSum / dData.count).toFixed(1)) : 0
 
   return (
     <>

@@ -229,9 +229,7 @@ export async function GET(req: Request) {
       const orbitRecord = orbitMap.get(email)
       const ctiRecord = ctiMap.get(email)
       const prefix = email.split('@')[0].substring(0, 5)
-      const monthly_goal_shb = Array.from(monthlyGoalMap.entries())
-        .filter(([k]) => k.startsWith(prefix))
-        .flatMap(([, v]) => v)
+      const monthly_goal_shb = monthlyGoalMap.get(email) || []
 
       // Parse login time
       let loginMinutes: number | null = null
@@ -274,6 +272,7 @@ export async function GET(req: Request) {
       // Goal achievement
       const blGoal = srsJuly?.bottomline_goal || 0
       const blAch = srsJuly?.bl_actual_splits || 0
+      const blShb = srsJuly?.bottomline_should_have_been || 0
       const goalPct = blGoal > 0 ? (blAch / blGoal) * 100 : 0
 
       return {
@@ -311,6 +310,7 @@ export async function GET(req: Request) {
         goalPct: parseFloat(goalPct.toFixed(1)),
         blGoal,
         blAch,
+        blShb,
         sellerFlag: srsJuly?.seller_flag || 'No Flag',
         monthly_lta_rows: monthlyLtaMap.get(email) || [],
         monthly_goal_shb: monthly_goal_shb,
