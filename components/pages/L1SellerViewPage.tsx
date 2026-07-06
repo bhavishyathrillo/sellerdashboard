@@ -1689,72 +1689,79 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 {
   showTeamFunnel && activeFunnelTl && (
     <div className={sellerStyles.modalOverlay} onClick={() => setShowTeamFunnel(false)}>
-      <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '550px', width: '600px' }}>
+      <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '760px', width: '880px' }}>
         <button className={sellerStyles.modalClose} onClick={() => setShowTeamFunnel(false)}>✕</button>
-        <div className={sellerStyles.modalHeader}>
+        <div className={sellerStyles.modalHeader} style={{ marginBottom: '24px' }}>
           <span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} />
-          <span className={sellerStyles.modalTitle}>{activeFunnelTl.l2_name} — LTA Funnel</span>
+          <span className={sellerStyles.modalTitle}>{activeFunnelTl.l2_name} — Team LTA Funnel</span>
         </div>
 
-        <div className={sellerStyles.ltaFunnel3DContainer} style={{ marginTop: '20px', width: '100%', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>
-          <svg className={sellerStyles.ltaFunnelBg} preserveAspectRatio="none" viewBox="0 0 100 100">
-            <polygon points="0,0 100,0 75,100 25,100" fill="url(#funnelGradTeamL1)" opacity="0.08" />
-            <defs>
-              <linearGradient id="funnelGradTeamL1" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#3B82F6" />
-                <stop offset="100%" stopColor="#22C55E" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <div className={sellerStyles.ltaFunnelStack}>
-            {(() => {
-              const mList = activeFunnelTl.members || [];
-              const tfPlanned = mList.reduce((sum: number, m: any) => sum + m.lta.planned, 0);
-              const tfDynLta = mList.reduce((sum: number, m: any) => sum + m.lta.dynLta, 0);
-              const tfHygLta = mList.reduce((sum: number, m: any) => sum + m.lta.hygLta, 0);
-              const tfRev1Lta = mList.reduce((sum: number, m: any) => sum + m.lta.rev1Lta, 0);
-              const tfActual = mList.reduce((sum: number, m: any) => sum + m.lta.actual, 0);
+        <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', padding: '10px 4px 20px' }}>
+          {(() => {
+            const mList = activeFunnelTl.members || [];
+            const tfPlanned = mList.reduce((sum: number, m: any) => sum + m.lta.planned, 0);
+            const tfDynLta = mList.reduce((sum: number, m: any) => sum + m.lta.dynLta, 0);
+            const tfHygLta = mList.reduce((sum: number, m: any) => sum + m.lta.hygLta, 0);
+            const tfRev1Lta = mList.reduce((sum: number, m: any) => sum + m.lta.rev1Lta, 0);
+            const tfActual = mList.reduce((sum: number, m: any) => sum + m.lta.actual, 0);
 
-              const tfDynLost = mList.reduce((sum: number, m: any) => sum + m.lta.dynLost, 0);
-              const tfHygLost = mList.reduce((sum: number, m: any) => sum + m.lta.hygLost, 0);
-              const tfRev1Lost = mList.reduce((sum: number, m: any) => sum + m.lta.rev1Lost, 0);
-              const tfRev2Lost = mList.reduce((sum: number, m: any) => sum + m.lta.rev2Lost, 0);
+            const tfDynLost = mList.reduce((sum: number, m: any) => sum + m.lta.dynLost, 0);
+            const tfHygLost = mList.reduce((sum: number, m: any) => sum + m.lta.hygLost, 0);
+            const tfRev1Lost = mList.reduce((sum: number, m: any) => sum + m.lta.rev1Lost, 0);
+            const tfRev2Lost = mList.reduce((sum: number, m: any) => sum + m.lta.rev2Lost, 0);
 
-              const getFunnelDropText = (diff: number, stage: string) => diff < 0 ? `↑ Gained ${Math.abs(diff)} in ${stage}` : `↓ Lost ${diff} in ${stage}`
-              const stages = [
-                { id: 'planned', label: 'Base target', value: tfPlanned, color: '#3B82F6', dropText: getFunnelDropText(tfDynLost, 'Dynamic LTA'), width: '100%' },
-                { id: 'dynamic', label: 'Dynamic LTA', value: tfDynLta, color: '#EAB308', dropText: getFunnelDropText(tfHygLost, 'After Hygiene'), width: '85%' },
-                { id: 'hygiene', label: 'After hygiene', value: tfHygLta, color: '#F97316', dropText: getFunnelDropText(tfRev1Lost, 'After Goal Check'), width: '70%' },
-                { id: 'goalComplete', label: 'After goal check', value: tfRev1Lta, color: '#8B5CF6', dropText: getFunnelDropText(tfRev2Lost, 'Final target'), width: '60%' },
-                { id: 'final', label: "Today's final target", value: tfActual, color: '#22C55E', dropText: null, width: '50%' },
-              ]
-              return stages.map((step, idx) => (
-                <div key={step.id} className={sellerStyles.ltaFunnelStepWrap} style={{ animationDelay: `${idx * 0.15}s` } as any}>
-                  <div className={sellerStyles.ltaFunnelCard} style={{ '--card-color': step.color, borderColor: step.color, width: step.width } as any}>
-                    {((step.id === 'dynamic' && teamData?.kalpit?.find((k: any) => k.name === 'dynamic')?.value === 0) ||
-                       (step.id === 'hygiene' && teamData?.kalpit?.find((k: any) => k.name === 'hygiene')?.value === 0) ||
-                       (step.id === 'goalComplete' && teamData?.kalpit?.find((k: any) => k.name === 'goal')?.value === 0)) && (
-                      <div className={sellerStyles.strikethroughLine} />
-                    )}
-                    <div className={sellerStyles.ltaFunnelCardHeader}>
-                      <span className={sellerStyles.ltaFunnelCardTitle} style={{ color: step.color }}>{step.label}</span>
-                      {step.id === 'planned' && <span className={sellerStyles.ltaFunnelBadge} style={{ background: `${step.color}20`, color: step.color }}>Planned</span>}
+            const steps = [
+              { id: 'planned', label: 'Base target', sublabel: 'Team cumulative base goal', value: tfPlanned, color: '#3B82F6', drop: tfDynLost, dropLabel: tfDynLost > 0 ? 'Late login / inactive' : null },
+              { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: tfDynLta, color: '#EAB308', drop: tfHygLost, dropLabel: tfHygLost > 0 ? 'Hygiene penalty' : null },
+              { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: tfHygLta, color: '#F97316', drop: tfRev1Lost, dropLabel: tfRev1Lost > 0 ? 'Goal correction' : null },
+              { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: tfRev1Lta, color: '#8B5CF6', drop: tfRev2Lost, dropLabel: tfRev2Lost > 0 ? 'Final adjustment' : null },
+              { id: 'final', label: "Team final target", sublabel: 'Total team lead appetite', value: tfActual, color: '#22C55E', drop: null, dropLabel: null },
+            ]
+
+            return steps.map((step, idx) => {
+              const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+                (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+
+              return (
+                <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0, opacity: isNotUsed ? 0.6 : 1 }}>
+                  {/* Card */}
+                  <div style={{
+                    background: '#0D0D0D', border: `1px solid ${isNotUsed ? '#333' : `${step.color}40`}`,
+                    borderRadius: '10px', padding: '12px 16px', minWidth: '130px', flexShrink: 0,
+                    position: 'relative'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <div style={{ fontSize: '0.58rem', color: isNotUsed ? '#555' : step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                      {isNotUsed && <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '4px', fontWeight: 600 }}>NOT USED</span>}
                     </div>
-                    <div className={sellerStyles.ltaFunnelCardBody}>
-                      <span className={sellerStyles.ltaFunnelCardValue}>{step.value}</span>
-                      <span className={sellerStyles.ltaFunnelCardLabel}>Leads</span>
-                    </div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: isNotUsed ? '#555' : '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                    <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px', lineHeight: 1.3 }}>{step.sublabel}</div>
                   </div>
-                  {step.dropText && (
-                    <div className={sellerStyles.ltaFunnelDrop}>
-                      <div className={sellerStyles.ltaFunnelLine} />
-                      <div className={sellerStyles.ltaFunnelDropText}>{step.dropText}</div>
+
+                  {/* Arrow */}
+                  {idx < steps.length - 1 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 8px', minWidth: '60px' }}>
+                      {step.drop !== null && step.drop !== 0 && (
+                        <div style={{
+                          fontSize: '0.58rem', fontWeight: 700,
+                          color: step.drop > 0 ? '#EF4444' : '#22C55E',
+                          background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                          padding: '2px 6px', borderRadius: '6px', marginBottom: '4px',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '0.52rem', color: '#5A5650', textAlign: 'center', lineHeight: 1.2, marginBottom: '4px' }}>
+                        {step.dropLabel}
+                      </div>
+                      <span style={{ color: '#3A3A3A', fontSize: '1rem' }}>→</span>
                     </div>
                   )}
                 </div>
-              ))
-            })()}
-          </div>
+              )
+            })
+          })()}
         </div>
       </div>
     </div>
@@ -1764,61 +1771,68 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 {
   activeSellerFunnel && (
     <div className={sellerStyles.modalOverlay} onClick={() => setActiveSellerFunnel(null)}>
-      <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '550px', width: '600px' }}>
+      <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '760px', width: '880px' }}>
         <button className={sellerStyles.modalClose} onClick={() => setActiveSellerFunnel(null)}>✕</button>
-        <div className={sellerStyles.modalHeader}>
+        <div className={sellerStyles.modalHeader} style={{ marginBottom: '24px' }}>
           <span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} />
           <span className={sellerStyles.modalTitle}>{activeSellerFunnel.seller_name} — LTA Funnel</span>
         </div>
 
-        <div className={sellerStyles.ltaFunnel3DContainer} style={{ marginTop: '20px', width: '100%', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>
-          <svg className={sellerStyles.ltaFunnelBg} preserveAspectRatio="none" viewBox="0 0 100 100">
-            <polygon points="0,0 100,0 75,100 25,100" fill="url(#funnelGradL1)" opacity="0.08" />
-            <defs>
-              <linearGradient id="funnelGradL1" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#3B82F6" />
-                <stop offset="100%" stopColor="#22C55E" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <div className={sellerStyles.ltaFunnelStack}>
-            {(() => {
-              const lta = activeSellerFunnel.lta;
-              const getFunnelDropText = (diff: number, stage: string) => diff < 0 ? `↑ Gained ${Math.abs(diff)} in ${stage}` : `↓ Lost ${diff} in ${stage}`
-              const stages = [
-                { id: 'planned', label: 'PLANNED LTA', value: lta.planned, color: '#3B82F6', dropText: getFunnelDropText(lta.dynLost, 'Dynamic'), width: '100%' },
-                { id: 'dynamic', label: 'DYNAMIC LTA', value: lta.dynLta, color: '#EAB308', dropText: getFunnelDropText(lta.hygLost, 'Hygiene'), width: '88%' },
-                { id: 'hygiene', label: 'HYGIENE LTA', value: lta.hygLta, color: '#F97316', dropText: getFunnelDropText(lta.rev1Lost, 'Goal Complete'), width: '74%' },
-                { id: 'goalComplete', label: 'GOAL COMPLETE LTA', value: lta.rev1Lta, color: '#8B5CF6', dropText: getFunnelDropText(lta.rev2Lost, 'Final'), width: '62%' },
-                { id: 'final', label: 'FINAL LTA', value: lta.actual, color: '#22C55E', dropText: null, width: '50%' },
-              ]
-              return stages.map((step, idx) => (
-                <div key={step.id} className={sellerStyles.ltaFunnelStepWrap} style={{ animationDelay: `${idx * 0.15}s` } as any}>
-                  <div className={sellerStyles.ltaFunnelCard} style={{ '--card-color': step.color, borderColor: step.color, width: step.width } as any}>
-                    {((step.id === 'dynamic' && teamData?.kalpit?.find((k: any) => k.name === 'dynamic')?.value === 0) ||
-                       (step.id === 'hygiene' && teamData?.kalpit?.find((k: any) => k.name === 'hygiene')?.value === 0) ||
-                       (step.id === 'goalComplete' && teamData?.kalpit?.find((k: any) => k.name === 'goal')?.value === 0)) && (
-                      <div className={sellerStyles.strikethroughLine} />
-                    )}
-                    <div className={sellerStyles.ltaFunnelCardHeader}>
-                      <span className={sellerStyles.ltaFunnelCardTitle} style={{ color: step.color }}>{step.label}</span>
-                      {step.id === 'planned' && <span className={sellerStyles.ltaFunnelBadge} style={{ background: `${step.color}20`, color: step.color }}>Planned</span>}
+        <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', padding: '10px 4px 20px' }}>
+          {(() => {
+            const lta = activeSellerFunnel.lta;
+            const steps = [
+              { id: 'planned', label: 'Base target', sublabel: 'Base planned target goal', value: lta.planned, color: '#3B82F6', drop: lta.dynLost, dropLabel: lta.dynLost > 0 ? 'Late login / inactive' : null },
+              { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: lta.dynLta, color: '#EAB308', drop: lta.hygLost, dropLabel: lta.hygLost > 0 ? 'Hygiene penalty' : null },
+              { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: lta.hygLta, color: '#F97316', drop: lta.rev1Lost, dropLabel: lta.rev1Lost > 0 ? 'Goal correction' : null },
+              { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: lta.rev1Lta, color: '#8B5CF6', drop: lta.rev2Lost, dropLabel: lta.rev2Lost > 0 ? 'Final adjustment' : null },
+              { id: 'final', label: "Today's final target", sublabel: 'Final lead appetite target', value: lta.actual, color: '#22C55E', drop: null, dropLabel: null },
+            ]
+
+            return steps.map((step, idx) => {
+              const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+                (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+
+              return (
+                <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0, opacity: isNotUsed ? 0.6 : 1 }}>
+                  {/* Card */}
+                  <div style={{
+                    background: '#0D0D0D', border: `1px solid ${isNotUsed ? '#333' : `${step.color}40`}`,
+                    borderRadius: '10px', padding: '12px 16px', minWidth: '130px', flexShrink: 0,
+                    position: 'relative'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <div style={{ fontSize: '0.58rem', color: isNotUsed ? '#555' : step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                      {isNotUsed && <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '4px', fontWeight: 600 }}>NOT USED</span>}
                     </div>
-                    <div className={sellerStyles.ltaFunnelCardBody}>
-                      <span className={sellerStyles.ltaFunnelCardValue}>{step.value}</span>
-                      <span className={sellerStyles.ltaFunnelCardLabel}>Leads</span>
-                    </div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: isNotUsed ? '#555' : '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                    <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px', lineHeight: 1.3 }}>{step.sublabel}</div>
                   </div>
-                  {step.dropText && (
-                    <div className={sellerStyles.ltaFunnelDrop}>
-                      <div className={sellerStyles.ltaFunnelLine} />
-                      <div className={sellerStyles.ltaFunnelDropText}>{step.dropText}</div>
+
+                  {/* Arrow */}
+                  {idx < steps.length - 1 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 8px', minWidth: '60px' }}>
+                      {step.drop !== null && step.drop !== 0 && (
+                        <div style={{
+                          fontSize: '0.58rem', fontWeight: 700,
+                          color: step.drop > 0 ? '#EF4444' : '#22C55E',
+                          background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                          padding: '2px 6px', borderRadius: '6px', marginBottom: '4px',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '0.52rem', color: '#5A5650', textAlign: 'center', lineHeight: 1.2, marginBottom: '4px' }}>
+                        {step.dropLabel}
+                      </div>
+                      <span style={{ color: '#3A3A3A', fontSize: '1rem' }}>→</span>
                     </div>
                   )}
                 </div>
-              ))
-            })()}
-          </div>
+              )
+            })
+          })()}
         </div>
       </div>
     </div>
