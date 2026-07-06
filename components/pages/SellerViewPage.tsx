@@ -853,16 +853,14 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
               if (percent < 0) percent = 0;
               if (percent > 100) percent = 100;
 
-              // alternate height to appetite vs login to reduce overlap
-              const paddingBottom = isTriangle ? '0' : '8px';
-              // Move Appetite markers higher (e.g. 52px line height) so they clear login/logout
-              const markerLineHeight = isTriangle ? '28px' : '52px';
+              // Shift appetite markers higher up using bottom positioning so they hover without long vertical lines
+              const bottomOffset = isTriangle ? '100%' : 'calc(100% + 20px)';
+              const markerLineHeight = isTriangle ? '28px' : '10px';
 
               return (
                 <div key={label} className="timeline-marker-group" style={{
-                  position: 'absolute', left: `${percent}%`, bottom: '100%', transform: 'translateX(-50%)',
-                  zIndex: 20, pointerEvents: 'auto', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  paddingBottom
+                  position: 'absolute', left: `${percent}%`, bottom: bottomOffset, transform: 'translateX(-50%)',
+                  zIndex: 20, pointerEvents: 'auto', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center'
                 }}>
                   <div style={{ fontSize: '9px', color: '#fff', fontWeight: 600, marginBottom: '2px', whiteSpace: 'nowrap', backgroundColor: color, padding: '2px 4px', borderRadius: '3px', boxShadow: '0 1px 2px rgba(0,0,0,0.3)', minWidth: '40px', textAlign: 'center' }}>
                     <span className="timeline-marker-label">{label}</span>
