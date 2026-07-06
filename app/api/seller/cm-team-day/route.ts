@@ -46,7 +46,7 @@ export async function GET(req: Request) {
   const emailFilters = emails.map(e => `seller_email.ilike.${e.split('@')[0].substring(0, 5)}%`).join(',')
 
   // Step 2: Fetch daily data for ALL these sellers
-  const [attendanceRes, orbitRes, ctiRes, allotmentRes, ltaRes, hourlyRes, dotRes, monthlyAllotmentRes, monthlyLtaRes, goalShbRes, kalpitRes] = await Promise.all([
+  const [attendanceRes, orbitRes, ctiRes, allotmentRes, ltaRes, hourlyRes, dotRes, monthlyAllotmentRes, monthlyLtaRes, goalShbRes, kalpitRes, plannedLtaRes] = await Promise.all([
     supabase.schema('seller_day_to_day').from('seller_attendance').select('*').eq('work_date', queryDate).in('email', emails),
     supabase.schema('seller_day_to_day').from('seller_availability').select('*').eq('work_date', queryDate).in('seller_email', emails),
     supabase.schema('seller_day_to_day').from('seller_cti_availability').select('*').eq('work_date', queryDate).in('seller_email', emails),
@@ -79,7 +79,7 @@ export async function GET(req: Request) {
       monthly_rows: (monthlyAllotmentRes.data || []).filter((r: any) => r.seller_email === seller.seller_email),
       monthly_lta_rows: (monthlyLtaRes.data || []).filter((r: any) => r.seller_email === seller.seller_email),
       monthly_goal_shb: (goalShbRes.data || []).filter((r: any) => r.seller_email.startsWith(seller.seller_email.split('@')[0].substring(0, 5))),
-      planned_lta_override: arguments[0][11].data?.find((p: any) => p.seller_email === seller.seller_email)?.lta,
+      planned_lta_override: plannedLtaRes.data?.find((p: any) => p.seller_email === seller.seller_email)?.lta,
     }
   })
 
