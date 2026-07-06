@@ -717,9 +717,8 @@ function GoalShbTrendChart({ labels, goalValues, shbValues }: { labels: string[]
 
 /* ─── Accordion Section ─── */
 function AccordionSection({
-  number, title, badges, children, defaultOpen = false
+  title, badges, children, defaultOpen = false
 }: {
-  number: string
   title: string
   badges?: { text: string; color: string }[]
   children: React.ReactNode
@@ -731,7 +730,7 @@ function AccordionSection({
     <div className="la-acc-item">
       <div className="la-acc-header" onClick={() => setOpen(!open)}>
         <div className="la-acc-header-left">
-          <span className="la-acc-title">{number} · {title}</span>
+          <span className="la-acc-title">{title}</span>
           {badges?.map((b, i) => (
             <span key={i} className={`la-acc-badge la-badge-${b.color}`}>{b.text}</span>
           ))}
@@ -863,7 +862,7 @@ function BreakSection({ hierarchy }: { hierarchy: any[] }) {
         </thead>
         <tbody>
           {hierarchy.map(cat => {
-            const allSellers = cat.tls.flatMap((t: any) => t.sellers).filter((s: any) => !s.isAbsent)
+            const allSellers = cat.tls.flatMap((t: any) => t.sellers)
             const totalBreak = allSellers.reduce((s: number, e: any) => s + e.breakTotalMins, 0)
             const avgBreak = allSellers.length > 0 ? Math.round(totalBreak / allSellers.length) : 0
             const longBreaks = allSellers.filter((s: any) => s.breakTotalMins > 60).length
@@ -878,7 +877,7 @@ function BreakSection({ hierarchy }: { hierarchy: any[] }) {
                   <td>{Math.round(totalBreak / 60)}h {totalBreak % 60}m</td>
                 </tr>
                 {expandedCat === catKey && cat.tls.map((tl: any) => {
-                  const tlSellers = tl.sellers.filter((s: any) => !s.isAbsent)
+                  const tlSellers = tl.sellers
                   const tlTotal = tlSellers.reduce((s: number, e: any) => s + e.breakTotalMins, 0)
                   const tlAvg = tlSellers.length > 0 ? Math.round(tlTotal / tlSellers.length) : 0
                   const tlLong = tlSellers.filter((s: any) => s.breakTotalMins > 60).length
@@ -892,7 +891,7 @@ function BreakSection({ hierarchy }: { hierarchy: any[] }) {
                         <td style={{ color: tlLong > 0 ? '#EF4444' : '#22C55E' }}>{tlLong}</td>
                         <td>{fmtMins(tlTotal)}</td>
                       </tr>
-                      {expandedTl === tlKey && tl.sellers.filter((s: any) => !s.isAbsent).map((s: any) => (
+                      {expandedTl === tlKey && tl.sellers.map((s: any) => (
                         <tr key={s.seller_email} className="la-seller-row">
                           <td style={{ paddingLeft: '48px' }}>{s.seller_name}</td>
                           <td>{s.breakTotalMins}m</td>
@@ -997,50 +996,69 @@ function AppetiteSection({ hierarchy }: { hierarchy: any[] }) {
         <thead>
           <tr>
             <th>Name</th>
-            <th>LTA Planned</th>
-            <th>LTA Actual</th>
+            <th>Leads Allotted</th>
+            <th>Appetite (LTA)</th>
             <th>Fulfillment %</th>
+            <th>Avg C→A Time</th>
           </tr>
         </thead>
         <tbody>
           {hierarchy.map(cat => {
             const allSellers = cat.tls.flatMap((t: any) => t.sellers).filter((s: any) => !s.isAbsent)
-            const planned = allSellers.reduce((s: number, e: any) => s + e.ltaPlanned, 0)
-            const actual = allSellers.reduce((s: number, e: any) => s + e.ltaActual, 0)
-            const pct = planned > 0 ? ((actual / planned) * 100).toFixed(1) : '0.0'
+            const allotted = allSellers.reduce((s: number, e: any) => s + e.totalLeads, 0)
+            const appetite = allSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+            const pct = appetite > 0 ? Math.round((allotted / appetite) * 100) : 0
+            
+            const caSellers = allSellers.filter((s: any) => s.totalLeads > 0 && s.medianCA != null)
+            const sumCta = caSellers.reduce((s: number, e: any) => s + (e.medianCA * e.totalLeads), 0)
+            const sumLeads = caSellers.reduce((s: number, e: any) => s + e.totalLeads, 0)
+            const avgCa = sumLeads > 0 ? Math.round(sumCta / sumLeads) : null
+            
             const catKey = cat.category_name
 
             return (
               <React.Fragment key={catKey}>
                 <tr className="la-cat-row" onClick={() => setExpandedCat(expandedCat === catKey ? null : catKey)}>
                   <td>{catKey}</td>
-                  <td>{planned}</td>
-                  <td>{actual}</td>
-                  <td style={{ color: parseFloat(pct) < 50 ? '#EF4444' : '#F59E0B' }}>{pct}%</td>
+                  <td>{allotted}</td>
+                  <td>{appetite}</td>
+                  <td style={{ color: pct >= 90 ? '#22C55E' : pct >= 70 ? '#F59E0B' : '#EF4444' }}>{pct}%</td>
+                  <td>{avgCa != null ? `${avgCa}m` : '—'}</td>
                 </tr>
                 {expandedCat === catKey && cat.tls.map((tl: any) => {
                   const tlSellers = tl.sellers.filter((s: any) => !s.isAbsent)
-                  const tlPlanned = tlSellers.reduce((s: number, e: any) => s + e.ltaPlanned, 0)
-                  const tlActual = tlSellers.reduce((s: number, e: any) => s + e.ltaActual, 0)
-                  const tlPct = tlPlanned > 0 ? ((tlActual / tlPlanned) * 100).toFixed(1) : '0.0'
+                  const tlAllotted = tlSellers.reduce((s: number, e: any) => s + e.totalLeads, 0)
+                  const tlAppetite = tlSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+                  const tlPct = tlAppetite > 0 ? Math.round((tlAllotted / tlAppetite) * 100) : 0
+                  
+                  const tlCaSellers = tlSellers.filter((s: any) => s.totalLeads > 0 && s.medianCA != null)
+                  const tlSumCta = tlCaSellers.reduce((s: number, e: any) => s + (e.medianCA * e.totalLeads), 0)
+                  const tlSumLeads = tlCaSellers.reduce((s: number, e: any) => s + e.totalLeads, 0)
+                  const tlAvgCa = tlSumLeads > 0 ? Math.round(tlSumCta / tlSumLeads) : null
+
                   const tlKey = `${catKey}-${tl.tl_name}`
 
                   return (
                     <React.Fragment key={tlKey}>
                       <tr className="la-tl-row" onClick={() => setExpandedTl(expandedTl === tlKey ? null : tlKey)}>
-                        <td style={{ paddingLeft: '28px' }}>↳ {tl.tl_name}</td>
-                        <td>{tlPlanned}</td>
-                        <td>{tlActual}</td>
-                        <td style={{ color: parseFloat(tlPct) < 50 ? '#EF4444' : '#F59E0B' }}>{tlPct}%</td>
+                        <td style={{ paddingLeft: '24px' }}>
+                          <span style={{ fontSize: '10px', marginRight: '6px', opacity: 0.5 }}>▼</span>
+                          {tl.tl_name}
+                        </td>
+                        <td>{tlAllotted}</td>
+                        <td>{tlAppetite}</td>
+                        <td style={{ color: tlPct >= 90 ? '#22C55E' : tlPct >= 70 ? '#F59E0B' : '#EF4444' }}>{tlPct}%</td>
+                        <td>{tlAvgCa != null ? `${tlAvgCa}m` : '—'}</td>
                       </tr>
                       {expandedTl === tlKey && tl.sellers.filter((s: any) => !s.isAbsent).map((s: any) => {
-                        const sPct = s.ltaPlanned > 0 ? ((s.ltaActual / s.ltaPlanned) * 100).toFixed(1) : '0.0'
+                        const sPct = s.ltaActual > 0 ? Math.round((s.totalLeads / s.ltaActual) * 100) : 0
                         return (
                           <tr key={s.seller_email} className="la-seller-row">
                             <td style={{ paddingLeft: '48px' }}>{s.seller_name}</td>
-                            <td>{s.ltaPlanned}</td>
-                            <td>{s.ltaActual}</td>
-                            <td>{sPct}%</td>
+                            <td>{s.totalLeads}</td>
+                            <td>{s.ltaActual || 0}</td>
+                            <td style={{ color: sPct >= 90 ? '#22C55E' : sPct >= 70 ? '#F59E0B' : '#EF4444' }}>{sPct}%</td>
+                            <td>{s.medianCA != null ? `${s.medianCA}m` : '—'}</td>
                           </tr>
                         )
                       })}
@@ -1299,7 +1317,7 @@ function FirstLeadSection({ hierarchy }: { hierarchy: any[] }) {
 }
 
 /* ─── LTA Section (with funnel drill-down) ─── */
-function LTASection({ hierarchy, onTlFunnelClick, onSellerFunnelClick }: { hierarchy: any[], onTlFunnelClick: (tl: any, catName: string) => void, onSellerFunnelClick: (seller: any) => void }) {
+function LTASection({ hierarchy }: { hierarchy: any[] }) {
   const [expandedCat, setExpandedCat] = useState<string | null>(null)
   const [expandedTl, setExpandedTl] = useState<string | null>(null)
 
@@ -1309,70 +1327,61 @@ function LTASection({ hierarchy, onTlFunnelClick, onSellerFunnelClick }: { hiera
         <thead>
           <tr>
             <th>Name</th>
+            <th>Allotted</th>
             <th>Planned</th>
             <th>Actual</th>
-            <th>Lost</th>
-            <th>Lost %</th>
+            <th>Fulfillment %</th>
           </tr>
         </thead>
         <tbody>
           {hierarchy.map(cat => {
             const allSellers = cat.tls.flatMap((t: any) => t.sellers)
-            const planned = allSellers.reduce((s: number, e: any) => s + e.ltaPlanned, 0)
-            const actual = allSellers.reduce((s: number, e: any) => s + e.ltaActual, 0)
-            const lost = planned - actual
-            const lostPct = planned > 0 ? ((lost / planned) * 100).toFixed(1) : '0.0'
+            const allotted = allSellers.reduce((s: number, e: any) => s + (e.totalLeads || 0), 0)
+            const planned = allSellers.reduce((s: number, e: any) => s + (e.ltaPlanned || 0), 0)
+            const actual = allSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+            const catFulf = actual > 0 ? Math.round((allotted / actual) * 100) : 0
+            const catColor = catFulf >= 90 ? '#22C55E' : catFulf >= 70 ? '#F59E0B' : '#EF4444'
             const catKey = cat.category_name
-            const lostColor = parseFloat(lostPct) < 5 ? '#22C55E' : parseFloat(lostPct) <= 15 ? '#F59E0B' : '#EF4444'
 
             return (
               <React.Fragment key={catKey}>
                 <tr className="la-cat-row" onClick={() => setExpandedCat(expandedCat === catKey ? null : catKey)}>
                   <td>{catKey}</td>
+                  <td>{allotted}</td>
                   <td>{planned}</td>
                   <td>{actual}</td>
-                  <td>{lost}</td>
-                  <td style={{ color: lostColor }}>{lostPct}%</td>
+                  <td style={{ color: catColor }}>{catFulf}%</td>
                 </tr>
                 {expandedCat === catKey && cat.tls.map((tl: any) => {
-                  const tlPlanned = tl.sellers.reduce((s: number, e: any) => s + e.ltaPlanned, 0)
-                  const tlActual = tl.sellers.reduce((s: number, e: any) => s + e.ltaActual, 0)
-                  const tlLost = tlPlanned - tlActual
-                  const tlPct = tlPlanned > 0 ? ((tlLost / tlPlanned) * 100).toFixed(1) : '0.0'
-                  const tlColor = parseFloat(tlPct) < 5 ? '#22C55E' : parseFloat(tlPct) <= 15 ? '#F59E0B' : '#EF4444'
+                  const tlAllotted = tl.sellers.reduce((s: number, e: any) => s + (e.totalLeads || 0), 0)
+                  const tlPlanned = tl.sellers.reduce((s: number, e: any) => s + (e.ltaPlanned || 0), 0)
+                  const tlActual = tl.sellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+                  const tlFulf = tlActual > 0 ? Math.round((tlAllotted / tlActual) * 100) : 0
+                  const tlColor = tlFulf >= 90 ? '#22C55E' : tlFulf >= 70 ? '#F59E0B' : '#EF4444'
                   const tlKey = `${catKey}-${tl.tl_name}`
 
                   return (
                     <React.Fragment key={tlKey}>
                       <tr className="la-tl-row" onClick={() => setExpandedTl(expandedTl === tlKey ? null : tlKey)}>
                         <td style={{ paddingLeft: '28px' }}>↳ {tl.tl_name}</td>
+                        <td>{tlAllotted}</td>
                         <td>{tlPlanned}</td>
                         <td>{tlActual}</td>
-                        <td>{tlLost}</td>
-                        <td style={{ color: tlColor }}>{tlPct}%</td>
+                        <td style={{ color: tlColor }}>{tlFulf}%</td>
                       </tr>
-                      {expandedTl === tlKey && (
-                        <tr>
-                          <td colSpan={5} style={{ padding: '8px 16px 8px 28px', background: 'rgba(0,0,0,0.2)' }}>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onTlFunnelClick(tl, catKey) }}
-                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '6px 16px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
-                            >
-                              📊 View Team Funnel
-                            </button>
-                          </td>
-                        </tr>
-                      )}
                       {expandedTl === tlKey && tl.sellers.map((s: any) => {
-                        const sLost = s.ltaPlanned - s.ltaActual
-                        const sPct = s.ltaPlanned > 0 ? ((sLost / s.ltaPlanned) * 100).toFixed(1) : '0.0'
+                        const sActual = s.ltaActual || 0
+                        const sAllotted = s.totalLeads || 0
+                        const sFulf = sActual > 0 ? Math.round((sAllotted / sActual) * 100) : 0
+                        const sColor = sFulf >= 90 ? '#22C55E' : sFulf >= 70 ? '#F59E0B' : '#EF4444'
+                        
                         return (
-                          <tr key={s.seller_email} className="la-seller-row" onClick={() => onSellerFunnelClick(s)} style={{ cursor: 'pointer' }}>
+                          <tr key={s.seller_email} className="la-seller-row">
                             <td style={{ paddingLeft: '48px' }}>{s.seller_name}</td>
-                            <td>{s.ltaPlanned}</td>
-                            <td>{s.ltaActual}</td>
-                            <td>{sLost}</td>
-                            <td>{sPct}%</td>
+                            <td>{sAllotted}</td>
+                            <td>{s.ltaPlanned || 0}</td>
+                            <td>{sActual}</td>
+                            <td style={{ color: sColor }}>{sFulf}%</td>
                           </tr>
                         )
                       })}
@@ -1519,49 +1528,9 @@ function GoalSection({ hierarchy }: { hierarchy: any[] }) {
 }
 
 function QueueSection({ hierarchy }: { hierarchy: any[] }) {
-  const [expandedCat, setExpandedCat] = useState<string | null>(null)
-
   return (
-    <div className="la-table-wrap">
-      <table className="la-table">
-        <thead>
-          <tr>
-            <th>Category</th>
-            <th>TLs</th>
-            <th>Sellers</th>
-            <th>Total Leads Today</th>
-          </tr>
-        </thead>
-        <tbody>
-          {hierarchy.map(cat => {
-            const allSellers = cat.tls.flatMap((t: any) => t.sellers)
-            const totalLeads = allSellers.reduce((s: number, e: any) => s + e.totalLeads, 0)
-            const catKey = cat.category_name
-
-            return (
-              <React.Fragment key={catKey}>
-                <tr className="la-cat-row" onClick={() => setExpandedCat(expandedCat === catKey ? null : catKey)}>
-                  <td>{catKey}</td>
-                  <td>{cat.tl_count}</td>
-                  <td>{cat.seller_count}</td>
-                  <td>{totalLeads}</td>
-                </tr>
-                {expandedCat === catKey && cat.tls.map((tl: any) => {
-                  const tlLeads = tl.sellers.reduce((s: number, e: any) => s + e.totalLeads, 0)
-                  return (
-                    <tr key={`${catKey}-${tl.tl_name}`} className="la-tl-row">
-                      <td style={{ paddingLeft: '28px' }}>↳ {tl.tl_name}</td>
-                      <td>—</td>
-                      <td>{tl.seller_count}</td>
-                      <td>{tlLeads}</td>
-                    </tr>
-                  )
-                })}
-              </React.Fragment>
-            )
-          })}
-        </tbody>
-      </table>
+    <div style={{ padding: '32px', textAlign: 'center', color: '#A1A1AA', fontSize: '14px', fontStyle: 'italic' }}>
+      Data coming soon...
     </div>
   )
 }
@@ -1611,8 +1580,9 @@ function FunnelModal({ title, funnel, onClose }: { title: string, funnel: Return
 }
 
 /* ─── MHE Trend Modal (org / TL / seller drill) ─── */
-function MheTrendModal({ hierarchy, onClose }: { hierarchy: any[], onClose: () => void }) {
+function MheTrendModal({ hierarchy, dateFrom, onClose }: { hierarchy: any[], dateFrom: string, onClose: () => void }) {
   const [drillSeller, setDrillSeller] = useState<any>(null)
+  const [expandedCatKey, setExpandedCatKey] = useState<string | null>(null)
   const [expandedTlKey, setExpandedTlKey] = useState<string | null>(null)
 
   const flatTls = hierarchy.flatMap(cat => cat.tls.map((tl: any) => ({ ...tl, category_name: cat.category_name, key: `${cat.category_name}-${tl.tl_name}` })))
@@ -1633,7 +1603,7 @@ function MheTrendModal({ hierarchy, onClose }: { hierarchy: any[], onClose: () =
     return dayMap
   }
 
-  const activeSellers = drillSeller ? [drillSeller] : (expandedTlKey ? (flatTls.find(t => t.key === expandedTlKey)?.sellers || []) : allSellers)
+  const activeSellers = drillSeller ? [drillSeller] : expandedTlKey ? (flatTls.find(t => t.key === expandedTlKey)?.sellers || []) : expandedCatKey ? (hierarchy.find(c => c.category_name === expandedCatKey)?.tls.flatMap((t: any) => t.sellers) || []) : allSellers
   const dayMap = buildDayMap(activeSellers)
   const sortedDays = Object.keys(dayMap).sort()
   const labels = sortedDays.map(d => {
@@ -1644,7 +1614,7 @@ function MheTrendModal({ hierarchy, onClose }: { hierarchy: any[], onClose: () =
   const avg = values.length > 0 ? parseFloat((values.reduce((s, v) => s + v, 0) / values.length).toFixed(1)) : 0
   const isGood = avg <= 20
 
-  const title = drillSeller ? `${drillSeller.seller_name} — MHE Trend` : expandedTlKey ? `${flatTls.find(t => t.key === expandedTlKey)?.tl_name} — MHE Trend` : 'Org MHE Trend'
+  const title = drillSeller ? `${drillSeller.seller_name} — MHE Trend` : expandedTlKey ? `${flatTls.find(t => t.key === expandedTlKey)?.tl_name} Team — MHE Trend` : expandedCatKey ? `${expandedCatKey} Team — MHE Trend` : 'Org MHE Trend'
 
   return (
     <div className="la-modal-overlay" onClick={onClose}>
@@ -1655,33 +1625,60 @@ function MheTrendModal({ hierarchy, onClose }: { hierarchy: any[], onClose: () =
           <span className="la-modal-dot" style={{ background: isGood ? '#22C55E' : '#EF4444' }} />
           <span className="la-modal-title">{title}</span>
         </div>
-        <div style={{ display: 'flex', gap: '24px', flexDirection: drillSeller ? 'column' : 'row' }}>
+        <div style={{ display: 'flex', gap: '24px', flexDirection: 'row' }}>
           <div style={{ flex: 1, minWidth: '400px', height: '260px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid #262626', padding: '16px' }}>
             <MheTrendChart labels={labels} values={values} color={isGood ? '#22C55E' : '#EF4444'} />
           </div>
-          {!drillSeller && (
+          {(
             <div style={{ width: '260px' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F0EDE8', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid #262626' }}>Team Drill-down</div>
               <div className="la-drill-list">
-                {flatTls.map(tl => {
-                  const tlDayMap = buildDayMap(tl.sellers)
-                  const tlDays = Object.keys(tlDayMap)
-                  const tlAvg = tlDays.length > 0 ? parseFloat((tlDays.reduce((s, d) => s + (tlDayMap[d].sum / tlDayMap[d].count), 0) / tlDays.length).toFixed(1)) : 0
+                {hierarchy.map(cat => {
+                  const catSellers = cat.tls.flatMap((t: any) => (t.sellers || []))
+                  const cCount = catSellers.length
+                  let cmSum = 0
+                  catSellers.forEach((s: any) => {
+                    const r = (s.monthly_lta_rows || []).find((x: any) => x.log_date === dateFrom)
+                    if (r && typeof r.mishandled_pct === 'number') cmSum += r.mishandled_pct * 100
+                  })
+                  const catAvg = cCount > 0 ? parseFloat((cmSum / cCount).toFixed(1)) : 0
+                  
                   return (
-                    <React.Fragment key={tl.key}>
-                      <div className="la-drill-tl-row" onClick={() => setExpandedTlKey(expandedTlKey === tl.key ? null : tl.key)}>
-                        <span>{tl.category_name} · {tl.tl_name}</span>
-                        <span style={{ color: tlAvg <= 20 ? '#22C55E' : '#EF4444' }}>{tlAvg}%</span>
+                    <React.Fragment key={cat.category_name}>
+                      <div className="la-drill-tl-row" onClick={() => { setExpandedCatKey(expandedCatKey === cat.category_name ? null : cat.category_name); setExpandedTlKey(null) }}>
+                        <span style={{ fontWeight: 600, color: '#F0EDE8' }}>{cat.category_name}</span>
+                        <span style={{ color: catAvg <= 20 ? '#22C55E' : '#EF4444' }}>{catAvg}%</span>
                       </div>
-                      {expandedTlKey === tl.key && tl.sellers.map((s: any) => {
-                        let mSum = 0, mDays = 0
-                        ;(s.monthly_lta_rows || []).forEach((r: any) => { if (typeof r.mishandled_pct === 'number') { mSum += r.mishandled_pct * 100; mDays++ } })
-                        const mAvg = mDays > 0 ? parseFloat((mSum / mDays).toFixed(1)) : 0
+                      
+                      {expandedCatKey === cat.category_name && cat.tls.map((tl: any) => {
+                        const tlKey = `${cat.category_name}-${tl.tl_name}`
+                        const tlSellers = tl.sellers || []
+                        const tCount = tlSellers.length
+                        let tmSum = 0
+                        tlSellers.forEach((s: any) => {
+                          const r = (s.monthly_lta_rows || []).find((x: any) => x.log_date === dateFrom)
+                          if (r && typeof r.mishandled_pct === 'number') tmSum += r.mishandled_pct * 100
+                        })
+                        const tlAvg = tCount > 0 ? parseFloat((tmSum / tCount).toFixed(1)) : 0
+                        
                         return (
-                          <div key={s.seller_email} className="la-drill-seller-row" onClick={() => setDrillSeller(s)}>
-                            <span>{s.seller_name}</span>
-                            <span style={{ color: mAvg <= 20 ? '#22C55E' : '#EF4444' }}>{mAvg}%</span>
-                          </div>
+                          <React.Fragment key={tlKey}>
+                            <div className="la-drill-tl-row" style={{ paddingLeft: '24px' }} onClick={() => setExpandedTlKey(expandedTlKey === tlKey ? null : tlKey)}>
+                              <span>{tl.tl_name}</span>
+                              <span style={{ color: tlAvg <= 20 ? '#22C55E' : '#EF4444' }}>{tlAvg}%</span>
+                            </div>
+                            
+                            {expandedTlKey === tlKey && tl.sellers.map((s: any) => {
+                              const r = (s.monthly_lta_rows || []).find((x: any) => x.log_date === dateFrom)
+                              const mAvg = r && typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
+                              return (
+                                <div key={s.seller_email} className="la-drill-seller-row" style={{ paddingLeft: '40px' }} onClick={() => setDrillSeller(s)}>
+                                  <span>{s.seller_name}</span>
+                                  <span style={{ color: mAvg <= 20 ? '#22C55E' : '#EF4444' }}>{mAvg}%</span>
+                                </div>
+                              )
+                            })}
+                          </React.Fragment>
                         )
                       })}
                     </React.Fragment>
@@ -1699,6 +1696,7 @@ function MheTrendModal({ hierarchy, onClose }: { hierarchy: any[], onClose: () =
 /* ─── Goal vs SHB Trend Modal ─── */
 function GoalShbTrendModal({ hierarchy, dateFrom, onClose }: { hierarchy: any[], dateFrom: string, onClose: () => void }) {
   const [drillSeller, setDrillSeller] = useState<any>(null)
+  const [expandedCatKey, setExpandedCatKey] = useState<string | null>(null)
   const [expandedTlKey, setExpandedTlKey] = useState<string | null>(null)
 
   const flatTls = hierarchy.flatMap(cat => cat.tls.map((tl: any) => ({ ...tl, category_name: cat.category_name, key: `${cat.category_name}-${tl.tl_name}` })))
@@ -1719,8 +1717,10 @@ function GoalShbTrendModal({ hierarchy, dateFrom, onClose }: { hierarchy: any[],
         dayMap[d].count += 1
       })
     })
+    const targetDay = parseInt(dateFrom.split('-')[2])
+    const maxDay = targetDay <= daysInMonth ? targetDay : daysInMonth
     const padded = []
-    for (let i = 1; i <= daysInMonth; i++) {
+    for (let i = 1; i <= maxDay; i++) {
       const dStr = `${y}-${mStr}-${String(i).padStart(2, '0')}`
       if (dayMap[dStr]) {
         padded.push({ date: dStr, goalAvg: parseFloat((dayMap[dStr].goalSum / dayMap[dStr].count).toFixed(0)), shbAvg: parseFloat((dayMap[dStr].shbSum / dayMap[dStr].count).toFixed(0)) })
@@ -1731,14 +1731,14 @@ function GoalShbTrendModal({ hierarchy, dateFrom, onClose }: { hierarchy: any[],
     return padded
   }
 
-  const activeSellers = drillSeller ? [drillSeller] : (expandedTlKey ? (flatTls.find(t => t.key === expandedTlKey)?.sellers || []) : allSellers)
+  const activeSellers = drillSeller ? [drillSeller] : expandedTlKey ? (flatTls.find(t => t.key === expandedTlKey)?.sellers || []) : expandedCatKey ? (hierarchy.find(c => c.category_name === expandedCatKey)?.tls.flatMap((t: any) => t.sellers) || []) : allSellers
   const activeData = buildPadded(activeSellers)
   const labels = activeData.map(d => `${parseInt(d.date.split('-')[2])} ${new Date(d.date).toLocaleString('default', { month: 'short' })}`)
   const goalValues = activeData.map(d => d.goalAvg)
   const shbValues = activeData.map(d => d.shbAvg)
   const hasData = goalValues.some(v => v > 0) || shbValues.some(v => v > 0)
 
-  const title = drillSeller ? `${drillSeller.seller_name} — Goal vs SHB` : expandedTlKey ? `${flatTls.find(t => t.key === expandedTlKey)?.tl_name} — Goal vs SHB` : 'Org Goal vs SHB Trend'
+  const title = drillSeller ? `${drillSeller.seller_name} — Goal vs SHB` : expandedTlKey ? `${flatTls.find(t => t.key === expandedTlKey)?.tl_name} Team — Goal vs SHB` : expandedCatKey ? `${expandedCatKey} Team — Goal vs SHB Trend` : 'Org Goal vs SHB Trend'
 
   return (
     <div className="la-modal-overlay" onClick={onClose}>
@@ -1755,37 +1755,74 @@ function GoalShbTrendModal({ hierarchy, dateFrom, onClose }: { hierarchy: any[],
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#555', fontSize: '0.85rem', fontStyle: 'italic' }}>No data for this month yet.</div>
             )}
           </div>
-          {!drillSeller && (
+          {(
             <div style={{ flex: 1, borderLeft: '1px solid #262626', paddingLeft: '20px' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F0EDE8', marginBottom: '12px' }}>Team Drill-down</div>
               <div className="la-drill-list">
-                {flatTls.map(tl => {
-                  let gSum = 0, sSum = 0, cnt = 0
-                  tl.sellers.forEach((m: any) => (m.monthly_goal_shb || []).forEach((r: any) => { gSum += (r.goal_completion || 0) * 100; sSum += (r.shb_percent || 0) * 100; cnt++ }))
-                  const gAvg = cnt > 0 ? Math.round(gSum / cnt) : 0
-                  const sAvg = cnt > 0 ? Math.round(sSum / cnt) : 0
+                {hierarchy.map(cat => {
+                  const catSellers = cat.tls.flatMap((t: any) => (t.sellers || []))
+                  let cGSum = 0, cSSum = 0, cValidCount = 0
+                  catSellers.forEach((s: any) => {
+                    const r = (s.monthly_goal_shb || []).find((x: any) => x.date === dateFrom)
+                    if (r) {
+                      cGSum += (r.goal_completion || 0) * 100
+                      cSSum += (r.shb_percent || 0) * 100
+                      cValidCount++
+                    }
+                  })
+                  const cgAvg = cValidCount > 0 ? parseFloat((cGSum / cValidCount).toFixed(1)) : 0
+                  const csAvg = cValidCount > 0 ? parseFloat((cSSum / cValidCount).toFixed(1)) : 0
+                  
                   return (
-                    <React.Fragment key={tl.key}>
-                      <div className="la-drill-tl-row" onClick={() => setExpandedTlKey(expandedTlKey === tl.key ? null : tl.key)}>
-                        <span>{tl.category_name} · {tl.tl_name}</span>
+                    <React.Fragment key={cat.category_name}>
+                      <div className="la-drill-tl-row" onClick={() => { setExpandedCatKey(expandedCatKey === cat.category_name ? null : cat.category_name); setExpandedTlKey(null) }}>
+                        <span style={{ fontWeight: 600, color: '#F0EDE8' }}>{cat.category_name}</span>
                         <div style={{ display: 'flex', gap: '10px' }}>
-                          <span style={{ color: '#3B82F6' }}>{gAvg}%</span>
-                          <span style={{ color: '#EAB308' }}>{sAvg}%</span>
+                          <span style={{ color: '#3B82F6' }}>{cgAvg}%</span>
+                          <span style={{ color: '#EAB308' }}>{csAvg}%</span>
                         </div>
                       </div>
-                      {expandedTlKey === tl.key && tl.sellers.map((s: any) => {
-                        let mg = 0, ms = 0, mc = 0
-                        ;(s.monthly_goal_shb || []).forEach((r: any) => { mg += (r.goal_completion || 0) * 100; ms += (r.shb_percent || 0) * 100; mc++ })
-                        const mgAvg = mc > 0 ? Math.round(mg / mc) : 0
-                        const msAvg = mc > 0 ? Math.round(ms / mc) : 0
+                      
+                      {expandedCatKey === cat.category_name && cat.tls.map((tl: any) => {
+                        const tlKey = `${cat.category_name}-${tl.tl_name}`
+                        const tlSellers = tl.sellers || []
+                        let gSum = 0, sSum = 0, tValidCount = 0
+                        tlSellers.forEach((s: any) => {
+                          const r = (s.monthly_goal_shb || []).find((x: any) => x.date === dateFrom)
+                          if (r) {
+                            gSum += (r.goal_completion || 0) * 100
+                            sSum += (r.shb_percent || 0) * 100
+                            tValidCount++
+                          }
+                        })
+                        const gAvg = tValidCount > 0 ? parseFloat((gSum / tValidCount).toFixed(1)) : 0
+                        const sAvg = tValidCount > 0 ? parseFloat((sSum / tValidCount).toFixed(1)) : 0
+                        
                         return (
-                          <div key={s.seller_email} className="la-drill-seller-row" onClick={() => setDrillSeller(s)}>
-                            <span>{s.seller_name}</span>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                              <span style={{ color: '#3B82F6' }}>{mgAvg}%</span>
-                              <span style={{ color: '#EAB308' }}>{msAvg}%</span>
+                          <React.Fragment key={tlKey}>
+                            <div className="la-drill-tl-row" style={{ paddingLeft: '24px' }} onClick={() => setExpandedTlKey(expandedTlKey === tlKey ? null : tlKey)}>
+                              <span>{tl.tl_name}</span>
+                              <div style={{ display: 'flex', gap: '10px' }}>
+                                <span style={{ color: '#3B82F6' }}>{gAvg}%</span>
+                                <span style={{ color: '#EAB308' }}>{sAvg}%</span>
+                              </div>
                             </div>
-                          </div>
+                            
+                            {expandedTlKey === tlKey && tl.sellers.map((s: any) => {
+                              const r = (s.monthly_goal_shb || []).find((x: any) => x.date === dateFrom)
+                              const mgAvg = r ? parseFloat(((r.goal_completion || 0) * 100).toFixed(1)) : 0
+                              const msAvg = r ? parseFloat(((r.shb_percent || 0) * 100).toFixed(1)) : 0
+                              return (
+                                <div key={s.seller_email} className="la-drill-seller-row" style={{ paddingLeft: '40px' }} onClick={() => setDrillSeller(s)}>
+                                  <span>{s.seller_name}</span>
+                                  <div style={{ display: 'flex', gap: '10px' }}>
+                                    <span style={{ color: '#3B82F6' }}>{mgAvg}%</span>
+                                    <span style={{ color: '#EAB308' }}>{msAvg}%</span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </React.Fragment>
                         )
                       })}
                     </React.Fragment>
@@ -1800,11 +1837,10 @@ function GoalShbTrendModal({ hierarchy, dateFrom, onClose }: { hierarchy: any[],
   )
 }
 
-/* ─── Monthly Breakdown Section (DOT / Allotment / Pax / Appetite&CA) ─── */
 function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[], onSellerClick: (seller: any) => void }) {
   const [activeCard, setActiveCard] = useState<'dot' | 'allotment' | 'pax' | 'ca' | null>(null)
+  const [expandedCatKey, setExpandedCatKey] = useState<string | null>(null)
   const [expandedTlKey, setExpandedTlKey] = useState<string | null>(null)
-
   const flatTls = hierarchy.flatMap(cat => cat.tls.map((tl: any) => ({ ...tl, category_name: cat.category_name, key: `${cat.category_name}-${tl.tl_name}` })))
   const allMembers = flatTls.flatMap(tl => tl.sellers)
 
@@ -1917,7 +1953,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
           </div>
         </div>
 
-        <div style={cardBase} onClick={() => { setActiveCard(activeCard === 'ca' ? null : 'ca'); setExpandedTlKey(null) }}>
+        <div style={cardBase} onClick={() => { setActiveCard(activeCard === 'ca' ? null : 'ca'); setExpandedCatKey(null); setExpandedTlKey(null) }}>
           <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '16px', textTransform: 'uppercase' }}>Appetite & C→A Time</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -1937,9 +1973,9 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
       </div>
 
       {activeCard && (
-        <div className="la-modal-overlay" onClick={() => { setActiveCard(null); setExpandedTlKey(null) }}>
+        <div className="la-modal-overlay" onClick={() => { setActiveCard(null); setExpandedCatKey(null); setExpandedTlKey(null) }}>
           <div className="la-modal-card wide" onClick={e => e.stopPropagation()}>
-            <button className="la-modal-close" onClick={() => { setActiveCard(null); setExpandedTlKey(null) }}>✕</button>
+            <button className="la-modal-close" onClick={() => { setActiveCard(null); setExpandedCatKey(null); setExpandedTlKey(null) }}>✕</button>
             <div className="la-modal-title" style={{ marginBottom: '20px' }}>
               {activeCard === 'dot' ? 'DOT Distribution' : activeCard === 'allotment' ? 'Allotment Breakdown' : activeCard === 'ca' ? 'Appetite & C→A Time' : 'Leads by Group Size'}
               <span style={{ fontSize: '0.75rem', color: '#8A8278', marginLeft: '8px', fontWeight: 400 }}>· Team Drill-down</span>
@@ -1948,52 +1984,86 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
               <table className="la-table">
                 <thead>
                   <tr>
-                    <th>Team (TL)</th>
+                    <th>Team</th>
                     {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => <th key={mo.key}>{mo.label}</th>)}<th>6+ Months</th></>)
                       : activeCard === 'allotment' ? (<><th>Auto</th><th>Manual</th><th>RTG</th><th>Non-RTG</th></>)
                       : activeCard === 'ca' ? (<><th>Leads Allotted</th><th>Appetite</th><th>Fulfillment %</th><th>Avg C→A</th></>)
                       : (<><th>1-pax</th><th>2-pax</th><th>3-pax</th><th>4-pax</th><th>4+ pax</th></>)}
                   </tr>
                 </thead>
-                <tbody>
-                  {flatTls.map(tl => {
-                    const getTlDot = (key: string) => { let v = 0; Object.entries(tl.sellers.reduce((acc: Record<string, number>, m: any) => { (m.dot_rows || []).forEach((d: any) => { acc[d.dot_month] = (acc[d.dot_month] || 0) + (d.total_leads_allotted || 0) }); return acc }, {})).forEach(([k, val]: [string, any]) => { if (k.endsWith('-' + key)) v += val }); return v }
+                                <tbody>
+                  {hierarchy.map(cat => {
+                    const catKey = cat.category_name
+                    const catSellers = cat.tls.flatMap((t: any) => t.sellers)
+                    
+                    const getCatDot = (key: string) => { let v = 0; Object.entries(catSellers.reduce((acc: Record<string, number>, m: any) => { (m.dot_rows || []).forEach((d: any) => { acc[d.dot_month] = (acc[d.dot_month] || 0) + (d.total_leads_allotted || 0) }); return acc }, {})).forEach(([k, val]: [string, any]) => { if (k.endsWith('-' + key)) v += val }); return v }
+                    const getCatFuture = () => { let v = 0; Object.entries(catSellers.reduce((acc: Record<string, number>, m: any) => { (m.dot_rows || []).forEach((d: any) => { acc[d.dot_month] = (acc[d.dot_month] || 0) + (d.total_leads_allotted || 0) }); return acc }, {})).forEach(([k, val]: [string, any]) => { if (!dotMonthsConfig.some(mo => k.endsWith('-' + mo.key))) v += val }); return v }
+                    
                     return (
-                      <React.Fragment key={tl.key}>
-                        <tr className="la-tl-row" onClick={() => setExpandedTlKey(expandedTlKey === tl.key ? null : tl.key)}>
-                          <td>{tl.category_name} · {tl.tl_name}</td>
-                          {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => <td key={mo.key}>{getTlDot(mo.key)}</td>)}<td>—</td></>)
-                            : activeCard === 'allotment' ? (<><td>{sumField(tl.sellers, 'auto_allotted')}</td><td>{sumField(tl.sellers, 'manual_allotted')}</td><td>{sumField(tl.sellers, 'rtg_leads')}</td><td>{sumField(tl.sellers, 'non_rtg_leads')}</td></>)
+                      <React.Fragment key={catKey}>
+                        <tr className="la-cat-row" onClick={() => setExpandedCatKey(expandedCatKey === catKey ? null : catKey)} style={{ cursor: 'pointer', background: expandedCatKey === catKey ? 'rgba(255,255,255,0.03)' : 'transparent' }}>
+                          <td style={{ fontWeight: 600, color: '#F0EDE8' }}>{catKey}</td>
+                          {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => <td key={mo.key}>{getCatDot(mo.key)}</td>)}<td>{getCatFuture()}</td></>)
+                            : activeCard === 'allotment' ? (<><td>{sumField(catSellers, 'auto_allotted')}</td><td>{sumField(catSellers, 'manual_allotted')}</td><td>{sumField(catSellers, 'rtg_leads')}</td><td>{sumField(catSellers, 'non_rtg_leads')}</td></>)
                             : activeCard === 'ca' ? (() => {
-                                const tAllotted = sumField(tl.sellers, 'total_leads_allotted')
-                                const tAppetite = tl.sellers.reduce((s: number, m: any) => s + (m.monthly_lta_rows || []).reduce((s2: number, r: any) => s2 + Math.floor(r.final_lta || 0), 0), 0)
-                                const tFulf = tAppetite > 0 ? Math.round((tAllotted / tAppetite) * 100) : 0
-                                const tCaRows = tl.sellers.flatMap((m: any) => m.monthly_rows || []).filter((r: any) => r.total_leads_allotted > 0 && r.median_creation_to_allotment_mins != null)
-                                const tSumCta = tCaRows.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0)
-                                const tSumLeads = tCaRows.reduce((s: number, r: any) => s + r.total_leads_allotted, 0)
-                                const tAvgCa = tSumLeads > 0 ? Math.round(tSumCta / tSumLeads) : null
-                                return (<><td>{tAllotted}</td><td>{tAppetite}</td><td style={{ color: tFulf >= 90 ? '#22C55E' : tFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{tFulf}%</td><td>{tAvgCa != null ? `${tAvgCa}m` : '—'}</td></>)
+                                const cAllotted = sumField(catSellers, 'total_leads_allotted')
+                                const cAppetite = catSellers.reduce((s: number, m: any) => s + (m.monthly_lta_rows || []).reduce((s2: number, r: any) => s2 + Math.floor(r.final_lta || 0), 0), 0)
+                                const cFulf = cAppetite > 0 ? Math.round((cAllotted / cAppetite) * 100) : 0
+                                const cCaRows = catSellers.flatMap((m: any) => m.monthly_rows || []).filter((r: any) => r.total_leads_allotted > 0 && r.median_creation_to_allotment_mins != null)
+                                const cSumCta = cCaRows.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0)
+                                const cSumLeads = cCaRows.reduce((s: number, r: any) => s + r.total_leads_allotted, 0)
+                                const cAvgCa = cSumLeads > 0 ? Math.round(cSumCta / cSumLeads) : null
+                                return (<><td>{cAllotted}</td><td>{cAppetite}</td><td style={{ color: cFulf >= 90 ? '#22C55E' : cFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{cFulf}%</td><td>{cAvgCa != null ? `${cAvgCa}m` : '—'}</td></>)
                               })()
-                            : (<><td>{sumField(tl.sellers, 'pax_1')}</td><td>{sumField(tl.sellers, 'pax_2')}</td><td>{sumField(tl.sellers, 'pax_3')}</td><td>{sumField(tl.sellers, 'pax_4')}</td><td>{sumField(tl.sellers, 'pax_4_plus')}</td></>)}
+                            : (<><td>{sumField(catSellers, 'pax_1')}</td><td>{sumField(catSellers, 'pax_2')}</td><td>{sumField(catSellers, 'pax_3')}</td><td>{sumField(catSellers, 'pax_4')}</td><td>{sumField(catSellers, 'pax_4_plus')}</td></>)}
                         </tr>
-                        {expandedTlKey === tl.key && tl.sellers.map((s: any) => (
-                          <tr key={s.seller_email} className="la-seller-row" onClick={() => onSellerClick(s)} style={{ cursor: 'pointer' }}>
-                            <td style={{ paddingLeft: '28px' }}>{s.seller_name}{s.isAbsent && <span className="la-flag la-flag-absent" style={{ marginLeft: '6px' }}>Absent</span>}</td>
-                            {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => { let v = 0; (s.dot_rows || []).forEach((d: any) => { if (d.dot_month.endsWith('-' + mo.key)) v += d.total_leads_allotted || 0 }); return <td key={mo.key}>{s.isAbsent ? '—' : v}</td> })}<td>—</td></>)
-                              : activeCard === 'allotment' ? (<><td>{s.isAbsent ? '—' : sumField([s], 'auto_allotted')}</td><td>{s.isAbsent ? '—' : sumField([s], 'manual_allotted')}</td><td>{s.isAbsent ? '—' : sumField([s], 'rtg_leads')}</td><td>{s.isAbsent ? '—' : sumField([s], 'non_rtg_leads')}</td></>)
-                              : activeCard === 'ca' ? (() => {
-                                  const sAllotted = sumField([s], 'total_leads_allotted')
-                                  const sAppetite = (s.monthly_lta_rows || []).reduce((s2: number, r: any) => s2 + Math.floor(r.final_lta || 0), 0)
-                                  const sFulf = sAppetite > 0 ? Math.round((sAllotted / sAppetite) * 100) : 0
-                                  const sCaRows = (s.monthly_rows || []).filter((r: any) => r.total_leads_allotted > 0 && r.median_creation_to_allotment_mins != null)
-                                  const sSumCta = sCaRows.reduce((s2: number, r: any) => s2 + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0)
-                                  const sSumLeads = sCaRows.reduce((s2: number, r: any) => s2 + r.total_leads_allotted, 0)
-                                  const sAvgCa = sSumLeads > 0 ? Math.round(sSumCta / sSumLeads) : null
-                                  return (<><td>{s.isAbsent ? '—' : sAllotted}</td><td>{s.isAbsent ? '—' : sAppetite}</td><td>{s.isAbsent ? '—' : `${sFulf}%`}</td><td>{s.isAbsent ? '—' : (sAvgCa != null ? `${sAvgCa}m` : '—')}</td></>)
-                                })()
-                              : (<><td>{s.isAbsent ? '—' : sumField([s], 'pax_1')}</td><td>{s.isAbsent ? '—' : sumField([s], 'pax_2')}</td><td>{s.isAbsent ? '—' : sumField([s], 'pax_3')}</td><td>{s.isAbsent ? '—' : sumField([s], 'pax_4')}</td><td>{s.isAbsent ? '—' : sumField([s], 'pax_4_plus')}</td></>)}
-                          </tr>
-                        ))}
+                        {expandedCatKey === catKey && cat.tls.map((tl: any) => {
+                          const tlKey = `${catKey}-${tl.tl_name}`
+                          const getTlDot = (key: string) => { let v = 0; Object.entries(tl.sellers.reduce((acc: Record<string, number>, m: any) => { (m.dot_rows || []).forEach((d: any) => { acc[d.dot_month] = (acc[d.dot_month] || 0) + (d.total_leads_allotted || 0) }); return acc }, {})).forEach(([k, val]: [string, any]) => { if (k.endsWith('-' + key)) v += val }); return v }
+                          const getTlFuture = () => { let v = 0; Object.entries(tl.sellers.reduce((acc: Record<string, number>, m: any) => { (m.dot_rows || []).forEach((d: any) => { acc[d.dot_month] = (acc[d.dot_month] || 0) + (d.total_leads_allotted || 0) }); return acc }, {})).forEach(([k, val]: [string, any]) => { if (!dotMonthsConfig.some(mo => k.endsWith('-' + mo.key))) v += val }); return v }
+                          
+                          return (
+                            <React.Fragment key={tlKey}>
+                              <tr className="la-tl-row" onClick={() => setExpandedTlKey(expandedTlKey === tlKey ? null : tlKey)} style={{ cursor: 'pointer' }}>
+                                <td style={{ paddingLeft: '28px', color: '#D4D4D8' }}>↳ {tl.tl_name}</td>
+                                {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => <td key={mo.key}>{getTlDot(mo.key)}</td>)}<td>{getTlFuture()}</td></>)
+                                  : activeCard === 'allotment' ? (<><td>{sumField(tl.sellers, 'auto_allotted')}</td><td>{sumField(tl.sellers, 'manual_allotted')}</td><td>{sumField(tl.sellers, 'rtg_leads')}</td><td>{sumField(tl.sellers, 'non_rtg_leads')}</td></>)
+                                  : activeCard === 'ca' ? (() => {
+                                      const tAllotted = sumField(tl.sellers, 'total_leads_allotted')
+                                      const tAppetite = tl.sellers.reduce((s: number, m: any) => s + (m.monthly_lta_rows || []).reduce((s2: number, r: any) => s2 + Math.floor(r.final_lta || 0), 0), 0)
+                                      const tFulf = tAppetite > 0 ? Math.round((tAllotted / tAppetite) * 100) : 0
+                                      const tCaRows = tl.sellers.flatMap((m: any) => m.monthly_rows || []).filter((r: any) => r.total_leads_allotted > 0 && r.median_creation_to_allotment_mins != null)
+                                      const tSumCta = tCaRows.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0)
+                                      const tSumLeads = tCaRows.reduce((s: number, r: any) => s + r.total_leads_allotted, 0)
+                                      const tAvgCa = tSumLeads > 0 ? Math.round(tSumCta / tSumLeads) : null
+                                      return (<><td>{tAllotted}</td><td>{tAppetite}</td><td style={{ color: tFulf >= 90 ? '#22C55E' : tFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{tFulf}%</td><td>{tAvgCa != null ? `${tAvgCa}m` : '—'}</td></>)
+                                    })()
+                                  : (<><td>{sumField(tl.sellers, 'pax_1')}</td><td>{sumField(tl.sellers, 'pax_2')}</td><td>{sumField(tl.sellers, 'pax_3')}</td><td>{sumField(tl.sellers, 'pax_4')}</td><td>{sumField(tl.sellers, 'pax_4_plus')}</td></>)}
+                              </tr>
+                              {expandedTlKey === tlKey && tl.sellers.map((s: any) => {
+                                const getSellerFuture = () => { let v = 0; (s.dot_rows || []).forEach((d: any) => { if (!dotMonthsConfig.some(mo => d.dot_month.endsWith('-' + mo.key))) v += d.total_leads_allotted || 0 }); return v }
+                                return (
+                                  <tr key={s.seller_email} className="la-seller-row" onClick={() => onSellerClick(s)} style={{ cursor: 'pointer' }}>
+                                    <td style={{ paddingLeft: '48px', color: '#A1A1AA' }}>{s.seller_name}</td>
+                                    {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => { let v = 0; (s.dot_rows || []).forEach((d: any) => { if (d.dot_month.endsWith('-' + mo.key)) v += d.total_leads_allotted || 0 }); return <td key={mo.key}>{v}</td> })}<td>{getSellerFuture()}</td></>)
+                                      : activeCard === 'allotment' ? (<><td>{sumField([s], 'auto_allotted')}</td><td>{sumField([s], 'manual_allotted')}</td><td>{sumField([s], 'rtg_leads')}</td><td>{sumField([s], 'non_rtg_leads')}</td></>)
+                                      : activeCard === 'ca' ? (() => {
+                                          const sAllotted = sumField([s], 'total_leads_allotted')
+                                          const sAppetite = (s.monthly_lta_rows || []).reduce((s2: number, r: any) => s2 + Math.floor(r.final_lta || 0), 0)
+                                          const sFulf = sAppetite > 0 ? Math.round((sAllotted / sAppetite) * 100) : 0
+                                          const sCaRows = (s.monthly_rows || []).filter((r: any) => r.total_leads_allotted > 0 && r.median_creation_to_allotment_mins != null)
+                                          const sSumCta = sCaRows.reduce((s2: number, r: any) => s2 + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0)
+                                          const sSumLeads = sCaRows.reduce((s2: number, r: any) => s2 + r.total_leads_allotted, 0)
+                                          const sAvgCa = sSumLeads > 0 ? Math.round(sSumCta / sSumLeads) : null
+                                          return (<><td>{sAllotted}</td><td>{sAppetite}</td><td>{`${sFulf}%`}</td><td>{(sAvgCa != null ? `${sAvgCa}m` : '—')}</td></>)
+                                        })()
+                                      : (<><td>{sumField([s], 'pax_1')}</td><td>{sumField([s], 'pax_2')}</td><td>{sumField([s], 'pax_3')}</td><td>{sumField([s], 'pax_4')}</td><td>{sumField([s], 'pax_4_plus')}</td></>)}
+                                  </tr>
+                                )
+                              })}
+                            </React.Fragment>
+                          )
+                        })}
                       </React.Fragment>
                     )
                   })}
@@ -2011,6 +2081,46 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
    MAIN COMPONENT
    ═══════════════════════════════════════════════════════════════════════════ */
 
+
+function NoLeadsModal({ sellers, onClose }: { sellers: any[], onClose: () => void }) {
+  return (
+    <div className="la-modal-overlay" onClick={onClose}>
+      <div className="la-modal-card" onClick={e => e.stopPropagation()} style={{ width: '850px' }}>
+        <button className="la-modal-close" onClick={onClose}>✕</button>
+        <div className="la-modal-header">
+          <span className="la-modal-title">Sellers without leads</span>
+        </div>
+        <div style={{ marginTop: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 2fr', gap: '16px', padding: '0 16px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 600, color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span>SELLER NAME</span>
+            <span>STATUS</span>
+            <span>CATEGORY MANAGER</span>
+            <span>TEAM LEAD</span>
+          </div>
+          <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+            {sellers.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#8A8278', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                No sellers without leads!
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {sellers.map((s, idx) => (
+                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 2fr', gap: '16px', padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', fontSize: '0.85rem' }}>
+                    <span style={{ color: '#F0EDE8', fontWeight: 500 }}>{s.seller_name}</span>
+                    <span style={{ color: '#EF4444', fontWeight: 500 }}>{s.status}</span>
+                    <span style={{ color: '#8A8278' }}>{s.catName}</span>
+                    <span style={{ color: '#F59E0B' }}>{s.tlName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminLTAPage({ session }: AdminLTAPageProps) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -2025,6 +2135,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
   const [funnelData, setFunnelData] = useState<ReturnType<typeof aggregateLtaFunnel> | null>(null)
   const [showMheModal, setShowMheModal] = useState(false)
   const [showGoalShbModal, setShowGoalShbModal] = useState(false)
+  const [showNoLeadsModal, setShowNoLeadsModal] = useState(false)
 
   const fetchData = (date: string, cat: string) => {
     setLoading(true)
@@ -2068,9 +2179,88 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
   const hierarchy = data.hierarchy || []
   const allCategories = ['All Categories', ...(data.categories || [])]
 
-  const displayDate = new Date(data.date + 'T00:00:00').toLocaleDateString('en-IN', {
+
+  const noLeadsSellers = hierarchy.flatMap((cat: any) =>
+    (cat.tls || []).flatMap((tl: any) =>
+      (tl.sellers || []).filter((s: any) => s.totalLeads === 0).map((s: any) => {
+        let statusStr = '0 Leads';
+        if (s.isAbsent) {
+          statusStr = 'Absent';
+        } else if (!s.orbit?.first_login) {
+          statusStr = 'Not Logged in Orbit';
+        } else if (!s.cti?.ready_timestamps) {
+          statusStr = 'Not Ready on Ozonetel';
+        }
+        
+        return {
+          ...s,
+          tlName: tl.tl_name,
+          catName: cat.category_name,
+          status: statusStr
+        };
+      })
+    )
+  )
+
+  const displayDate =  new Date(data.date + 'T00:00:00').toLocaleDateString('en-IN', {
     day: '2-digit', month: 'short', year: 'numeric'
   })
+
+  // MHE Flat Average
+  const allSellersForMhe = hierarchy.flatMap((c: any) => (c.tls || []).flatMap((t: any) => (t.sellers || [])))
+  let mheCount = 0
+  let omheSum = 0
+  allSellersForMhe.forEach((s: any) => {
+    const r = (s.monthly_lta_rows || []).find((x: any) => x.log_date === dateFrom)
+    if (r) mheCount += 1
+    if (r && typeof r.mishandled_pct === 'number') omheSum += r.mishandled_pct * 100
+  })
+  const sumFinalLta = hierarchy.reduce((s: number, cat: any) =>
+    s + (cat.tls || []).reduce((s2: number, tl: any) =>
+      s2 + (tl.sellers || []).reduce((s3: number, seller: any) => {
+        return s3 + (seller.ltaActual || 0)
+      }, 0)
+    , 0)
+  , 0)
+
+  let orgTotalAuto = 0
+  let orgTotalManual = 0
+  let orgTotalRtg = 0
+  let orgTotalNonRtg = 0
+  let orgTotalLtaPlanned = 0
+  let orgTotalLtaActual = 0
+
+  hierarchy.forEach((cat: any) => {
+    (cat.tls || []).forEach((tl: any) => {
+      (tl.sellers || []).forEach((seller: any) => {
+        orgTotalAuto += seller.autoAllotted || 0
+        orgTotalManual += seller.manualAllotted || 0
+        orgTotalRtg += seller.rtgLeads || 0
+        orgTotalNonRtg += seller.nonRtgLeads || 0
+        orgTotalLtaPlanned += seller.ltaPlanned || 0
+        orgTotalLtaActual += seller.ltaActual || 0
+      })
+    })
+  })
+
+  const computedOrgMhe = mheCount > 0 ? parseFloat((omheSum / mheCount).toFixed(1)) : 0
+
+  // Goal vs SHB (Calculated exactly like the graph trend)
+  const allGoalShbSellers = hierarchy.flatMap((c: any) => (c.tls || []).flatMap((t: any) => (t.sellers || [])))
+  const kpiDayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
+  allGoalShbSellers.forEach((m: any) => {
+    ;(m.monthly_goal_shb || []).forEach((r: any) => {
+      const d = r.date
+      if (!d) return
+      if (!kpiDayMap[d]) kpiDayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
+      kpiDayMap[d].goalSum += typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
+      kpiDayMap[d].shbSum += typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
+      kpiDayMap[d].count += 1
+    })
+  })
+  const dData = kpiDayMap[dateFrom]
+  const computedOrgGoal = dData ? parseFloat((dData.goalSum / dData.count).toFixed(1)) : 0
+  const computedOrgShb = dData ? parseFloat((dData.shbSum / dData.count).toFixed(1)) : 0
 
   return (
     <>
@@ -2087,127 +2277,196 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
         </div>
 
         <div className="la-filters">
-          <select className="la-select" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
-            {allCategories.map(c => (<option key={c} value={c}>{c}</option>))}
-          </select>
-
           <div className="la-date-row">
-            <input type="date" className="la-date-input" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); if (e.target.value > dateTo) setDateTo(e.target.value) }} />
+            <input type="date" className="la-date-input" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setDateTo(e.target.value); }} />
           </div>
-
-          <span style={{ color: '#5A5650', fontSize: '0.75rem', alignSelf: 'center' }}>to</span>
-
-          <div className="la-date-row">
-            <input type="date" className="la-date-input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-          </div>
-
           <button className="la-today-btn" onClick={() => { setDateFrom(todayIST); setDateTo(todayIST) }}>Today</button>
         </div>
 
-        <div className="la-alerts-header">
-          <span className="la-alerts-icon">ⓘ</span>
-          <span>Org-level alerts ({
-            (alerts.lateLogins > 0 ? 1 : 0) +
-            (alerts.absentSellers > 0 ? 1 : 0) +
-            (org.sellersAtRisk > 0 ? 1 : 0) +
-            (org.mhePct > 0 ? 1 : 0)
-          })</span>
-        </div>
 
-        <div className="la-kpi-row">
-          <div className="la-kpi-card">
-            <div className="la-kpi-label">Total leads (org)</div>
-            <div className="la-kpi-value" style={{ color: '#F0EDE8' }}>{org.totalLeads?.toLocaleString() || 0}</div>
-            <div className="la-kpi-sub">{org.categoryCount} categories · {org.tlCount} TLs · {org.sellerCount} sellers</div>
+
+        <div className="la-kpi-row" style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'nowrap', overflowX: 'auto' }}>
+          {/* LEADS ALLOTTED */}
+          <div className="la-kpi-card" style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1.5, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #F4631E, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #F4631E' }} />
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F4631E', boxShadow: '0 0 10px #F4631E' }} />
+              <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Leads Allotted</div>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{org.totalLeads?.toLocaleString() || 0}</span>
+              <span style={{ fontSize: '1rem', color: '#71717A', fontWeight: 400 }}>/ {sumFinalLta.toLocaleString()}</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Auto</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#E5E7EB' }}>{orgTotalAuto}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Manual</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#9CA3AF' }}>{orgTotalManual}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="la-kpi-card">
-            <div className="la-kpi-label">Org RTG %</div>
-            <div className="la-kpi-value" style={{ color: '#F4631E' }}>{org.rtgPct}%</div>
-            <div className="la-kpi-sub">Weighted avg across org</div>
+          {/* RTG BREAKDOWN */}
+          <div className="la-kpi-card" style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #378ADD, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #378ADD' }} />
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#378ADD', boxShadow: '0 0 10px #378ADD' }} />
+              <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>RTG Breakdown</div>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{org.rtgPct}</span>
+              <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Count</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#378ADD' }}>{orgTotalRtg}</span>
+            </div>
           </div>
 
-          <div className="la-kpi-card">
-            <div className="la-kpi-label">Auto allotment %</div>
-            <div className="la-kpi-value" style={{ color: '#F0EDE8' }}>{org.autoAllotPct}%</div>
-            <div className="la-kpi-sub">Target &gt;80%</div>
+          {/* SELLERS NO LEADS */}
+          <div
+            className="la-kpi-card clickable"
+            style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: noLeadsSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
+            onClick={() => {
+              if (noLeadsSellers.length > 0) setShowNoLeadsModal(true);
+            }}
+            onMouseEnter={e => { if(noLeadsSellers.length > 0) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
+          >
+            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #EF4444, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #EF4444' }} />
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444' }} />
+              <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Sellers No Leads</div>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{noLeadsSellers.length}</span>
+            </div>
           </div>
 
-          <div className="la-kpi-card">
-            <div className="la-kpi-label">Sellers at risk</div>
-            <div className="la-kpi-value" style={{ color: '#EF4444' }}>{org.sellersAtRisk}</div>
-            <div className="la-kpi-sub">Goal &lt;70% across org</div>
+          {/* MHE TREND */}
+          <div
+            className="la-kpi-card clickable"
+            style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1.2, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: 'pointer', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
+            onClick={() => setShowMheModal(true)}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'}
+          >
+            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #22C55E, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #22C55E' }} />
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 10px #22C55E' }} />
+                <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>MHE Trend</div>
+              </div>
+              <span style={{ fontSize: '0.65rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tap to view ▸</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{computedOrgMhe}</span>
+              <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Target</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#22C55E' }}>20%</span>
+            </div>
           </div>
 
-          <div className="la-kpi-card clickable" onClick={() => setShowMheModal(true)}>
-            <div className="la-kpi-label">Org MHE % <span style={{ fontStyle: 'italic', fontWeight: 400, textTransform: 'none' }}>· tap</span></div>
-            <div className="la-kpi-value" style={{ color: '#22C55E' }}>{org.mhePct}%</div>
-            <div className="la-kpi-sub">Lower = better</div>
-          </div>
+          {/* GOAL VS SHB */}
+          <div
+            className="la-kpi-card clickable"
+            style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1.5, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: 'pointer', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
+            onClick={() => setShowGoalShbModal(true)}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'}
+          >
+            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #3B82F6, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #3B82F6' }} />
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 10px #3B82F6' }} />
+                <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Goal vs SHB</div>
+              </div>
+              <span style={{ fontSize: '0.65rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tap to view ▸</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{computedOrgGoal}</span>
+                <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+              </div>
+              <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)' }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{computedOrgShb}</span>
+                <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+              </div>
+            </div>
 
-          <div className="la-kpi-card clickable" onClick={() => setShowGoalShbModal(true)}>
-            <div className="la-kpi-label">Goal vs SHB <span style={{ fontStyle: 'italic', fontWeight: 400, textTransform: 'none' }}>· tap</span></div>
-            <div className="la-kpi-value" style={{ color: '#3B82F6' }}>{org.avgGoalPct}%</div>
-            <div className="la-kpi-sub">SHB: {org.avgShbPct}%</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Goal</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#EAB308', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SHB</span>
+              </div>
+            </div>
           </div>
         </div>
 
         <MonthlyBreakdownSection hierarchy={hierarchy} onSellerClick={setSelectedSellerTimeline} />
 
         <div className="la-accordion">
-          <AccordionSection number="3.1" title="Login & Availability" badges={[
+<AccordionSection title="LTA — Lead Time Availability" badges={[{ text: `Planned: ${orgTotalLtaPlanned}`, color: 'blue' }, { text: `Actual: ${orgTotalLtaActual}`, color: 'blue' }]}>
+            <LTASection hierarchy={hierarchy} />
+          </AccordionSection>
+
+<AccordionSection title="Auto vs Manual Allotment" badges={[
+            { text: `Auto: ${orgTotalAuto}`, color: 'blue' },
+            { text: `Manual: ${orgTotalManual}`, color: 'blue' },
+            ...(org.manualAllotPct > 20 ? [{ text: `Manual: ${org.manualAllotPct}% — Watch`, color: 'purple' }] : []),
+          ]}>
+            <AutoManualSection hierarchy={hierarchy} />
+          </AccordionSection>
+
+<AccordionSection title="RTG vs Non-RTG" badges={[{ text: `RTG: ${org.rtgPct}%`, color: 'yellow' }, { text: `RTG Count: ${orgTotalRtg}`, color: 'yellow' }, { text: `Non-RTG Count: ${orgTotalNonRtg}`, color: 'yellow' }]}>
+            <RTGSection hierarchy={hierarchy} />
+          </AccordionSection>
+
+<AccordionSection title="Pax Bifurcation" badges={[{ text: `Avg pax: ${alerts.orgAvgPax}`, color: 'green' }]}>
+            <PaxSection hierarchy={hierarchy} />
+          </AccordionSection>
+
+<AccordionSection title="Login & Availability" badges={[
             ...(alerts.lateLogins > 0 ? [{ text: `${alerts.lateLogins} late logins`, color: 'yellow' }] : []),
             ...(alerts.absentSellers > 0 ? [{ text: `${alerts.absentSellers} absent`, color: 'red' }] : []),
           ]}>
             <LoginSection hierarchy={hierarchy} onSellerClick={setSelectedSellerTimeline} />
           </AccordionSection>
 
-          <AccordionSection number="3.2" title="Break / Unavailability" badges={alerts.longBreakSellers > 0 ? [{ text: `${alerts.longBreakSellers} long breaks`, color: 'yellow' }] : []}>
+<AccordionSection title="Break / Unavailability" badges={alerts.longBreakSellers > 0 ? [{ text: `${alerts.longBreakSellers} long breaks`, color: 'yellow' }] : []}>
             <BreakSection hierarchy={hierarchy} />
           </AccordionSection>
 
-          <AccordionSection number="3.3" title="RTG vs Non-RTG" badges={[{ text: `Org RTG: ${org.rtgPct}%`, color: 'yellow' }]}>
-            <RTGSection hierarchy={hierarchy} />
-          </AccordionSection>
 
-          <AccordionSection number="3.4" title="Appetite Fulfillment (C→A)" badges={[{ text: `Org 3PM: ${alerts.orgAppetitePct}%`, color: 'yellow' }]}>
-            <AppetiteSection hierarchy={hierarchy} />
-          </AccordionSection>
-
-          <AccordionSection number="3.5" title="Pax Bifurcation" badges={[{ text: `Org avg pax: ${alerts.orgAvgPax}`, color: 'green' }]}>
-            <PaxSection hierarchy={hierarchy} />
-          </AccordionSection>
-
-          <AccordionSection number="3.6" title="DOT Month Distribution">
-            <DOTSection dotDistribution={data.dotDistribution || []} />
-          </AccordionSection>
-
-          <AccordionSection number="3.7" title="Auto vs Manual Allotment" badges={[
-            { text: 'Admin only', color: 'blue' },
-            ...(org.manualAllotPct > 20 ? [{ text: `Manual: ${org.manualAllotPct}% — Watch`, color: 'purple' }] : []),
-          ]}>
-            <AutoManualSection hierarchy={hierarchy} />
-          </AccordionSection>
-
-          <AccordionSection number="3.8" title="First Lead Received Time" badges={alerts.noLeadBefore11AM > 0 ? [{ text: `${alerts.noLeadBefore11AM} sellers no lead before 11AM`, color: 'red' }] : []}>
+<AccordionSection title="First Lead Received Time" badges={alerts.noLeadBefore11AM > 0 ? [{ text: `${alerts.noLeadBefore11AM} sellers no lead before 11AM`, color: 'red' }] : []}>
             <FirstLeadSection hierarchy={hierarchy} />
           </AccordionSection>
 
-          <AccordionSection number="3.9" title="LTA — Lead Time Availability">
-            <LTASection hierarchy={hierarchy} onTlFunnelClick={openTlFunnel} onSellerFunnelClick={openSellerFunnel} />
-          </AccordionSection>
-
-          <AccordionSection number="3.10" title="MHE — Mishandled %" badges={[{ text: `Org avg: ${org.mhePct}%`, color: 'green' }]}>
-            <MHESection hierarchy={hierarchy} />
-          </AccordionSection>
-
-          <AccordionSection number="3.11" title="Goal % Achievement Trend" badges={alerts.categoriesAtRisk > 0 ? [{ text: `${alerts.categoriesAtRisk} categories at risk`, color: 'red' }] : []}>
-            <GoalSection hierarchy={hierarchy} />
-          </AccordionSection>
-
-          <AccordionSection number="3.12" title="Leads in Queue">
+<AccordionSection title="Leads in Queue">
             <QueueSection hierarchy={hierarchy} />
           </AccordionSection>
+
         </div>
 
         {selectedSellerTimeline && (
@@ -2219,9 +2478,10 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
         )}
 
         {showMheModal && (
-          <MheTrendModal hierarchy={hierarchy} onClose={() => setShowMheModal(false)} />
+          <MheTrendModal hierarchy={hierarchy} dateFrom={dateFrom} onClose={() => setShowMheModal(false)} />
         )}
 
+        {showNoLeadsModal && <NoLeadsModal sellers={noLeadsSellers} onClose={() => setShowNoLeadsModal(false)} />}
         {showGoalShbModal && (
           <GoalShbTrendModal hierarchy={hierarchy} dateFrom={dateFrom} onClose={() => setShowGoalShbModal(false)} />
         )}

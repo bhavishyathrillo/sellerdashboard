@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
       { data: goalVsShbData },
       { data: goalShbMonthData },
       { data: orbitData },
+      { data: kalpitData },
     ] = await Promise.all([
       supabase.schema('seller_day_to_day')
         .from('daily_allotment_summary')
@@ -137,6 +138,7 @@ export async function GET(request: NextRequest) {
         .eq('seller_email', email)
         .eq('work_date', date)
         .maybeSingle(),
+      supabasePublic.from('kalpit').select('*')
     ])
     
     console.log('--- DEBUG GOAL VS SHB ---')
@@ -163,6 +165,7 @@ export async function GET(request: NextRequest) {
       pax_4: sum('pax_4'),
       pax_4_plus: sum('pax_4_plus'),
       days_with_data: monthRows.length,
+      revised_lta: (ltaMonthData || []).reduce((acc: number, r: any) => acc + Math.floor(r.final_lta || 0), 0),
     }
 
     const mheTrend = (ltaMonthData || []).map((r: any) => {
@@ -269,6 +272,7 @@ export async function GET(request: NextRequest) {
       lta_trend: ltaMonthData || [],
       goal_vs_shb: goalVsShbData || null,
       goal_vs_shb_trend: goalShbMonthData || [],
+      kalpit: kalpitData || [],
       debug_columns: Object.keys(monthRows[0] || {})
     }
 

@@ -40,7 +40,7 @@ function minutesBetween(a: string | null, b: string | null): number | null {
 
 // S1/S2 Helpers
 function parseLogin(m: any) {
-  const raw = m.attendance?.first_login
+  const raw = m.attendance?.first_login || m.orbit?.first_login
   if (!raw) return null
   const p = extractTimeParts(raw)
   return p ? (p.h * 60 + p.m) : null
@@ -271,6 +271,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   const [showNoLeadsModal, setShowNoLeadsModal] = useState(false)
   const [showMheTrendModal, setShowMheTrendModal] = useState(false)
   const [mheDrillSeller, setMheDrillSeller] = useState<any>(null)
+  const [mheExpandedTl, setMheExpandedTl] = useState<string | null>(null)
   const [showGoalShbTrendModal, setShowGoalShbTrendModal] = useState(false)
   const [goalShbDrillSeller, setGoalShbDrillSeller] = useState<any>(null)
   const [goalShbExpandedTl, setGoalShbExpandedTl] = useState<string | null>(null)
@@ -322,7 +323,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 
       return {
         ...m,
-        isAbsent: !m.attendance?.first_login,
+        isAbsent: !(m.attendance?.first_login || m.orbit?.first_login),
         lta: { planned, dynLost, dynLta, hygLost, hygLta, rev1Lost, rev1Lta, rev2Lost, actual, totalLost },
         b
       }
@@ -373,7 +374,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
     const totalPax = pax1 + pax2 + pax3 + pax4 + pax4Plus
 
     // S4: Appetite (final_lta) & C→A time (median_creation_to_allotment_mins)
-    const teamAppetite = members.reduce((s: number, m: any) => s + (m.isAbsent ? 0 : (m.daily_lta?.final_lta || 0)), 0)
+    const teamAppetite = members.reduce((s: number, m: any) => s + (m.daily_lta?.final_lta || 0), 0)
     const caVals = members.filter((m: any) => !m.isAbsent && m.allotment?.median_creation_to_allotment_mins != null).map((m: any) => m.allotment.median_creation_to_allotment_mins)
     const teamMedianCA = caVals.length > 0 ? Math.round(caVals.reduce((s: number, v: number) => s + v, 0) / caVals.length) : null
 
@@ -412,6 +413,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         tlTotalBreak, tlTotalBreakCount, tlLongestBreak,
         pax1, pax2, pax3, pax4, pax4Plus, totalPax,
         teamAppetite, teamMedianCA,
+        teamAppetiteMonthly, teamAvgCaMonthly, sumTLeads,
         dotMap,
         teamMishandled, teamOpenEnq, teamMhePct
       }
@@ -555,53 +557,81 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         </div>
       </div>
 
-      <div className={styles.summaryStrip} style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-        <div className={styles.summaryCard} style={{ background: '#1A1A1A', padding: '12px 16px', borderRadius: '8px', flex: 1.5, border: '1px solid #333', display: 'flex', alignItems: 'center' }}>
-          <div style={{ flex: 1 }}>
-            <p className={styles.summaryValue} style={{ fontSize: '1.5rem', fontWeight: 600, color: '#F4631E', margin: '0 0 2px 0' }}>{globalLeads}</p>
-            <p className={styles.summaryLabel} style={{ fontSize: '0.7rem', color: '#8A8278', margin: 0, textTransform: 'uppercase' }}>Total Leads Allotted</p>
+            <div className={styles.summaryStrip} style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+        
+        {/* LEADS ALLOTTED */}
+        <div className={styles.summaryCard} style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1.5, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #F4631E, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #F4631E' }} />
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F4631E', boxShadow: '0 0 10px #F4631E' }} />
+            <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Leads Allotted</div>
           </div>
-          <div style={{ width: '1px', alignSelf: 'stretch', background: 'linear-gradient(180deg, rgba(255,255,255,0), rgba(244,99,30,0.5), rgba(255,255,255,0))', margin: '0 12px' }} />
-          <div style={{ flex: 1 }}>
-            <p className={styles.summaryValue} style={{ fontSize: '1.3rem', fontWeight: 600, color: '#E5E7EB', margin: '0 0 2px 0' }}>{globalAuto}</p>
-            <p className={styles.summaryLabel} style={{ fontSize: '0.65rem', color: '#8A8278', margin: 0, textTransform: 'uppercase' }}>Auto</p>
+          
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{globalLeads}</span>
+            <span style={{ fontSize: '1rem', color: '#71717A', fontWeight: 400 }}>/ {globalFinalLta}</span>
           </div>
-          <div style={{ width: '1px', alignSelf: 'stretch', background: 'linear-gradient(180deg, rgba(255,255,255,0), rgba(244,99,30,0.5), rgba(255,255,255,0))', margin: '0 12px' }} />
-          <div style={{ flex: 1 }}>
-            <p className={styles.summaryValue} style={{ fontSize: '1.3rem', fontWeight: 600, color: '#9CA3AF', margin: '0 0 2px 0' }}>{globalManual}</p>
-            <p className={styles.summaryLabel} style={{ fontSize: '0.65rem', color: '#8A8278', margin: 0, textTransform: 'uppercase' }}>Manual</p>
-          </div>
-        </div>
-        <div className={styles.summaryCard} style={{ background: '#1A1A1A', padding: '12px 16px', borderRadius: '8px', flex: 1, border: '1px solid #333', display: 'flex', alignItems: 'center' }}>
-          <div style={{ flex: 1 }}>
-            <p className={styles.summaryValue} style={{ fontSize: '1.5rem', fontWeight: 600, color: '#F4631E', margin: '0 0 2px 0' }}>{globalRtgPct}%</p>
-            <p className={styles.summaryLabel} style={{ fontSize: '0.7rem', color: '#8A8278', margin: 0, textTransform: 'uppercase' }}>RTG %</p>
-          </div>
-          <div style={{ width: '1px', alignSelf: 'stretch', background: 'linear-gradient(180deg, rgba(255,255,255,0), rgba(244,99,30,0.5), rgba(255,255,255,0))', margin: '0 12px' }} />
-          <div style={{ flex: 1 }}>
-            <p className={styles.summaryValue} style={{ fontSize: '1.3rem', fontWeight: 600, color: '#378ADD', margin: '0 0 2px 0' }}>{globalRtg}</p>
-            <p className={styles.summaryLabel} style={{ fontSize: '0.65rem', color: '#8A8278', margin: 0, textTransform: 'uppercase' }}>RTG Count</p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Auto</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#E5E7EB' }}>{globalAuto}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Manual</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#9CA3AF' }}>{globalManual}</span>
+            </div>
           </div>
         </div>
 
+        {/* RTG BREAKDOWN */}
+        <div className={styles.summaryCard} style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #378ADD, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #378ADD' }} />
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#378ADD', boxShadow: '0 0 10px #378ADD' }} />
+            <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>RTG Breakdown</div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{globalRtgPct}</span>
+            <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+            <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Count</span>
+            <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#378ADD' }}>{globalRtg}</span>
+          </div>
+        </div>
+
+        {/* SELLERS WITH NO LEADS */}
         <div
           className={styles.summaryCard}
-          style={{ background: '#1A1A1A', padding: '16px', borderRadius: '8px', flex: 1, border: '1px solid #333', cursor: globalNoLeads > 0 ? 'pointer' : 'default' }}
+          style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: globalNoLeads > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
           onClick={() => {
             if (globalNoLeads > 0) setShowNoLeadsModal(true);
           }}
+          onMouseEnter={e => { if(globalNoLeads > 0) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
         >
-          <p className={styles.summaryValue} style={{ fontSize: '1.5rem', fontWeight: 600, color: '#F4631E' }}>{globalNoLeads}</p>
-          <p className={styles.summaryLabel} style={{ fontSize: '0.8rem', color: '#8A8278', marginTop: '4px', textTransform: 'uppercase' }}>Sellers with no leads yet</p>
+          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #EF4444, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #EF4444' }} />
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444' }} />
+            <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Sellers No Leads</div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{globalNoLeads}</span>
+          </div>
         </div>
 
         {/* Monthly MHE Trend KPI Card */}
         {(() => {
           const dayMap: Record<string, { sum: number; count: number }> = {}
-          let allMembers: any[] = []
-          processedGroups.forEach((g: any) => { allMembers = allMembers.concat(g.members) })
           allMembers.forEach((m: any) => {
-            ; (m.monthly_lta_rows || []).forEach((r: any) => {
+            ;(m.monthly_lta_rows || []).forEach((r: any) => {
               const d = r.log_date
               if (!d) return
               const pct = typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
@@ -611,782 +641,57 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
             })
           })
           const sortedDays = Object.keys(dayMap).sort()
-          const cmAvgMhePct = sortedDays.length > 0
+          const teamAvgMhePct = sortedDays.length > 0
             ? parseFloat((sortedDays.reduce((s, d) => s + dayMap[d].sum / dayMap[d].count, 0) / sortedDays.length).toFixed(1))
             : 0
-          const latestDay = sortedDays[sortedDays.length - 1]
-          const latestAvg = latestDay ? parseFloat((dayMap[latestDay].sum / dayMap[latestDay].count).toFixed(1)) : 0
-          const isGood = cmAvgMhePct <= 20
+          const targetDay = date || todayStr();
+          const latestAvg = dayMap[targetDay] ? parseFloat((dayMap[targetDay].sum / dayMap[targetDay].count).toFixed(1)) : 0;
+          const isGood = teamAvgMhePct <= 20
 
           return (
             <div
               className={styles.summaryCard}
               style={{
-                background: '#1A1A1A', padding: '16px', borderRadius: '8px', flex: 1.2,
-                border: `1px solid ${isGood ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
-                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'border-color 0.2s'
+                background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1.2,
+                border: `1px solid ${isGood ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}`, boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease'
               }}
-              onClick={() => { setMheDrillSeller(null); setShowMheTrendModal(true); }}
+              onClick={() => { setMheDrillSeller(null); setMheExpandedTl(null); setShowMheTrendModal(true); }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = isGood ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = isGood ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'; }}
             >
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: isGood ? '#22C55E' : '#EF4444' }} />
-              <div style={{ fontSize: '0.6rem', color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Monthly MHE Trend</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
-                <span style={{ fontSize: '1.8rem', fontWeight: 700, color: isGood ? '#22C55E' : '#EF4444', lineHeight: 1 }}>{cmAvgMhePct}%</span>
-                <span style={{ fontSize: '0.65rem', color: '#8A8278' }}>CM avg</span>
+              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: `linear-gradient(90deg, transparent, ${isGood ? '#22C55E' : '#EF4444'}, transparent)`, opacity: 0.6, boxShadow: `0 0 20px 2px ${isGood ? '#22C55E' : '#EF4444'}` }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isGood ? '#22C55E' : '#EF4444', boxShadow: `0 0 10px ${isGood ? '#22C55E' : '#EF4444'}` }} />
+                  <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>MHE Trend</div>
+                </div>
+                <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', marginLeft: '8px' }}>Tap to View ▶</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '0.65rem', color: '#8A8278' }}>Latest day: </span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: latestAvg <= 20 ? '#22C55E' : '#EF4444' }}>{latestAvg}%</span>
-                <span style={{ fontSize: '0.6rem', color: '#555', marginLeft: 'auto' }}>tap to view ▶</span>
+              
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{latestAvg}</span>
+                <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
               </div>
-
-              {/* ═══════════════ MODALS ═══════════════ */}
-
-              {/* Breakdown Modal */}
-              {activeBreakdownCard && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setActiveBreakdownCard(null); setBreakdownDrillSeller(null); setBreakdownExpandedTl(null); }}>
-                  <div style={{ background: '#1A1A1A', border: '1px solid #333', borderRadius: '12px', padding: '24px', width: breakdownDrillSeller ? '500px' : '700px', maxWidth: '95%', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', position: 'relative', transition: 'width 0.3s' }} onClick={e => e.stopPropagation()}>
-                    <button
-                      onClick={() => { setActiveBreakdownCard(null); setBreakdownDrillSeller(null); setBreakdownExpandedTl(null); }}
-                      style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1.2rem', padding: '4px' }}
-                    >×</button>
-
-                    {breakdownDrillSeller ? (
-                      <>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                          <button
-                            onClick={() => setBreakdownDrillSeller(null)}
-                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: '#E5E5E5', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', transition: 'all 0.2s' }}
-                          >← Back</button>
-                          <h3 style={{ color: '#fff', margin: 0, fontSize: '1.1rem' }}>
-                            {breakdownDrillSeller.seller_name}
-                            <span style={{ fontSize: '0.75rem', color: '#8A8278', marginLeft: '8px' }}>Monthly Breakdown · {monthStr}</span>
-                          </h3>
-                        </div>
-
-                        {(() => {
-                          const sm = breakdownDrillSeller
-                          // DOT
-                          const sDotMap: Record<string, number> = {}
-                            ; (sm.dot_rows || []).forEach((row: any) => {
-                              sDotMap[row.dot_month] = (sDotMap[row.dot_month] || 0) + (row.total_leads_allotted || 0)
-                            })
-                          const sDotData: { label: string; value: number; color: string }[] = []
-                          dotMonthsConfig.forEach(mo => {
-                            let val = 0;
-                            Object.entries(sDotMap).forEach(([k, v]) => {
-                              if (k.endsWith('-' + mo.key)) val += v;
-                            });
-                            sDotData.push({ label: mo.label, value: val, color: '#F4631E' })
-                          });
-                          let sFs = 0
-                          Object.entries(sDotMap).forEach(([k, v]) => {
-                            const isMainMonth = dotMonthsConfig.some(mo => k.endsWith('-' + mo.key));
-                            if (!isMainMonth) sFs += v;
-                          });
-                          sDotData.push({ label: '6+ Months', value: sFs, color: '#5A5650' })
-                          const sMaxDot = Math.max(...sDotData.map(d => d.value), 1)
-
-                          // Allotment
-                          const memberMonthlySum = (mem: any, key: string) => (mem.monthly_rows || []).reduce((s: number, r: any) => s + (r[key] || 0), 0)
-                          const sTotalLeads = memberMonthlySum(sm, 'total_leads_allotted')
-                          const sAllotRows = [
-                            { label: 'Auto Allotted', value: memberMonthlySum(sm, 'auto_allotted'), color: '#E5E7EB' },
-                            { label: 'Manual Allotted', value: memberMonthlySum(sm, 'manual_allotted'), color: '#9CA3AF' },
-                            { label: 'RTG Leads', value: memberMonthlySum(sm, 'rtg_leads'), color: '#F4631E' },
-                            { label: 'Non-RTG', value: memberMonthlySum(sm, 'non_rtg_leads'), color: '#4B5563' },
-                          ]
-
-                          // PAX
-                          const sp1 = memberMonthlySum(sm, 'pax_1'), sp2 = memberMonthlySum(sm, 'pax_2'), sp3 = memberMonthlySum(sm, 'pax_3'), sp4 = memberMonthlySum(sm, 'pax_4'), sp5 = memberMonthlySum(sm, 'pax_4_plus')
-                          const sTotalPax = sp1 + sp2 + sp3 + sp4 + sp5
-                          const sPaxRows = [
-                            { label: '1-pax', value: sp1, color: '#F3F4F6' },
-                            { label: '2-pax', value: sp2, color: '#E5E7EB' },
-                            { label: '3-pax', value: sp3, color: '#D1D5DB' },
-                            { label: '4-pax', value: sp4, color: '#9CA3AF' },
-                            { label: '4+ pax', value: sp5, color: '#6B7280' },
-                          ]
-
-                          if (activeBreakdownCard === 'dot') {
-                            return (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-                                {sDotData.map((bar, i) => (
-                                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ width: '60px', fontSize: '0.75rem', color: '#8A8278', textAlign: 'right', fontWeight: 500 }}>{bar.label}</div>
-                                    <div style={{ flex: 1, height: '24px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', overflow: 'hidden' }}>
-                                      <div style={{ width: `${(bar.value / sMaxDot) * 100}%`, height: '100%', background: `linear-gradient(90deg, ${bar.color}40, ${bar.color}90)`, borderRadius: '6px' }} />
-                                    </div>
-                                    <div style={{ width: '40px', fontSize: '0.8rem', fontWeight: 700, color: bar.value > 0 ? bar.color : '#5A5650', textAlign: 'right' }}>{bar.value}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            )
-                          } else if (activeBreakdownCard === 'allotment') {
-                            return (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-                                {sAllotRows.map((item, i) => (
-                                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
-                                    <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: item.color }} />
-                                    <div style={{ fontSize: '0.85rem', color: '#E5E5E5', flex: 1 }}>{item.label}</div>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: item.value > 0 ? item.color : '#5A5650' }}>{item.value}</div>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: item.color, background: `${item.color}15`, padding: '4px 10px', borderRadius: '100px' }}>
-                                      {sTotalLeads > 0 ? Math.round((item.value / sTotalLeads) * 100) : 0}%
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )
-
-                          } else if (activeBreakdownCard === 'ca') {
-                            const sTotal = memberMonthlySum(sm, 'total_leads_allotted');
-                            const sAppetite = (sm.monthly_lta_rows || []).reduce((s: number, r: any) => s + (r.final_lta || 0), 0);
-                            const sFulf = sAppetite > 0 ? pct(sTotal, sAppetite) : 0;
-                            let sAvgCa = '—';
-                            const rws = (sm.monthly_rows || []).filter((r: any) => r.total_leads_allotted > 0 && r.median_creation_to_allotment_mins != null);
-                            const s_cta = rws.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0);
-                            const s_lds = rws.reduce((s: number, r: any) => s + r.total_leads_allotted, 0);
-                            if (s_lds > 0) sAvgCa = `${Math.round(s_cta / s_lds)}m`;
-
-                            return (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
-                                  <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#E5E7EB' }} />
-                                  <div style={{ fontSize: '0.85rem', color: '#E5E5E5', flex: 1 }}>Leads Allotted</div>
-                                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: sTotal > 0 ? '#E5E7EB' : '#5A5650' }}>{sTotal}</div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
-                                  <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#F4631E' }} />
-                                  <div style={{ fontSize: '0.85rem', color: '#E5E5E5', flex: 1 }}>Appetite (LTA)</div>
-                                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: sAppetite > 0 ? '#F4631E' : '#5A5650' }}>{sAppetite}</div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
-                                  <div style={{ fontSize: '0.85rem', color: '#E5E5E5', flex: 1 }}>Fulfillment %</div>
-                                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: sFulf >= 90 ? '#22C55E' : sFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{sFulf}%</div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
-                                  <div style={{ fontSize: '0.85rem', color: '#E5E5E5', flex: 1 }}>Avg C→A Time</div>
-                                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#E5E5E5' }}>{sAvgCa}</div>
-                                </div>
-                              </div>
-                            )
-                          } else if (activeBreakdownCard === 'pax') {
-                            return (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-                                {sPaxRows.map((item, i) => (
-                                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
-                                    <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: item.color }} />
-                                    <div style={{ fontSize: '0.85rem', color: '#E5E5E5', flex: 1 }}>{item.label}</div>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: item.value > 0 ? item.color : '#5A5650' }}>{item.value}</div>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: item.color, background: `${item.color}15`, padding: '4px 10px', borderRadius: '100px' }}>
-                                      {sTotalPax > 0 ? Math.round((item.value / sTotalPax) * 100) : 0}%
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )
-                          }
-                        })()}
-                      </>
-                    ) : (
-                      <>
-                        <h3 style={{ color: '#fff', margin: '0 0 24px 0', fontSize: '1.1rem' }}>
-                          {activeBreakdownCard === 'dot' ? 'DOT Distribution' : activeBreakdownCard === 'allotment' ? 'Allotment Breakdown' : activeBreakdownCard === 'ca' ? 'Appetite & C→A Time' : 'Leads by Group Size'}
-                          <span style={{ fontSize: '0.75rem', color: '#8A8278', marginLeft: '8px', fontWeight: 400 }}>· Team Drill-down</span>
-                        </h3>
-
-                        <table className={styles.table}>
-                          <thead>
-                            <tr>
-                              <th>Team (TL)</th>
-                              {activeBreakdownCard === 'dot' ? (
-                                <>
-                                  {dotMonthsConfig.map(mo => <th key={mo.key}>{mo.label}</th>)}
-                                  <th>6+ Months</th>
-                                </>
-                              ) : activeBreakdownCard === 'allotment' ? (
-                                <><th>Auto</th><th>Manual</th><th>RTG</th><th>Non-RTG</th></>
-                              ) : activeBreakdownCard === 'ca' ? (
-                                <><th>Leads Allotted</th><th>Appetite (LTA)</th><th>Fulfillment %</th><th>Avg C→A</th></>
-                              ) : (
-                                <><th>1-pax</th><th>2-pax</th><th>3-pax</th><th>4-pax</th><th>4+ pax</th></>
-                              )}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {processedGroups.map((g: any) => {
-                              const getTlVal = (keyStr: string) => {
-                                let v = 0; Object.entries(g.agg.dotMap).forEach(([k, val]: [string, any]) => { if (k.endsWith('-' + keyStr)) v += val; }); return v;
-                              }
-
-                              const tMemberMonthlySum = (key: string) => g.members.reduce((sum: number, m: any) => sum + (m.monthly_rows || []).reduce((s: number, r: any) => s + (r[key] || 0), 0), 0)
-
-                              return (
-                                <React.Fragment key={g.l2_email}>
-                                  <tr className={styles.tlRow} onClick={() => setBreakdownExpandedTl(breakdownExpandedTl === g.l2_email ? null : g.l2_email)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
-                                    <td style={{ fontWeight: 600, color: '#C9A84C' }}>
-                                      <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: breakdownExpandedTl === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
-                                      {g.l2_name}
-                                    </td>
-                                    {activeBreakdownCard === 'dot' ? (
-                                      <>
-                                        {dotMonthsConfig.map(mo => <td key={mo.key} style={{ color: '#F4631E' }}>{getTlVal(mo.key)}</td>)}
-                                        <td style={{ color: '#F4631E' }}>{Object.entries(g.agg.dotMap).reduce((sum, [k, v]: [string, any]) => {
-                                          if (!dotMonthsConfig.some(mo => k.endsWith('-' + mo.key))) sum += v;
-                                          return sum;
-                                        }, 0)}</td>
-                                      </>
-                                    ) : activeBreakdownCard === 'allotment' ? (
-                                      <>
-                                        <td>{tMemberMonthlySum('auto_allotted')}</td>
-                                        <td>{tMemberMonthlySum('manual_allotted')}</td>
-                                        <td>{tMemberMonthlySum('rtg_leads')}</td>
-                                        <td>{tMemberMonthlySum('non_rtg_leads')}</td>
-                                      </>
-                                    ) : activeBreakdownCard === 'ca' ? (
-                                      <>
-                                        <td>{(() => {
-                                          const sumAllotted = g.members.reduce((sum: number, m: any) => sum + (m.monthly_rows || []).reduce((s: number, r: any) => s + (r.total_leads_allotted || 0), 0), 0)
-                                          return sumAllotted;
-                                        })()}</td>
-                                        <td>{(() => {
-                                          const sumAppetite = g.members.reduce((s: number, m: any) => s + (m.monthly_lta_rows || []).reduce((s2: number, r: any) => s2 + (r.final_lta || 0), 0), 0)
-                                          return sumAppetite;
-                                        })()}</td>
-                                        <td style={{
-                                          color: (() => {
-                                            const sumAppetite = g.members.reduce((s: number, m: any) => s + (m.monthly_lta_rows || []).reduce((s2: number, r: any) => s2 + (r.final_lta || 0), 0), 0)
-                                            const sumAllotted = g.members.reduce((sum: number, m: any) => sum + (m.monthly_rows || []).reduce((s: number, r: any) => s + (r.total_leads_allotted || 0), 0), 0)
-                                            const pctVal = sumAppetite > 0 ? (sumAllotted / sumAppetite) * 100 : 0
-                                            return pctVal >= 90 ? '#22C55E' : pctVal >= 70 ? '#F59E0B' : '#EF4444'
-                                          })()
-                                        }}>
-                                          {(() => {
-                                            const sumAppetite = g.members.reduce((s: number, m: any) => s + (m.monthly_lta_rows || []).reduce((s2: number, r: any) => s2 + (r.final_lta || 0), 0), 0)
-                                            const sumAllotted = g.members.reduce((sum: number, m: any) => sum + (m.monthly_rows || []).reduce((s: number, r: any) => s + (r.total_leads_allotted || 0), 0), 0)
-                                            const pctVal = sumAppetite > 0 ? (sumAllotted / sumAppetite) * 100 : 0
-                                            return Math.round(pctVal) + '%'
-                                          })()}
-                                        </td>
-                                        <td>{(() => {
-                                          const teamMonthlyCaRows = g.members.flatMap((m: any) => m.monthly_rows || []).filter((r: any) => r.total_leads_allotted > 0 && r.median_creation_to_allotment_mins != null)
-                                          const sumTCA = teamMonthlyCaRows.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0)
-                                          const sumTLeads = teamMonthlyCaRows.reduce((s: number, r: any) => s + r.total_leads_allotted, 0)
-                                          return sumTLeads > 0 ? Math.round(sumTCA / sumTLeads) + 'm' : '—';
-                                        })()}</td>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <td>{tMemberMonthlySum('pax_1')}</td>
-                                        <td>{tMemberMonthlySum('pax_2')}</td>
-                                        <td>{tMemberMonthlySum('pax_3')}</td>
-                                        <td>{tMemberMonthlySum('pax_4')}</td>
-                                        <td>{tMemberMonthlySum('pax_4_plus')}</td>
-                                      </>
-                                    )}
-                                  </tr>
-
-                                  {breakdownExpandedTl === g.l2_email && g.members.map((m: any) => {
-                                    const sellerDot: Record<string, number> = {}
-                                      ; (m.dot_rows || []).forEach((d: any) => { sellerDot[d.dot_month || 'Unknown'] = (sellerDot[d.dot_month || 'Unknown'] || 0) + (d.total_leads_allotted || 0) })
-                                    const getSVal = (keyStr: string) => { let v = 0; Object.entries(sellerDot).forEach(([k, val]) => { if (k.endsWith('-' + keyStr)) v += val; }); return v; }
-
-                                    const sMemberMonthlySum = (key: string) => (m.monthly_rows || []).reduce((s: number, r: any) => s + (r[key] || 0), 0)
-
-                                    return (
-                                      <tr key={m.seller_email} className={styles.sellerRow} onClick={() => setBreakdownDrillSeller(m)} style={{ cursor: 'pointer' }}>
-                                        <td style={{ paddingLeft: '32px' }}>{m.seller_name} {m.isAbsent && <span className={styles.absentPill}>Absent</span>}</td>
-                                        {activeBreakdownCard === 'dot' ? (
-                                          <>
-                                            {dotMonthsConfig.map(mo => <td key={mo.key}>{m.isAbsent ? '—' : getSVal(mo.key)}</td>)}
-                                            <td>{m.isAbsent ? '—' : Object.entries(sellerDot).reduce((sum, [k, v]) => {
-                                              if (!dotMonthsConfig.some(mo => k.endsWith('-' + mo.key))) sum += v;
-                                              return sum;
-                                            }, 0)}</td>
-                                          </>
-                                        ) : activeBreakdownCard === 'allotment' ? (
-                                          <>
-                                            <td>{m.isAbsent ? '—' : sMemberMonthlySum('auto_allotted')}</td>
-                                            <td>{m.isAbsent ? '—' : sMemberMonthlySum('manual_allotted')}</td>
-                                            <td>{m.isAbsent ? '—' : sMemberMonthlySum('rtg_leads')}</td>
-                                            <td>{m.isAbsent ? '—' : sMemberMonthlySum('non_rtg_leads')}</td>
-                                          </>
-                                        ) : activeBreakdownCard === 'ca' ? (
-                                          <>
-                                            <td>{m.isAbsent ? '—' : sMemberMonthlySum('total_leads_allotted')}</td>
-                                            <td>{m.isAbsent ? '—' : (m.monthly_lta_rows || []).reduce((s: number, r: any) => s + (r.final_lta || 0), 0)}</td>
-                                            <td style={{
-                                              color: (() => {
-                                                const sApp = (m.monthly_lta_rows || []).reduce((s: number, r: any) => s + (r.final_lta || 0), 0);
-                                                const sAll = sMemberMonthlySum('total_leads_allotted');
-                                                const pVal = sApp > 0 ? (sAll / sApp) * 100 : 0;
-                                                return m.isAbsent ? 'inherit' : pVal >= 90 ? '#22C55E' : pVal >= 70 ? '#F59E0B' : '#EF4444'
-                                              })()
-                                            }}>
-                                              {m.isAbsent ? '—' : (() => {
-                                                const sApp = (m.monthly_lta_rows || []).reduce((s: number, r: any) => s + (r.final_lta || 0), 0);
-                                                const sAll = sMemberMonthlySum('total_leads_allotted');
-                                                return sApp > 0 ? Math.round((sAll / sApp) * 100) + '%' : '0%'
-                                              })()}
-                                            </td>
-                                            <td>{m.isAbsent ? '—' : (() => {
-                                              const rws = (m.monthly_rows || []).filter((r: any) => r.total_leads_allotted > 0 && r.median_creation_to_allotment_mins != null);
-                                              const s_cta = rws.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0);
-                                              const s_lds = rws.reduce((s: number, r: any) => s + r.total_leads_allotted, 0);
-                                              return s_lds > 0 ? Math.round(s_cta / s_lds) + 'm' : '—';
-                                            })()}</td>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <td>{m.isAbsent ? '—' : sMemberMonthlySum('pax_1')}</td>
-                                            <td>{m.isAbsent ? '—' : sMemberMonthlySum('pax_2')}</td>
-                                            <td>{m.isAbsent ? '—' : sMemberMonthlySum('pax_3')}</td>
-                                            <td>{m.isAbsent ? '—' : sMemberMonthlySum('pax_4')}</td>
-                                            <td>{m.isAbsent ? '—' : sMemberMonthlySum('pax_4_plus')}</td>
-                                          </>
-                                        )}
-                                      </tr>
-                                    )
-                                  })}
-                                </React.Fragment>
-                              )
-                            })}
-                          </tbody>
-                        </table>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* No Leads Modal */}
-              {showNoLeadsModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center' }} onClick={() => setShowNoLeadsModal(false)}>
-                  <div style={{ background: '#1A1A1A', border: '1px solid #333', borderRadius: '12px', padding: '24px', width: '500px', maxWidth: '95%', maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-                    <h3 style={{ color: '#fff', margin: '0 0 16px 0', display: 'flex', justifyContent: 'space-between' }}>
-                      Sellers without leads
-                      <button onClick={() => setShowNoLeadsModal(false)} style={{ background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
-                    </h3>
-                    <table className={styles.table}>
-                      <thead><tr><th>Team (TL) / Seller</th><th>Status</th></tr></thead>
-                      <tbody>
-                        {processedGroups.map((g: any) => {
-                          const noLeadsSellers = g.members.filter((m: any) => (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0) === 0);
-                          if (noLeadsSellers.length === 0) return null;
-                          return (
-                            <React.Fragment key={g.l2_email}>
-                              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                                <td style={{ fontWeight: 600, color: '#C9A84C' }} colSpan={2}>{g.l2_name}</td>
-                              </tr>
-                              {noLeadsSellers.map((m: any) => (
-                                <tr key={m.seller_email} style={{ borderBottom: '1px solid #333' }}>
-                                  <td style={{ paddingLeft: '32px' }}>{m.seller_name}</td>
-                                  <td>
-                                    {m.isAbsent ? 'Absent' : 
-                                     m.isOnBreak ? 'On Break' :
-                                     !m.attendance?.first_login ? 'Not Logged In' :
-                                     !m.cti?.logged_in_at ? 'Not on Ozontell' : 'Waiting for leads'}
-                                  </td>
-                                </tr>
-                              ))}
-                            </React.Fragment>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* MHE Trend Modal */}
-              {showMheTrendModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setShowMheTrendModal(false); setMheDrillSeller(null); setBreakdownExpandedTl(null); }}>
-                  <div style={{ background: '#1A1A1A', border: '1px solid #333', borderRadius: '12px', padding: '24px', width: mheDrillSeller ? '600px' : '800px', maxWidth: '95%', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', position: 'relative' }} onClick={e => e.stopPropagation()}>
-                    <button
-                      onClick={() => { setShowMheTrendModal(false); setMheDrillSeller(null); setBreakdownExpandedTl(null); }}
-                      style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1.2rem', padding: '4px' }}
-                    >×</button>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                      {mheDrillSeller && (
-                        <button
-                          onClick={() => setMheDrillSeller(null)}
-                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: '#E5E5E5', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}
-                        >← Back</button>
-                      )}
-                      <h3 style={{ color: '#fff', margin: 0, fontSize: '1.1rem' }}>
-                        {mheDrillSeller ? `${mheDrillSeller.seller_name} — MHE Trend` : breakdownExpandedTl ? `${processedGroups.find((g: any) => g.l2_email === breakdownExpandedTl)?.l2_name || 'Team'} — MHE Trend` : 'Monthly MHE Trend · CM Avg'}
-                      </h3>
-                    </div>
-
-                    {(() => {
-                      const dayMap: Record<string, { sum: number; count: number }> = {}
-                      if (mheDrillSeller) {
-                        ; (mheDrillSeller.monthly_lta_rows || []).forEach((r: any) => {
-                          const d = r.log_date
-                          if (!d) return
-                          const pct = typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
-                          if (!dayMap[d]) dayMap[d] = { sum: 0, count: 0 }
-                          dayMap[d].sum += pct
-                          dayMap[d].count += 1
-                        })
-                      } else if (breakdownExpandedTl) {
-                        const targetTl = processedGroups.find((g: any) => g.l2_email === breakdownExpandedTl)
-                        if (targetTl) {
-                          targetTl.members.forEach((m: any) => {
-                            ; (m.monthly_lta_rows || []).forEach((r: any) => {
-                              const d = r.log_date
-                              if (!d) return
-                              const pct = typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
-                              if (!dayMap[d]) dayMap[d] = { sum: 0, count: 0 }
-                              dayMap[d].sum += pct
-                              dayMap[d].count += 1
-                            })
-                          })
-                        }
-                      } else {
-                        let allMembers: any[] = []
-                        processedGroups.forEach((g: any) => { allMembers = allMembers.concat(g.members) })
-                        allMembers.forEach((m: any) => {
-                          ; (m.monthly_lta_rows || []).forEach((r: any) => {
-                            const d = r.log_date
-                            if (!d) return
-                            const pct = typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
-                            if (!dayMap[d]) dayMap[d] = { sum: 0, count: 0 }
-                            dayMap[d].sum += pct
-                            dayMap[d].count += 1
-                          })
-                        })
-                      }
-                      const sortedDays = Object.keys(dayMap).sort()
-                      const labels = sortedDays.map(d => {
-                        const dt = new Date(d);
-                        return `${dt.getDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][dt.getMonth()]}`;
-                      })
-                      const values = sortedDays.map(d => parseFloat((dayMap[d].sum / dayMap[d].count).toFixed(1)))
-
-                      const mheAvg = sortedDays.length > 0 ? parseFloat((values.reduce((s, v) => s + v, 0) / values.length).toFixed(1)) : 0
-                      const isGood = mheAvg <= 20
-
-                      return (
-                        <div style={{ display: 'flex', gap: '24px', flexDirection: mheDrillSeller ? 'column' : 'row' }}>
-                          <div style={{ flex: 1, minWidth: '400px' }}>
-                            <div style={{ height: '240px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid #333' }}>
-                              <MheTrendChart labels={labels} values={values} color={isGood ? '#22C55E' : '#EF4444'} />
-                            </div>
-                          </div>
-                          {!mheDrillSeller && (
-                            <div style={{ width: '250px' }}>
-                              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F0EDE8', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid #333' }}>Team Drill-down</div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '240px', overflowY: 'auto', paddingRight: '8px' }}>
-                                {processedGroups.map((g: any) => {
-                                  const tMheMap: Record<string, { s: number; c: number }> = {}
-                                  g.members.forEach((m: any) => {
-                                    ; (m.monthly_lta_rows || []).forEach((r: any) => {
-                                      const d = r.log_date; if (!d) return;
-                                      if (!tMheMap[d]) tMheMap[d] = { s: 0, c: 0 };
-                                      tMheMap[d].s += typeof r.mishandled_pct === 'number' ? r.mishandled_pct * 100 : 0
-                                      tMheMap[d].c += 1
-                                    })
-                                  })
-                                  let tSum = 0; let tDays = 0;
-                                  Object.values(tMheMap).forEach(v => { tSum += v.s / v.c; tDays++; })
-                                  const tAvg = tDays > 0 ? parseFloat((tSum / tDays).toFixed(1)) : 0
-
-                                  return (
-                                    <React.Fragment key={g.l2_email}>
-                                      <div onClick={() => setBreakdownExpandedTl(breakdownExpandedTl === g.l2_email ? null : g.l2_email)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, color: '#C9A84C' }}>
-                                        <span><span style={{ display: 'inline-block', width: '12px', transition: 'transform 0.2s', transform: breakdownExpandedTl === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span> {g.l2_name}</span>
-                                        <span style={{ color: tAvg <= 20 ? '#22C55E' : '#EF4444' }}>{tAvg}%</span>
-                                      </div>
-                                      {breakdownExpandedTl === g.l2_email && g.members.map((m: any) => {
-                                        let mSum = 0; let mDays = 0;
-                                        ; (m.monthly_lta_rows || []).forEach((r: any) => {
-                                          if (typeof r.mishandled_pct === 'number') { mSum += r.mishandled_pct * 100; mDays++; }
-                                        })
-                                        const mAvg = mDays > 0 ? parseFloat((mSum / mDays).toFixed(1)) : 0
-                                        return (
-                                          <div key={m.seller_email} onClick={() => setMheDrillSeller(m)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px 6px 24px', cursor: 'pointer', fontSize: '0.8rem', color: '#E5E5E5', borderLeft: '1px solid #333', marginLeft: '6px' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                                            <span>{m.seller_name}</span>
-                                            <span style={{ color: mAvg <= 20 ? '#22C55E' : '#EF4444' }}>{`${mAvg}%`}</span>
-                                          </div>
-                                        )
-                                      })}
-                                    </React.Fragment>
-                                  )
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })()}
-                  </div>
-                </div>
-              )}
-
-              {/* CM Goal vs SHB Trend Modal */}
-              {showGoalShbTrendModal && (() => {
-                const dayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
-                let allMembers: any[] = []
-                processedGroups.forEach((g: any) => { allMembers = allMembers.concat(g.members) })
-                
-                allMembers.forEach((m: any) => {
-                  ;(m.monthly_goal_shb || []).forEach((r: any) => {
-                    const d = r.date
-                    if (!d) return
-                    const goalPct = typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
-                    const shbPct = typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
-                    if (!dayMap[d]) dayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
-                    dayMap[d].goalSum += goalPct; dayMap[d].shbSum += shbPct; dayMap[d].count += 1
-                  })
-                })
-                
-                const sortedDays = Object.keys(dayMap).sort()
-                const paddedTeamAvg: any[] = []
-                const [y, mStr] = (date || todayStr()).split('-')
-                const daysInMonth = new Date(parseInt(y), parseInt(mStr), 0).getDate()
-                
-                for (let i = 1; i <= daysInMonth; i++) {
-                  const dStr = `${y}-${mStr}-${String(i).padStart(2, '0')}`
-                  if (dayMap[dStr]) {
-                    paddedTeamAvg.push({
-                      date: dStr,
-                      goalAvg: parseFloat((dayMap[dStr].goalSum / dayMap[dStr].count).toFixed(0)),
-                      shbAvg: parseFloat((dayMap[dStr].shbSum / dayMap[dStr].count).toFixed(0))
-                    })
-                  } else {
-                    paddedTeamAvg.push({ date: dStr, goalAvg: 0, shbAvg: 0 })
-                  }
-                }
-
-                let drillLogs: any[] = []
-                if (goalShbDrillSeller) {
-                  const logs = goalShbDrillSeller.monthly_goal_shb || []
-                  for (let i = 1; i <= daysInMonth; i++) {
-                    const dStr = `${y}-${mStr}-${String(i).padStart(2, '0')}`
-                    const existing = logs.find((r: any) => r.date === dStr)
-                    drillLogs.push({
-                      date: dStr,
-                      goalAvg: existing && typeof existing.goal_completion === 'number' ? existing.goal_completion * 100 : 0,
-                      shbAvg: existing && typeof existing.shb_percent === 'number' ? existing.shb_percent * 100 : 0
-                    })
-                  }
-                }
-
-                let tlAvgLogs: any[] = []
-                if (goalShbExpandedTl && !goalShbDrillSeller) {
-                  const tlGroup = processedGroups.find((g: any) => g.l2_email === goalShbExpandedTl)
-                  if (tlGroup) {
-                    const tlDayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
-                    tlGroup.members.forEach((m: any) => {
-                      ;(m.monthly_goal_shb || []).forEach((r: any) => {
-                        const d = r.date
-                        if (!d) return
-                        if (!tlDayMap[d]) tlDayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
-                        tlDayMap[d].goalSum += typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
-                        tlDayMap[d].shbSum += typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
-                        tlDayMap[d].count += 1
-                      })
-                    })
-                    for (let i = 1; i <= daysInMonth; i++) {
-                      const dStr = `${y}-${mStr}-${String(i).padStart(2, '0')}`
-                      if (tlDayMap[dStr]) {
-                        tlAvgLogs.push({
-                          date: dStr,
-                          goalAvg: parseFloat((tlDayMap[dStr].goalSum / tlDayMap[dStr].count).toFixed(0)),
-                          shbAvg: parseFloat((tlDayMap[dStr].shbSum / tlDayMap[dStr].count).toFixed(0))
-                        })
-                      } else {
-                        tlAvgLogs.push({ date: dStr, goalAvg: 0, shbAvg: 0 })
-                      }
-                    }
-                  }
-                }
-
-                const activeData = goalShbDrillSeller ? drillLogs : (goalShbExpandedTl ? tlAvgLogs : paddedTeamAvg)
-                const activeLabels = activeData.map((d: any) => parseInt(d.date.split('-')[2]) + ' ' + new Date(d.date).toLocaleString('default', { month: 'short' }))
-                const activeGoalValues = activeData.map((d: any) => d.goalAvg)
-                const activeShbValues = activeData.map((d: any) => d.shbAvg)
-                const hasData = activeGoalValues.some((v: number) => v > 0) || activeShbValues.some((v: number) => v > 0)
-
-                return (
-                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setShowGoalShbTrendModal(false); setGoalShbDrillSeller(null); setGoalShbExpandedTl(null); }}>
-                    <div style={{ background: '#1A1A1A', border: '1px solid #333', borderRadius: '12px', padding: '24px', width: '900px', maxWidth: '95%', height: '500px', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', position: 'relative' }} onClick={e => e.stopPropagation()}>
-                      
-                      <button
-                        onClick={() => { setShowGoalShbTrendModal(false); setGoalShbDrillSeller(null); setGoalShbExpandedTl(null); }}
-                        style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1.2rem', padding: '4px', zIndex: 10 }}
-                      >×</button>
-
-                      <h2 style={{ margin: '0 0 20px 0', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {goalShbDrillSeller && (
-                          <button
-                            onClick={() => setGoalShbDrillSeller(null)}
-                            style={{ background: 'transparent', border: '1px solid #333', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A8278', cursor: 'pointer' }}
-                          >←</button>
-                        )}
-                        {goalShbDrillSeller 
-                           ? `${goalShbDrillSeller.seller_name} — Goal vs SHB Trend` 
-                           : goalShbExpandedTl 
-                              ? `${processedGroups.find((g: any) => g.l2_email === goalShbExpandedTl)?.l2_name || 'Team'} — Goal vs SHB Trend` 
-                              : 'Monthly Goal vs SHB Trend · CM Avg'}
-                      </h2>
-
-                      <div style={{ display: 'flex', gap: '24px', flex: 1, minHeight: 0 }}>
-                        <div style={{ flex: 2, background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '16px', border: '1px solid #222' }}>
-                          {hasData ? (
-                            <GoalShbTrendChart labels={activeLabels} goalValues={activeGoalValues} shbValues={activeShbValues} />
-                          ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#555', fontSize: '0.85rem', fontStyle: 'italic' }}>No Goal vs SHB data for this month yet.</div>
-                          )}
-                        </div>
-                        
-                        {!goalShbDrillSeller && (
-                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid #333', paddingLeft: '24px' }}>
-                            <h3 style={{ margin: '0 0 16px 0', fontSize: '0.9rem', color: '#E5E5E5' }}>Team Drill-down</h3>
-                            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
-                              {processedGroups.map((g: any) => {
-                                let gGoalSum = 0; let gShbSum = 0; let gDays = 0;
-                                g.members.forEach((m: any) => {
-                                  ;(m.monthly_goal_shb || []).forEach((r: any) => {
-                                    gGoalSum += (r.goal_completion || 0) * 100
-                                    gShbSum += (r.shb_percent || 0) * 100
-                                    gDays++
-                                  })
-                                })
-                                const gGoalAvg = gDays > 0 ? parseFloat((gGoalSum / gDays).toFixed(0)) : 0
-                                const gShbAvg = gDays > 0 ? parseFloat((gShbSum / gDays).toFixed(0)) : 0
-                                
-                                return (
-                                  <React.Fragment key={g.l2_email}>
-                                    <div 
-                                      onClick={() => setGoalShbExpandedTl(goalShbExpandedTl === g.l2_email ? null : g.l2_email)}
-                                      style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', cursor: 'pointer', fontSize: '0.85rem', color: '#E5E5E5', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', marginBottom: '4px' }}
-                                    >
-                                      <span style={{ fontWeight: 600, color: '#EAB308' }}>{goalShbExpandedTl === g.l2_email ? '▼' : '▶'} {g.l2_name}</span>
-                                      <div style={{ display: 'flex', gap: '12px' }}>
-                                         <span style={{ color: '#3B82F6' }}>{gGoalAvg}%</span>
-                                         <span style={{ color: '#EAB308' }}>{gShbAvg}%</span>
-                                      </div>
-                                    </div>
-                                    
-                                    {goalShbExpandedTl === g.l2_email && g.members.map((m: any) => {
-                                      let mGoalSum = 0; let mShbSum = 0; let mDays = 0;
-                                      ;(m.monthly_goal_shb || []).forEach((r: any) => {
-                                        mGoalSum += (r.goal_completion || 0) * 100
-                                        mShbSum += (r.shb_percent || 0) * 100
-                                        mDays++
-                                      })
-                                      const mGoalAvg = mDays > 0 ? parseFloat((mGoalSum / mDays).toFixed(0)) : 0
-                                      const mShbAvg = mDays > 0 ? parseFloat((mShbSum / mDays).toFixed(0)) : 0
-                                      
-                                      return (
-                                        <div 
-                                          key={m.seller_email} 
-                                          onClick={() => setGoalShbDrillSeller(m)} 
-                                          style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px 6px 24px', cursor: 'pointer', fontSize: '0.8rem', color: '#E5E5E5', borderLeft: '1px solid #333', marginLeft: '6px' }}
-                                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
-                                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                                        >
-                                          <span>{m.seller_name}</span>
-                                          <div style={{ display: 'flex', gap: '12px' }}>
-                                            <span style={{ color: '#3B82F6' }}>{mGoalAvg}%</span>
-                                            <span style={{ color: '#EAB308' }}>{mShbAvg}%</span>
-                                          </div>
-                                        </div>
-                                      )
-                                    })}
-                                  </React.Fragment>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {/* Seller Funnel Modal (S7) or Timeline */}
-              {drillSellerS7 && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setDrillSellerS7(null)}>
-                  <div style={{ background: '#1A1A1A', border: '1px solid #333', borderRadius: '12px', padding: '24px', width: '500px', maxWidth: '95%', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', position: 'relative' }} onClick={e => e.stopPropagation()}>
-                    <button
-                      onClick={() => setDrillSellerS7(null)}
-                      style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1.2rem', padding: '4px' }}
-                    >×</button>
-
-                    <h3 style={{ color: '#fff', margin: '0 0 4px 0', fontSize: '1.2rem' }}>{drillSellerS7.seller_name}</h3>
-                    <div style={{ fontSize: '0.8rem', color: '#8A8278', marginBottom: '24px' }}>Seller Activity & Funnel</div>
-
-                    {(() => {
-                      const logs = drillSellerS7.cti?.logs || []
-                      let lastLog = ''
-                      if (logs.length > 0) {
-                        const s = logs[0]
-                        const t = s.time || ''
-                        if (s.state === 'Login') lastLog = `Logged in at ${t}`
-                        else if (s.state === 'Logout') lastLog = `Logged out at ${t}`
-                        else if (s.state === 'Break') lastLog = `Went on break at ${t}`
-                        else if (s.state === 'Available') lastLog = `Became available at ${t}`
-                      }
-
-                      const p = drillSellerS7.pipeline || {}
-                      const funnelTotal = (p.active || 0) + (p.warm || 0) + (p.cold || 0) + (p.future || 0)
-
-                      return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                          {/* Status Box */}
-                          <div style={{ background: '#111', padding: '16px', borderRadius: '8px', border: '1px solid #333' }}>
-                            <div style={{ fontSize: '0.75rem', color: '#8A8278', textTransform: 'uppercase', marginBottom: '8px' }}>Current Status</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: drillSellerS7.isAbsent ? '#EF4444' : drillSellerS7.isOnBreak ? '#EAB308' : '#22C55E' }} />
-                              <span style={{ fontSize: '1rem', color: '#fff', fontWeight: 500 }}>
-                                {drillSellerS7.isAbsent ? 'Absent' : drillSellerS7.isOnBreak ? 'On Break' : 'Active'}
-                              </span>
-                            </div>
-                            {lastLog && <div style={{ fontSize: '0.8rem', color: '#8A8278', marginTop: '8px' }}>{lastLog}</div>}
-                          </div>
-
-                          {/* Funnel Box */}
-                          <div style={{ background: '#111', padding: '16px', borderRadius: '8px', border: '1px solid #333' }}>
-                            <div style={{ fontSize: '0.75rem', color: '#8A8278', textTransform: 'uppercase', marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
-                              <span>Pipeline Funnel</span>
-                              <span style={{ color: '#fff', fontWeight: 600 }}>{funnelTotal} Leads</span>
-                            </div>
-                            <div style={{ display: 'flex', height: '24px', borderRadius: '4px', overflow: 'hidden', marginBottom: '16px' }}>
-                              <div style={{ width: `${funnelTotal ? (p.active || 0) / funnelTotal * 100 : 0}%`, background: '#22C55E' }} title={`Active: ${p.active || 0}`} />
-                              <div style={{ width: `${funnelTotal ? (p.warm || 0) / funnelTotal * 100 : 0}%`, background: '#EAB308' }} title={`Warm: ${p.warm || 0}`} />
-                              <div style={{ width: `${funnelTotal ? (p.cold || 0) / funnelTotal * 100 : 0}%`, background: '#3B82F6' }} title={`Cold: ${p.cold || 0}`} />
-                              <div style={{ width: `${funnelTotal ? (p.future || 0) / funnelTotal * 100 : 0}%`, background: '#8B5CF6' }} title={`Future: ${p.future || 0}`} />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span style={{ color: '#22C55E' }}>● Active</span><span style={{ color: '#fff', fontWeight: 500 }}>{p.active || 0}</span></div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span style={{ color: '#EAB308' }}>● Warm</span><span style={{ color: '#fff', fontWeight: 500 }}>{p.warm || 0}</span></div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span style={{ color: '#3B82F6' }}>● Cold</span><span style={{ color: '#fff', fontWeight: 500 }}>{p.cold || 0}</span></div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span style={{ color: '#8B5CF6' }}>● Future</span><span style={{ color: '#fff', fontWeight: 500 }}>{p.future || 0}</span></div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })()}
-                  </div>
-                </div>
-              )}
-
-
-
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+                <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Target</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#22C55E' }}>20%</span>
+              </div>
             </div>
           )
         })()}
-        
-        {/* CM Goal vs SHB KPI Card */}
+
+        {/* Goal vs SHB KPI Card */}
         {(() => {
+          const targetDay = date || todayStr();
           const dayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
-          let allMembers: any[] = []
-          processedGroups.forEach((g: any) => { allMembers = allMembers.concat(g.members) })
+          const targetDateObj = new Date(targetDay);
+          for (let i = 1; i <= targetDateObj.getDate(); i++) {
+            const dStr = `${targetDateObj.getFullYear()}-${String(targetDateObj.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            dayMap[dStr] = { goalSum: 0, shbSum: 0, count: 0 };
+          }
           allMembers.forEach((m: any) => {
             ;(m.monthly_goal_shb || []).forEach((r: any) => {
               const d = r.date
@@ -1400,44 +705,50 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
             })
           })
           const sortedDays = Object.keys(dayMap).sort()
-          let latestDay = sortedDays[sortedDays.length - 1]
-          if (date && dayMap[date]) {
-            latestDay = date
-          }
+          const latestAvgGoal = dayMap[targetDay] && dayMap[targetDay].count > 0 ? parseFloat((dayMap[targetDay].goalSum / dayMap[targetDay].count).toFixed(0)) : 0
+          const latestAvgShb = dayMap[targetDay] && dayMap[targetDay].count > 0 ? parseFloat((dayMap[targetDay].shbSum / dayMap[targetDay].count).toFixed(0)) : 0
           
-          const latestAvgGoal = latestDay ? parseFloat((dayMap[latestDay].goalSum / dayMap[latestDay].count).toFixed(0)) : 0
-          const latestAvgShb = latestDay ? parseFloat((dayMap[latestDay].shbSum / dayMap[latestDay].count).toFixed(0)) : 0
-
           return (
             <div
               className={styles.summaryCard}
               style={{
-                background: '#1A1A1A', padding: '16px', borderRadius: '8px', flex: 1.2,
-                border: `1px solid #333`,
-                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'border-color 0.2s'
+                background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1.2,
+                border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease'
               }}
               onClick={() => { setGoalShbDrillSeller(null); setGoalShbExpandedTl(null); setShowGoalShbTrendModal(true); }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
             >
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#3B82F6' }} />
-              <div style={{ fontSize: '0.6rem', color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Team Goal vs SHB</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '4px' }}>
-                <div>
-                   <div style={{ fontSize: '0.6rem', color: '#8A8278', marginBottom: '2px' }}>Goal</div>
-                   <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#3B82F6', lineHeight: 1 }}>{latestAvgGoal}%</span>
+              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #3B82F6, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #3B82F6' }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 10px #3B82F6' }} />
+                  <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Goal vs SHB</div>
+                </div>
+                <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', marginLeft: '8px' }}>Tap to View ▶</span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '20px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{latestAvgGoal}</span>
+                  <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
                 </div>
                 <div style={{ width: '1px', alignSelf: 'stretch', background: 'rgba(255,255,255,0.1)' }} />
-                <div>
-                   <div style={{ fontSize: '0.6rem', color: '#8A8278', marginBottom: '2px' }}>SHB</div>
-                   <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#EAB308', lineHeight: 1 }}>{latestAvgShb}%</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{latestAvgShb}</span>
+                  <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
-                <span style={{ fontSize: '0.6rem', color: '#555', marginLeft: 'auto' }}>tap to view ▶</span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+                <span style={{ fontSize: '0.65rem', color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Goal</span>
+                <span style={{ fontSize: '0.65rem', color: '#EAB308', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SHB</span>
               </div>
             </div>
           )
         })()}
-
       </div>
 
       {/* S1: Login & Availability */}
@@ -1474,7 +785,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                       minWidth: bar.value > 0 ? '4px' : '0',
                     }} />
                   </div>
-                  <div style={{ width: '30px', fontSize: '0.7rem', fontWeight: 700, color: bar.value > 0 ? bar.color : '#5A5650', textAlign: 'right' }}>{bar.value}</div>
+                  <div style={{ width: '30px', fontSize: '0.6rem', fontWeight: 700, color: bar.value > 0 ? bar.color : '#5A5650', textAlign: 'right' }}>{bar.value}</div>
                   <span style={{
                     fontSize: '0.55rem', fontWeight: 600, color: bar.value > 0 ? bar.color : '#5A5650',
                     background: bar.value > 0 ? `${bar.color}15` : 'rgba(255,255,255,0.03)',
@@ -1582,6 +893,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         </div>
       </div>
 
+
 <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's9' ? null : 's9')}>
   <div className={styles.headerLeft}>
     <span className={styles.chevron} style={{ transform: activeSectionModal === 's9' ? 'rotate(90deg)' : 'none' }}>▶</span>
@@ -1604,8 +916,10 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
           <thead>
             <tr>
               <th>Team (TL)</th>
-              <th>Team Planned LTA</th>
-              <th>Team Final LTA</th>
+              <th>Planned LTA</th>
+              <th>Final LTA</th>
+              <th>Leads Allotted</th>
+              <th>Fulfillment %</th>
             </tr>
           </thead>
           <tbody>
@@ -1618,11 +932,17 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                   </td>
                   <td>{g.agg.teamPlanned}</td>
                   <td style={{ color: '#22C55E', fontWeight: 600 }}>{g.agg.teamActual}</td>
+                  <td>{g.agg.totalLeads}</td>
+                  {(() => {
+                    const pct = g.agg.teamActual > 0 ? Math.round((g.agg.totalLeads / g.agg.teamActual) * 100) : 0;
+                    const color = pct >= 90 ? '#22C55E' : pct >= 70 ? '#F59E0B' : '#EF4444';
+                    return <td style={{ color: g.agg.teamActual > 0 ? color : 'inherit', fontWeight: 600 }}>{pct}%</td>;
+                  })()}
                 </tr>
 
                 {expandedTlS9 === g.l2_email && (
                   <tr className={styles.sellerRow}>
-                    <td colSpan={3} style={{ padding: '8px 16px', background: 'rgba(0,0,0,0.2)' }}>
+                    <td colSpan={5} style={{ padding: '8px 16px', background: 'rgba(0,0,0,0.2)' }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); setActiveFunnelTl(g); setShowTeamFunnel(true); }}
                         style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '6px 16px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
@@ -1637,14 +957,20 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                   const actualColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#F59E0B' : '#EF4444'
                   return (
                     <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setActiveSellerFunnel(m)} style={{ cursor: 'pointer' }}>
-                      <td style={{ paddingLeft: '32px' }}>
+                      <td style={{ paddingLeft: '32px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {m.seller_name}
-                        {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+                        {m.isAbsent && <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Absent</span>}
                       </td>
                       <td>{m.lta.planned}</td>
                       <td style={{ color: m.isAbsent ? 'inherit' : actualColor, fontWeight: 600 }}>
                         {m.lta.actual}
                       </td>
+                      <td>{(m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)}</td>
+                      {(() => {
+                        const pct = m.lta.actual > 0 ? Math.round((((m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)) / m.lta.actual) * 100) : 0;
+                        const color = pct >= 90 ? '#22C55E' : pct >= 70 ? '#F59E0B' : '#EF4444';
+                        return <td style={{ color: m.lta.actual > 0 ? color : 'inherit', fontWeight: 600 }}>{pct}%</td>;
+                      })()}
                     </tr>
                   )
                 })}
@@ -1710,9 +1036,9 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                   const tot = rtg + nonRtg
                   return (
                     <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerTimeline(m)} style={{ cursor: 'pointer' }}>
-                      <td style={{ paddingLeft: '32px' }}>
+                      <td style={{ paddingLeft: '32px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {m.seller_name}
-                        {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+                        {m.isAbsent && <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Absent</span>}
                       </td>
                       <td>{tot}</td>
                       <td>{rtg}</td>
@@ -1730,72 +1056,6 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   )
 }
 
-{/* S5: Pax Bifurcation (CM EXCLUSIVE) */ }
-<div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's4' ? null : 's4')}>
-  <div className={styles.headerLeft}>
-    <span className={styles.chevron} style={{ transform: activeSectionModal === 's4' ? 'rotate(90deg)' : 'none' }}>▶</span>
-    <h2 className={styles.sectionTitle}>Appetite Fulfillment & C→A Time</h2>
-  </div>
-        <div style={{ fontSize: '0.75rem', padding: '4px 12px', background: 'rgba(201, 168, 76, 0.1)', borderRadius: '16px', color: '#C9A84C', fontWeight: 600 }}>{date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'All Time'}</div>
-</div>
-{
-  activeSectionModal === 's4' && (
-    <div className={sellerStyles.sectionContent}>
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Team (TL)</th>
-              <th>Appetite (Final LTA)</th>
-              <th>Leads Allotted</th>
-              <th>Fulfillment %</th>
-              <th>Avg C→A (mins)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {processedGroups.map((g: any) => (
-              <React.Fragment key={g.l2_email}>
-                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS4, expandedTlS4)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
-                  <td style={{ fontWeight: 600, color: '#C9A84C' }}>
-                    <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS4 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
-                    {g.l2_name}
-                  </td>
-                  <td>{g.agg.teamAppetite}</td>
-                  <td>{g.agg.totalLeads}</td>
-                  <td style={{ color: g.agg.teamAppetite > 0 && pct(g.agg.totalLeads, g.agg.teamAppetite) >= 90 ? '#22C55E' : g.agg.teamAppetite > 0 && pct(g.agg.totalLeads, g.agg.teamAppetite) >= 70 ? '#F59E0B' : '#EF4444' }}>
-                    {g.agg.teamAppetite > 0 ? pct(g.agg.totalLeads, g.agg.teamAppetite) : 0}%
-                  </td>
-                  <td>{g.agg.teamMedianCA != null ? `${g.agg.teamMedianCA}m` : '—'}</td>
-                </tr>
-
-                {expandedTlS4 === g.l2_email && g.members.map((m: any) => {
-                  const appetite = m.daily_lta?.final_lta || 0
-                  const leads = (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)
-                  const ca = m.allotment?.median_creation_to_allotment_mins
-                  const fulfPct = appetite > 0 ? pct(leads, appetite) : 0
-                  return (
-                    <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerTimeline(m)} style={{ cursor: 'pointer' }}>
-                      <td style={{ paddingLeft: '32px' }}>
-                        {m.seller_name}
-                        {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
-                      </td>
-                      <td>{m.isAbsent ? '—' : appetite}</td>
-                      <td>{leads}</td>
-                      <td style={{ color: m.isAbsent ? 'inherit' : fulfPct >= 90 ? '#22C55E' : fulfPct >= 70 ? '#F59E0B' : '#EF4444' }}>
-                        {m.isAbsent ? '—' : `${fulfPct}%`}
-                      </td>
-                      <td>{m.isAbsent ? '—' : ca != null ? `${Math.round(ca)}m` : '—'}</td>
-                    </tr>
-                  )
-                })}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
 
 
 {/* S10: Goal % & At-Risk (data not available yet) */ }
@@ -1833,12 +1093,12 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         const late = isLate(m)
         return (
           <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerTimeline(m)} style={{ cursor: 'pointer', ...(late ? { backgroundColor: 'rgba(239,68,68,0.05)' } : {}) }}>
-            <td style={{ paddingLeft: '32px' }}>
+            <td style={{ paddingLeft: '32px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               {m.seller_name}
-              {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+              {m.isAbsent && <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Absent</span>}
             </td>
-            <td>{m.isAbsent ? '—' : formatTime(m.attendance?.first_login)}</td>
-            <td>{m.isAbsent ? '—' : `${m.b.totalMinutes}m`}</td>
+            <td>{formatTime(m.attendance?.first_login)}</td>
+            <td>{m.b.totalMinutes > 0 ? `${m.b.totalMinutes}m` : '—'}</td>
           </tr>
         )
       })}
@@ -2264,13 +1524,13 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 
                 {expandedTlS2 === g.l2_email && g.members.map((m: any) => (
                   <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerTimeline(m)} style={{ cursor: 'pointer' }}>
-                    <td style={{ paddingLeft: '32px' }}>
+                    <td style={{ paddingLeft: '32px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {m.seller_name}
-                      {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+                      {m.isAbsent && <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Absent</span>}
                     </td>
-                    <td style={{ color: m.b.totalMinutes > 75 ? '#EF4444' : 'inherit' }}>{m.isAbsent ? '—' : `${m.b.totalMinutes}m`}</td>
-                    <td>{m.isAbsent ? '—' : m.b.count}</td>
-                    <td>{m.isAbsent ? '—' : `${m.b.longestMinutes}m`}</td>
+                    <td style={{ color: m.b.totalMinutes > 75 ? '#EF4444' : 'inherit' }}>{m.b.totalMinutes > 0 ? `${m.b.totalMinutes}m` : '—'}</td>
+                    <td>{m.b.count > 0 ? m.b.count : '—'}</td>
+                    <td>{m.b.longestMinutes > 0 ? `${m.b.longestMinutes}m` : '—'}</td>
                     <td>{m.isAbsent ? '—' : `${Math.round((m.b.totalMinutes / (9 * 60)) * 100)}%`}</td>
                   </tr>
                 ))}
@@ -2332,9 +1592,9 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                   const tot = p1 + p2 + p3 + p4 + p4plus
                   return (
                     <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerTimeline(m)} style={{ cursor: 'pointer' }}>
-                      <td style={{ paddingLeft: '32px' }}>
+                      <td style={{ paddingLeft: '32px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {m.seller_name}
-                        {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+                        {m.isAbsent && <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Absent</span>}
                       </td>
                       <td>{p1}</td>
                       <td>{p2}</td>
@@ -2403,9 +1663,9 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                     const tStr = formatTime(m.allotment?.first_lead_allotted_at_ist)
                     return (
                       <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerTimeline(m)} style={{ cursor: 'pointer' }}>
-                        <td style={{ paddingLeft: '32px' }}>
+                        <td style={{ paddingLeft: '32px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {m.seller_name}
-                          {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
+                          {m.isAbsent && <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Absent</span>}
                         </td>
                         <td>{m.isAbsent ? '—' : tStr}</td>
                         <td>—</td>
@@ -2471,6 +1731,11 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
               return stages.map((step, idx) => (
                 <div key={step.id} className={sellerStyles.ltaFunnelStepWrap} style={{ animationDelay: `${idx * 0.15}s` } as any}>
                   <div className={sellerStyles.ltaFunnelCard} style={{ '--card-color': step.color, borderColor: step.color, width: step.width } as any}>
+                    {((step.id === 'dynamic' && teamData?.kalpit?.find((k: any) => k.name === 'dynamic')?.value === 0) ||
+                       (step.id === 'hygiene' && teamData?.kalpit?.find((k: any) => k.name === 'hygiene')?.value === 0) ||
+                       (step.id === 'goalComplete' && teamData?.kalpit?.find((k: any) => k.name === 'goal')?.value === 0)) && (
+                      <div className={sellerStyles.strikethroughLine} />
+                    )}
                     <div className={sellerStyles.ltaFunnelCardHeader}>
                       <span className={sellerStyles.ltaFunnelCardTitle} style={{ color: step.color }}>{step.label}</span>
                       {step.id === 'planned' && <span className={sellerStyles.ltaFunnelBadge} style={{ background: `${step.color}20`, color: step.color }}>Planned</span>}
@@ -2530,6 +1795,11 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
               return stages.map((step, idx) => (
                 <div key={step.id} className={sellerStyles.ltaFunnelStepWrap} style={{ animationDelay: `${idx * 0.15}s` } as any}>
                   <div className={sellerStyles.ltaFunnelCard} style={{ '--card-color': step.color, borderColor: step.color, width: step.width } as any}>
+                    {((step.id === 'dynamic' && teamData?.kalpit?.find((k: any) => k.name === 'dynamic')?.value === 0) ||
+                       (step.id === 'hygiene' && teamData?.kalpit?.find((k: any) => k.name === 'hygiene')?.value === 0) ||
+                       (step.id === 'goalComplete' && teamData?.kalpit?.find((k: any) => k.name === 'goal')?.value === 0)) && (
+                      <div className={sellerStyles.strikethroughLine} />
+                    )}
                     <div className={sellerStyles.ltaFunnelCardHeader}>
                       <span className={sellerStyles.ltaFunnelCardTitle} style={{ color: step.color }}>{step.label}</span>
                       {step.id === 'planned' && <span className={sellerStyles.ltaFunnelBadge} style={{ background: `${step.color}20`, color: step.color }}>Planned</span>}
@@ -2555,6 +1825,441 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   )
 }
 
-</div >
+        {/* No Leads Modal */}
+        {showNoLeadsModal && (() => {
+          const noLeadsSellers: any[] = [];
+          processedGroups.forEach((g: any) => {
+            g.members.forEach((m: any) => {
+              if (((m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)) === 0) {
+                noLeadsSellers.push({ ...m, tlName: g.l2_name });
+              }
+            });
+          });
+          return (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowNoLeadsModal(false)}>
+              <div style={{ background: '#1A1A1A', border: '1px solid #333', borderRadius: '12px', padding: '16px 20px', width: '700px', maxWidth: '90%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                <button 
+                  onClick={() => setShowNoLeadsModal(false)}
+                  style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1rem', padding: '4px' }}
+                >×</button>
+                <h3 style={{ color: '#fff', marginTop: 0, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F4631E' }} />
+                  Sellers with no leads yet
+                </h3>
+                <p style={{ color: '#F4631E', margin: '4px 0 16px', fontSize: '0.9rem' }}>{globalNoLeads} sellers</p>
+                <div style={{ flex: 1, overflowY: 'auto', marginTop: '16px', paddingRight: '8px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr style={{ color: '#A1A1AA', borderBottom: '1px solid #333' }}>
+                        <th style={{ padding: '12px 8px', fontWeight: 600 }}>Seller Name</th>
+                        <th style={{ padding: '12px 8px', fontWeight: 600 }}>TL Name</th>
+                        <th style={{ padding: '12px 8px', fontWeight: 600 }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {noLeadsSellers.slice().sort((a: any, b: any) => {
+                        if (a.seller_email === session.email) return -1;
+                        if (b.seller_email === session.email) return 1;
+                        return a.seller_name.localeCompare(b.seller_name);
+                      }).map((s: any) => (
+                        <tr key={s.seller_email} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#E5E7EB' }}>
+                          <td style={{ padding: '12px 8px', fontWeight: 500 }}>{s.seller_name}</td>
+                          <td style={{ padding: '12px 8px', color: '#A1A1AA' }}>{s.tlName}</td>
+                          <td style={{ padding: '12px 8px' }}>
+                            {s.isAbsent ? (
+                              <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Absent</span>
+                            ) : (
+                              <span style={{ color: '#EAB308', fontSize: '0.8rem' }}>Wait for lead or not ready on Ozonetel</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Monthly Breakdown Modal (4 Cards) */}
+        {activeBreakdownCard && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.78)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setActiveBreakdownCard(null); setBreakdownExpandedTl(null); setBreakdownDrillSeller(null); }}>
+            <div style={{ background: '#1A1A1A', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '28px', width: '900px', maxWidth: '96vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.6)', position: 'relative' }} onClick={e => e.stopPropagation()}>
+              <button style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.06)', border: '1px solid #333', color: '#E5E7EB', cursor: 'pointer', fontSize: '1rem', padding: '4px 10px', borderRadius: '6px', lineHeight: 1 }} onClick={() => { setActiveBreakdownCard(null); setBreakdownExpandedTl(null); setBreakdownDrillSeller(null); }}>✕</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid #262626' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 10px #3B82F6' }} />
+                <span style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff' }}>
+                  {activeBreakdownCard === 'ca' && 'TL Wise Bifurcation: Appetite & C→A Time (Monthly)'}
+                  {activeBreakdownCard === 'allotment' && 'TL Wise Bifurcation: Allotment Breakdown (Monthly)'}
+                  {activeBreakdownCard === 'pax' && 'TL Wise Bifurcation: Leads by Group Size (Monthly)'}
+                  {activeBreakdownCard === 'dot' && 'TL Wise Bifurcation: DOT Distribution (All-Time)'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
+                    <table className={styles.table} style={{ width: '100%' }}>
+                      <thead style={{ position: 'sticky', top: 0, background: '#111', zIndex: 10 }}>
+                        <tr>
+                          <th style={{ paddingLeft: '24px' }}>Team (TL)</th>
+                          {activeBreakdownCard === 'ca' && (
+                            <><th>Appetite (Monthly LTA)</th><th>Leads Allotted (Monthly)</th><th>Fulfillment %</th><th>Avg C→A (mins)</th></>
+                          )}
+                          {activeBreakdownCard === 'allotment' && (
+                            <><th>Total Leads</th><th>Auto Allotted</th><th>Manual Allotted</th><th>RTG</th><th>Non-RTG</th></>
+                          )}
+                          {activeBreakdownCard === 'pax' && (
+                            <><th>1-pax</th><th>2-pax</th><th>3-pax</th><th>4-pax</th><th>4+ pax</th></>
+                          )}
+                          {activeBreakdownCard === 'dot' && (
+                            <>
+                              {dotMonthsConfig.map(mo => <th key={mo.key}>{mo.label}</th>)}
+                              <th>6+ Months</th>
+                            </>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {processedGroups.map((g: any) => {
+                          let tlStats: any = {};
+                          if (activeBreakdownCard === 'ca') {
+                            tlStats.appetite = g.agg.teamAppetiteMonthly;
+                            tlStats.leads = g.agg.sumTLeads;
+                            tlStats.fulfPct = tlStats.appetite > 0 ? pct(tlStats.leads, tlStats.appetite) : 0;
+                            tlStats.avgCa = g.agg.teamAvgCaMonthly;
+                          } else if (activeBreakdownCard === 'allotment') {
+                            const tlRows = g.members.flatMap((m: any) => m.monthly_rows || []);
+                            tlStats.leads = tlRows.reduce((s: number, r: any) => s + (r.total_leads_allotted || 0), 0);
+                            tlStats.auto = tlRows.reduce((s: number, r: any) => s + (r.auto_allotted || 0), 0);
+                            tlStats.manual = tlRows.reduce((s: number, r: any) => s + (r.manual_allotted || 0), 0);
+                            tlStats.rtg = tlRows.reduce((s: number, r: any) => s + (r.rtg_leads || 0), 0);
+                            tlStats.nonRtg = tlRows.reduce((s: number, r: any) => s + (r.non_rtg_leads || 0), 0);
+                          } else if (activeBreakdownCard === 'pax') {
+                            const tlRows = g.members.flatMap((m: any) => m.monthly_rows || []);
+                            tlStats.pax1 = tlRows.reduce((s: number, r: any) => s + (r.pax_1 || 0), 0);
+                            tlStats.pax2 = tlRows.reduce((s: number, r: any) => s + (r.pax_2 || 0), 0);
+                            tlStats.pax3 = tlRows.reduce((s: number, r: any) => s + (r.pax_3 || 0), 0);
+                            tlStats.pax4 = tlRows.reduce((s: number, r: any) => s + (r.pax_4 || 0), 0);
+                            tlStats.pax4p = tlRows.reduce((s: number, r: any) => s + (r.pax_4_plus || 0), 0);
+                          } else if (activeBreakdownCard === 'dot') {
+                            const tlDotRows = g.members.flatMap((m: any) => m.dot_rows || []);
+                            const tlDotMap: Record<string, number> = {};
+                            tlDotRows.forEach((r: any) => {
+                               tlDotMap[r.dot_month] = (tlDotMap[r.dot_month] || 0) + (r.total_leads_allotted || 0);
+                            });
+                            tlStats.dotVals = dotMonthsConfig.map(mo => {
+                               let val = 0;
+                               Object.entries(tlDotMap).forEach(([k, v]) => {
+                                 if (k.endsWith('-' + mo.key)) val += v;
+                               });
+                               return val;
+                            });
+                            let futureSum = 0;
+                            Object.entries(tlDotMap).forEach(([k, v]) => {
+                              const isMainMonth = dotMonthsConfig.some(mo => k.endsWith('-' + mo.key));
+                              if (!isMainMonth) futureSum += v;
+                            });
+                            tlStats.dotFuture = futureSum;
+                          }
+
+                          return (
+                            <React.Fragment key={g.l2_email}>
+                              <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setBreakdownExpandedTl, breakdownExpandedTl)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                                <td style={{ fontWeight: 600, color: '#C9A84C', paddingLeft: '24px' }}>
+                                  <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: breakdownExpandedTl === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
+                                  {g.l2_name}
+                                </td>
+                                {activeBreakdownCard === 'ca' && (
+                                  <><td>{tlStats.appetite}</td><td>{tlStats.leads}</td><td style={{ color: tlStats.appetite > 0 && tlStats.fulfPct >= 90 ? '#22C55E' : tlStats.appetite > 0 && tlStats.fulfPct >= 70 ? '#F59E0B' : '#EF4444' }}>{tlStats.appetite > 0 ? tlStats.fulfPct : 0}%</td><td>{tlStats.avgCa != null ? `${tlStats.avgCa}m` : '—'}</td></>
+                                )}
+                                {activeBreakdownCard === 'allotment' && (
+                                  <><td>{tlStats.leads}</td><td>{tlStats.auto}</td><td>{tlStats.manual}</td><td>{tlStats.rtg}</td><td>{tlStats.nonRtg}</td></>
+                                )}
+                                {activeBreakdownCard === 'pax' && (
+                                  <><td>{tlStats.pax1}</td><td>{tlStats.pax2}</td><td>{tlStats.pax3}</td><td>{tlStats.pax4}</td><td>{tlStats.pax4p}</td></>
+                                )}
+                                {activeBreakdownCard === 'dot' && (
+                                  <>
+                                    {tlStats.dotVals.map((v: number, i: number) => <td key={i}>{v}</td>)}
+                                    <td>{tlStats.dotFuture}</td>
+                                  </>
+                                )}
+                              </tr>
+                              
+                              {breakdownExpandedTl === g.l2_email && g.members.map((m: any) => {
+                                let mStats: any = {};
+                                if (activeBreakdownCard === 'ca') {
+                                  mStats.appetite = (m.monthly_lta_rows || []).reduce((s: number, r: any) => s + (r.final_lta || 0), 0);
+                                  const mCaRows = (m.monthly_rows || []).filter((r: any) => r.total_leads_allotted > 0 && r.median_creation_to_allotment_mins != null);
+                                  const mSumCa = mCaRows.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0);
+                                  mStats.leads = mCaRows.reduce((s: number, r: any) => s + r.total_leads_allotted, 0);
+                                  mStats.avgCa = mStats.leads > 0 ? Math.round(mSumCa / mStats.leads) : null;
+                                  mStats.fulfPct = mStats.appetite > 0 ? pct(mStats.leads, mStats.appetite) : 0;
+                                } else if (activeBreakdownCard === 'allotment') {
+                                  const mRows = m.monthly_rows || [];
+                                  mStats.leads = mRows.reduce((s: number, r: any) => s + (r.total_leads_allotted || 0), 0);
+                                  mStats.auto = mRows.reduce((s: number, r: any) => s + (r.auto_allotted || 0), 0);
+                                  mStats.manual = mRows.reduce((s: number, r: any) => s + (r.manual_allotted || 0), 0);
+                                  mStats.rtg = mRows.reduce((s: number, r: any) => s + (r.rtg_leads || 0), 0);
+                                  mStats.nonRtg = mRows.reduce((s: number, r: any) => s + (r.non_rtg_leads || 0), 0);
+                                } else if (activeBreakdownCard === 'pax') {
+                                  const mRows = m.monthly_rows || [];
+                                  mStats.pax1 = mRows.reduce((s: number, r: any) => s + (r.pax_1 || 0), 0);
+                                  mStats.pax2 = mRows.reduce((s: number, r: any) => s + (r.pax_2 || 0), 0);
+                                  mStats.pax3 = mRows.reduce((s: number, r: any) => s + (r.pax_3 || 0), 0);
+                                  mStats.pax4 = mRows.reduce((s: number, r: any) => s + (r.pax_4 || 0), 0);
+                                  mStats.pax4p = mRows.reduce((s: number, r: any) => s + (r.pax_4_plus || 0), 0);
+                                } else if (activeBreakdownCard === 'dot') {
+                                    const mDotMap: Record<string, number> = {};
+                                    (m.dot_rows || []).forEach((r: any) => {
+                                       mDotMap[r.dot_month] = (mDotMap[r.dot_month] || 0) + (r.total_leads_allotted || 0);
+                                    });
+                                    mStats.dotVals = dotMonthsConfig.map(mo => {
+                                       let val = 0;
+                                       Object.entries(mDotMap).forEach(([k, v]) => {
+                                         if (k.endsWith('-' + mo.key)) val += v;
+                                       });
+                                       return val;
+                                    });
+                                    let futureSum = 0;
+                                    Object.entries(mDotMap).forEach(([k, v]) => {
+                                      const isMainMonth = dotMonthsConfig.some(mo => k.endsWith('-' + mo.key));
+                                      if (!isMainMonth) futureSum += v;
+                                    });
+                                    mStats.dotFuture = futureSum;
+                                  }
+
+                                return (
+                                  <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setBreakdownDrillSeller(m)} style={{ cursor: 'pointer' }}>
+                                    <td style={{ paddingLeft: '40px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      {m.seller_name}
+                                      {m.isAbsent && <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Absent</span>}
+                                    </td>
+                                    {activeBreakdownCard === 'ca' && (
+                                      <><td>{mStats.appetite}</td><td>{mStats.leads}</td><td style={{ color: mStats.fulfPct >= 90 ? '#22C55E' : mStats.fulfPct >= 70 ? '#F59E0B' : '#EF4444' }}>{mStats.fulfPct}%</td><td>{mStats.avgCa != null ? `${mStats.avgCa}m` : '—'}</td></>
+                                    )}
+                                    {activeBreakdownCard === 'allotment' && (
+                                      <><td>{mStats.leads}</td><td>{mStats.auto}</td><td>{mStats.manual}</td><td>{mStats.rtg}</td><td>{mStats.nonRtg}</td></>
+                                    )}
+                                    {activeBreakdownCard === 'pax' && (
+                                      <><td>{mStats.pax1}</td><td>{mStats.pax2}</td><td>{mStats.pax3}</td><td>{mStats.pax4}</td><td>{mStats.pax4p}</td></>
+                                    )}
+                                    {activeBreakdownCard === 'dot' && (
+                                      <>
+                                        {mStats.dotVals.map((v: number, i: number) => <td key={i}>{v}</td>)}
+                                        <td>{mStats.dotFuture}</td>
+                                      </>
+                                    )}
+                                  </tr>
+                                )
+                              })}
+                            </React.Fragment>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+        )}
+
+
+        {/* MHE Trend Modal */}
+        {showMheTrendModal && (() => {
+          const targetDay = date || todayStr();
+          const dayMap: Record<string, { sum: number; count: number }> = {}
+          const activeSellers = mheDrillSeller ? (mheDrillSeller.isGroup ? mheDrillSeller.members : [mheDrillSeller]) : allMembers
+          activeSellers.forEach((m: any) => {
+            ;(m.monthly_lta_rows || []).forEach((r: any) => {
+              const d = r.log_date
+              if (!d) return
+              const pct = typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
+              if (!dayMap[d]) dayMap[d] = { sum: 0, count: 0 }
+              dayMap[d].sum += pct
+              dayMap[d].count += 1
+            })
+          })
+          const sortedDays = Object.keys(dayMap).sort()
+          const labels = sortedDays.map(d => {
+            const dt = new Date(d)
+            return `${dt.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()]}`
+          })
+          const values = sortedDays.map(d => parseFloat((dayMap[d].sum / dayMap[d].count).toFixed(1)))
+          const teamAvg = values.length > 0 ? parseFloat((values.reduce((s, v) => s + v, 0) / values.length).toFixed(1)) : 0
+          const isGood = teamAvg <= 20
+          const title = mheDrillSeller ? `${mheDrillSeller.seller_name} — MHE Trend` : `Team MHE Trend`
+
+          return (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.78)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowMheTrendModal(false)}>
+              <div style={{ background: '#1A1A1A', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '28px', width: '820px', maxWidth: '96vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.6)', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                <button style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.06)', border: '1px solid #333', color: '#E5E7EB', cursor: 'pointer', fontSize: '1rem', padding: '4px 10px', borderRadius: '6px', lineHeight: 1 }} onClick={() => setShowMheTrendModal(false)}>✕</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid #262626' }}>
+                  {mheDrillSeller && <button style={{ background: 'transparent', border: '1px solid #444', color: '#A1A1AA', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', marginRight: '8px' }} onClick={() => setMheDrillSeller(null)}>← Back</button>}
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: isGood ? '#22C55E' : '#EF4444', boxShadow: `0 0 10px ${isGood ? '#22C55E' : '#EF4444'}` }} />
+                  <span style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff' }}>{title}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '24px', flexDirection: 'row' }}>
+                  <div style={{ flex: 1, minWidth: '400px', height: '260px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid #262626', padding: '16px' }}>
+                    {labels.length > 0 ? (
+                      <MheTrendChart labels={labels} values={values} color={isGood ? '#22C55E' : '#EF4444'} />
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#555', fontSize: '0.85rem', fontStyle: 'italic' }}>No MHE data for this month yet.</div>
+                    )}
+                  </div>
+                  <div style={{ width: '260px' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F0EDE8', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid #262626' }}>Team Drill-down</div>
+                    <div style={{ maxHeight: '220px', overflowY: 'auto', paddingRight: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {processedGroups.map((g: any) => {
+                        let tlSum = 0;
+                        let tlCount = 0;
+                        g.members.forEach((s: any) => {
+                          const r = (s.monthly_lta_rows || []).find((x: any) => x.log_date === targetDay)
+                          if (r && typeof r.mishandled_pct === 'number') {
+                            tlSum += r.mishandled_pct * 100
+                            tlCount++
+                          }
+                        })
+                        const tlAvg = tlCount > 0 ? parseFloat((tlSum / tlCount).toFixed(1)) : 0
+                        return (
+                        <div key={g.l2_email} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div 
+                            onClick={() => {
+                              setMheExpandedTl(mheExpandedTl === g.l2_email ? null : g.l2_email);
+                              setMheDrillSeller({ ...g, isGroup: true, seller_name: `Team ${g.l2_name}` });
+                            }}
+                            style={{ fontSize: '0.75rem', fontWeight: 700, color: mheExpandedTl === g.l2_email ? '#F4631E' : '#A1A1AA', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '6px 8px', cursor: 'pointer', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ transform: mheExpandedTl === g.l2_email ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', fontSize: '0.6rem' }}>▶</span>
+                              {g.l2_name}
+                            </div>
+                            <span style={{ color: tlAvg <= 20 ? '#22C55E' : '#EF4444', fontWeight: 500 }}>{tlAvg}%</span>
+                          </div>
+                          {mheExpandedTl === g.l2_email && g.members.map((s: any) => {
+                            const r = (s.monthly_lta_rows || []).find((x: any) => x.log_date === targetDay)
+                            const mAvg = r && typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
+                            return (
+                              <div key={s.seller_email} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: mheDrillSeller?.seller_email === s.seller_email ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }} onClick={() => setMheDrillSeller(s)}>
+                                <span style={{ color: '#E5E7EB' }}>{s.seller_name}</span>
+                                <span style={{ color: mAvg <= 20 ? '#22C55E' : '#EF4444', fontWeight: 500 }}>{mAvg}%</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )})}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Goal vs SHB Trend Modal */}
+        {showGoalShbTrendModal && (() => {
+          const targetDay = date || todayStr();
+          const dayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
+          const targetDateObj = new Date(targetDay);
+          for (let i = 1; i <= targetDateObj.getDate(); i++) {
+            const dStr = `${targetDateObj.getFullYear()}-${String(targetDateObj.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            dayMap[dStr] = { goalSum: 0, shbSum: 0, count: 0 };
+          }
+          const activeSellers = goalShbDrillSeller ? (goalShbDrillSeller.isGroup ? goalShbDrillSeller.members : [goalShbDrillSeller]) : allMembers
+          activeSellers.forEach((m: any) => {
+            ;(m.monthly_goal_shb || []).forEach((r: any) => {
+              const d = r.date
+              if (!d) return
+              if (!dayMap[d]) dayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
+              dayMap[d].goalSum += typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
+              dayMap[d].shbSum += typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
+              dayMap[d].count += 1
+            })
+          })
+          const sortedDays = Object.keys(dayMap).sort()
+          const labels = sortedDays.map(d => {
+            const dt = new Date(d)
+            return `${dt.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()]}`
+          })
+          const goalValues = sortedDays.map(d => dayMap[d].count > 0 ? parseFloat((dayMap[d].goalSum / dayMap[d].count).toFixed(0)) : 0)
+          const shbValues = sortedDays.map(d => dayMap[d].count > 0 ? parseFloat((dayMap[d].shbSum / dayMap[d].count).toFixed(0)) : 0)
+          const hasData = goalValues.some(v => v > 0) || shbValues.some(v => v > 0)
+          const title = goalShbDrillSeller ? `${goalShbDrillSeller.seller_name} — Goal vs SHB` : `Team Goal vs SHB`
+
+          return (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.78)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowGoalShbTrendModal(false)}>
+              <div style={{ background: '#1A1A1A', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '28px', width: '820px', maxWidth: '96vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.6)', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                <button style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.06)', border: '1px solid #333', color: '#E5E7EB', cursor: 'pointer', fontSize: '1rem', padding: '4px 10px', borderRadius: '6px', lineHeight: 1 }} onClick={() => setShowGoalShbTrendModal(false)}>✕</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid #262626' }}>
+                  {goalShbDrillSeller && <button style={{ background: 'transparent', border: '1px solid #444', color: '#A1A1AA', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', marginRight: '8px' }} onClick={() => setGoalShbDrillSeller(null)}>← Back</button>}
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 10px #3B82F6' }} />
+                  <span style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff' }}>{title}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '24px', flexDirection: 'row' }}>
+                  <div style={{ flex: 2, height: '280px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid #262626', padding: '16px' }}>
+                    {hasData ? <GoalShbTrendChart labels={labels} goalValues={goalValues} shbValues={shbValues} /> : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#555', fontSize: '0.85rem', fontStyle: 'italic' }}>No data for this month yet.</div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, borderLeft: '1px solid #262626', paddingLeft: '20px' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F0EDE8', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid #262626' }}>Team Drill-down</div>
+                    <div style={{ maxHeight: '240px', overflowY: 'auto', paddingRight: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {processedGroups.map((g: any) => {
+                        let tlGoalSum = 0;
+                        let tlShbSum = 0;
+                        let tlMemberCount = 0;
+                        g.members.forEach((s: any) => {
+                          const r = (s.monthly_goal_shb || []).find((x: any) => x.date === (date || todayStr()))
+                          if (r) {
+                            tlGoalSum += typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
+                            tlShbSum += typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
+                            tlMemberCount++
+                          }
+                        })
+                        const tlGoalAvg = tlMemberCount > 0 ? parseFloat((tlGoalSum / tlMemberCount).toFixed(1)) : 0
+                        const tlShbAvg = tlMemberCount > 0 ? parseFloat((tlShbSum / tlMemberCount).toFixed(1)) : 0
+                        return (
+                        <div key={g.l2_email} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div 
+                            onClick={() => {
+                              setGoalShbExpandedTl(goalShbExpandedTl === g.l2_email ? null : g.l2_email);
+                              setGoalShbDrillSeller({ ...g, isGroup: true, seller_name: `Team ${g.l2_name}` });
+                            }}
+                            style={{ fontSize: '0.75rem', fontWeight: 700, color: goalShbExpandedTl === g.l2_email ? '#3B82F6' : '#A1A1AA', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '6px 8px', cursor: 'pointer', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ transform: goalShbExpandedTl === g.l2_email ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', fontSize: '0.6rem' }}>▶</span>
+                              {g.l2_name}
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                              <span style={{ color: '#3B82F6', fontWeight: 500 }}>{tlGoalAvg}%</span>
+                              <span style={{ color: '#EAB308', fontWeight: 500 }}>{tlShbAvg}%</span>
+                            </div>
+                          </div>
+                          {goalShbExpandedTl === g.l2_email && g.members.map((s: any) => {
+                            const r = (s.monthly_goal_shb || []).find((x: any) => x.date === (date || todayStr()))
+                            const mgAvg = r ? parseFloat(((r.goal_completion || 0) * 100).toFixed(1)) : 0
+                            const msAvg = r ? parseFloat(((r.shb_percent || 0) * 100).toFixed(1)) : 0
+                            return (
+                              <div key={s.seller_email} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: goalShbDrillSeller?.seller_email === s.seller_email ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }} onClick={() => setGoalShbDrillSeller(s)}>
+                                <span style={{ color: '#E5E7EB' }}>{s.seller_name}</span>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                  <span style={{ color: '#3B82F6', fontWeight: 500 }}>{mgAvg}%</span>
+                                  <span style={{ color: '#EAB308', fontWeight: 500 }}>{msAvg}%</span>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )})}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
+      </div>
   )
 }
