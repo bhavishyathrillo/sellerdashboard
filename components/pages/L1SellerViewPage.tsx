@@ -441,9 +441,9 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 
  
   const hourlyMap = (() => {
-    const map = {}
+    const map: Record<string, number> = {}
     allMembers.forEach((m) => {
-      (m.hourly || []).forEach((h) => {
+      (m.hourly || []).forEach((h: any) => {
         let bucket = h.hour_bucket?.toString()?.toUpperCase() || ''
         if (bucket.includes(':')) {
           const parts = extractTimeParts(bucket)

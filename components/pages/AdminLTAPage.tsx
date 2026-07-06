@@ -1316,83 +1316,243 @@ function FirstLeadSection({ hierarchy }: { hierarchy: any[] }) {
   )
 }
 
-/* ─── LTA Section (with funnel drill-down) ─── */
-function LTASection({ hierarchy }: { hierarchy: any[] }) {
+/* ─── LTA Section — Premium Card Design ─── */
+function LTASection({ hierarchy, onFunnelClick }: { hierarchy: any[]; onFunnelClick: (sellers: any[], title: string) => void }) {
   const [expandedCat, setExpandedCat] = useState<string | null>(null)
   const [expandedTl, setExpandedTl] = useState<string | null>(null)
 
-  return (
-    <div className="la-table-wrap">
-      <table className="la-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Allotted</th>
-            <th>Planned</th>
-            <th>Actual</th>
-            <th>Fulfillment %</th>
-          </tr>
-        </thead>
-        <tbody>
-          {hierarchy.map(cat => {
-            const allSellers = cat.tls.flatMap((t: any) => t.sellers)
-            const allotted = allSellers.reduce((s: number, e: any) => s + (e.totalLeads || 0), 0)
-            const planned = allSellers.reduce((s: number, e: any) => s + (e.ltaPlanned || 0), 0)
-            const actual = allSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
-            const catFulf = actual > 0 ? Math.round((allotted / actual) * 100) : 0
-            const catColor = catFulf >= 90 ? '#22C55E' : catFulf >= 70 ? '#F59E0B' : '#EF4444'
-            const catKey = cat.category_name
+  // Org-level totals
+  const allSellersOrg = hierarchy.flatMap(cat => cat.tls.flatMap((t: any) => t.sellers))
+  const orgAllotted = allSellersOrg.reduce((s: number, e: any) => s + (e.totalLeads || 0), 0)
+  const orgPlanned = allSellersOrg.reduce((s: number, e: any) => s + (e.ltaPlanned || 0), 0)
+  const orgActual = allSellersOrg.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+  const orgFulf = orgActual > 0 ? Math.min(100, Math.round((orgAllotted / orgActual) * 100)) : 0
+  const orgFulfColor = orgFulf >= 90 ? '#22C55E' : orgFulf >= 70 ? '#EAB308' : '#EF4444'
 
-            return (
-              <React.Fragment key={catKey}>
-                <tr className="la-cat-row" onClick={() => setExpandedCat(expandedCat === catKey ? null : catKey)}>
-                  <td>{catKey}</td>
-                  <td>{allotted}</td>
-                  <td>{planned}</td>
-                  <td>{actual}</td>
-                  <td style={{ color: catColor }}>{catFulf}%</td>
-                </tr>
-                {expandedCat === catKey && cat.tls.map((tl: any) => {
-                  const tlAllotted = tl.sellers.reduce((s: number, e: any) => s + (e.totalLeads || 0), 0)
-                  const tlPlanned = tl.sellers.reduce((s: number, e: any) => s + (e.ltaPlanned || 0), 0)
-                  const tlActual = tl.sellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
-                  const tlFulf = tlActual > 0 ? Math.round((tlAllotted / tlActual) * 100) : 0
-                  const tlColor = tlFulf >= 90 ? '#22C55E' : tlFulf >= 70 ? '#F59E0B' : '#EF4444'
+  return (
+    <div style={{ padding: '4px 0' }}>
+      {/* Org summary bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', background: '#111', border: '1px solid #1E1E1E', borderRadius: '12px', padding: '14px 20px', marginBottom: '20px' }}>
+        <div>
+          <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Org Planned</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#8A8278' }}>{orgPlanned}</div>
+        </div>
+        <div style={{ width: '1px', height: '36px', background: '#1E1E1E' }} />
+        <div>
+          <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Org Final LTA</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#22C55E' }}>{orgActual}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Allotted</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F0EDE8' }}>{orgAllotted}</div>
+        </div>
+        <div style={{ flex: 1, minWidth: '140px' }}>
+          <div style={{ fontSize: '0.55rem', color: '#5A5650', marginBottom: '5px' }}>Overall fulfillment</div>
+          <div style={{ height: '5px', background: '#1A1A1A', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${orgFulf}%`, background: orgFulfColor, borderRadius: '4px', transition: 'width 0.6s ease' }} />
+          </div>
+          <div style={{ fontSize: '0.5rem', color: orgFulfColor, marginTop: '3px', fontWeight: 700 }}>{orgAllotted} allotted · {orgFulf}%</div>
+        </div>
+      </div>
+
+      {/* Per-category groups */}
+      {hierarchy.map(cat => {
+        const catSellers = cat.tls.flatMap((t: any) => t.sellers)
+        const catAllotted = catSellers.reduce((s: number, e: any) => s + (e.totalLeads || 0), 0)
+        const catPlanned = catSellers.reduce((s: number, e: any) => s + (e.ltaPlanned || 0), 0)
+        const catActual = catSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+        const catFulf = catActual > 0 ? Math.min(100, Math.round((catAllotted / catActual) * 100)) : 0
+        const catFulfColor = catFulf >= 90 ? '#22C55E' : catFulf >= 70 ? '#EAB308' : '#EF4444'
+        const catKey = cat.category_name
+        const isCatExpanded = expandedCat === catKey
+
+        return (
+          <div key={catKey} style={{ background: '#111', border: '1px solid #1E1E1E', borderRadius: '16px', marginBottom: '12px', overflow: 'hidden' }}>
+            {/* Category Header */}
+            <div
+              onClick={() => setExpandedCat(isCatExpanded ? null : catKey)}
+              style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', cursor: 'pointer', transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ display: 'inline-block', fontSize: '0.6rem', transition: 'transform 0.2s', transform: isCatExpanded ? 'rotate(90deg)' : 'none', color: '#C9A84C' }}>▶</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#C9A84C', marginBottom: '2px' }}>{catKey}</div>
+                <div style={{ fontSize: '0.55rem', color: '#5A5650' }}>{cat.tls.length} teams · {catSellers.length} sellers</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', marginBottom: '2px' }}>Planned → Final</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#F0EDE8' }}>
+                  <span style={{ color: '#8A8278' }}>{catPlanned}</span>
+                  <span style={{ color: '#3A3A3A', margin: '0 4px' }}>→</span>
+                  <span style={{ color: '#22C55E' }}>{catActual}</span>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', minWidth: '80px' }}>
+                <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', marginBottom: '4px' }}>Fulfillment</div>
+                <div style={{ height: '4px', background: '#1A1A1A', borderRadius: '4px', overflow: 'hidden', marginBottom: '3px' }}>
+                  <div style={{ height: '100%', width: `${catFulf}%`, background: catFulfColor, borderRadius: '4px' }} />
+                </div>
+                <div style={{ fontSize: '0.55rem', color: catFulfColor, fontWeight: 700 }}>{catFulf}%</div>
+              </div>
+            </div>
+
+            {/* Expanded: TL cards */}
+            {isCatExpanded && (
+              <div style={{ borderTop: '1px solid #1A1A1A', padding: '16px 20px' }}>
+                <div style={{ fontSize: '0.58rem', color: '#5A5650', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>Teams</div>
+                {cat.tls.map((tl: any) => {
+                  const tlSellers = tl.sellers
+                  const tlAllotted = tlSellers.reduce((s: number, e: any) => s + (e.totalLeads || 0), 0)
+                  const tlPlanned = tlSellers.reduce((s: number, e: any) => s + (e.ltaPlanned || 0), 0)
+                  const tlActual = tlSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+                  const tlFulf = tlActual > 0 ? Math.min(100, Math.round((tlAllotted / tlActual) * 100)) : 0
+                  const tlFulfColor = tlFulf >= 90 ? '#22C55E' : tlFulf >= 70 ? '#EAB308' : '#EF4444'
                   const tlKey = `${catKey}-${tl.tl_name}`
+                  const isTlExpanded = expandedTl === tlKey
+
+                  // Compute LTA step values for TL (aggregate of sellers)
+                  const tlDynLta = tlSellers.reduce((s: number, e: any) => s + (e.daily_lta?.real_dynamic_lta || 0), 0)
+                  const tlHygLta = tlSellers.reduce((s: number, e: any) => s + (e.daily_lta?.hygiene_lta || 0), 0)
+                  const tlRev1Lta = tlSellers.reduce((s: number, e: any) => s + (e.daily_lta?.goal_completion_logic_lta || 0), 0)
+                  const tlDynLost = tlPlanned - tlDynLta
+                  const tlHygLost = tlDynLta - tlHygLta
+                  const tlRev1Lost = tlHygLta - tlRev1Lta
+                  const tlRev2Lost = tlRev1Lta - tlActual
+
+                  const tlSteps = [
+                    { label: 'Base target', sublabel: 'Monthly goal ÷ working days', value: tlPlanned, color: '#3B82F6', drop: tlDynLost, dropLabel: tlDynLost > 0 ? 'Late login / inactive' : tlDynLost < 0 ? 'Bonus' : null },
+                    { label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: tlDynLta, color: '#EAB308', drop: tlHygLost, dropLabel: tlHygLost > 0 ? 'Hygiene penalty' : tlHygLost < 0 ? 'Bonus' : null },
+                    { label: 'After hygiene', sublabel: 'Based on mishandled leads', value: tlHygLta, color: '#F97316', drop: tlRev1Lost, dropLabel: tlRev1Lost > 0 ? 'Goal correction' : tlRev1Lost < 0 ? 'Bonus' : null },
+                    { label: 'After goal check', sublabel: 'Adjusted for goal completion', value: tlRev1Lta, color: '#8B5CF6', drop: tlRev2Lost, dropLabel: tlRev2Lost > 0 ? 'Final adjustment' : tlRev2Lost < 0 ? 'Bonus' : null },
+                    { label: "Team's final LTA", sublabel: 'Total team lead appetite', value: tlActual, color: '#22C55E', drop: null, dropLabel: null },
+                  ]
 
                   return (
-                    <React.Fragment key={tlKey}>
-                      <tr className="la-tl-row" onClick={() => setExpandedTl(expandedTl === tlKey ? null : tlKey)}>
-                        <td style={{ paddingLeft: '28px' }}>↳ {tl.tl_name}</td>
-                        <td>{tlAllotted}</td>
-                        <td>{tlPlanned}</td>
-                        <td>{tlActual}</td>
-                        <td style={{ color: tlColor }}>{tlFulf}%</td>
-                      </tr>
-                      {expandedTl === tlKey && tl.sellers.map((s: any) => {
-                        const sActual = s.ltaActual || 0
-                        const sAllotted = s.totalLeads || 0
-                        const sFulf = sActual > 0 ? Math.round((sAllotted / sActual) * 100) : 0
-                        const sColor = sFulf >= 90 ? '#22C55E' : sFulf >= 70 ? '#F59E0B' : '#EF4444'
-                        
-                        return (
-                          <tr key={s.seller_email} className="la-seller-row">
-                            <td style={{ paddingLeft: '48px' }}>{s.seller_name}</td>
-                            <td>{sAllotted}</td>
-                            <td>{s.ltaPlanned || 0}</td>
-                            <td>{sActual}</td>
-                            <td style={{ color: sColor }}>{sFulf}%</td>
-                          </tr>
-                        )
-                      })}
-                    </React.Fragment>
+                    <div key={tlKey} style={{ background: '#0A0A0A', border: '1px solid #1A1A1A', borderRadius: '12px', marginBottom: '10px', overflow: 'hidden' }}>
+                      {/* TL Header */}
+                      <div
+                        onClick={() => setExpandedTl(isTlExpanded ? null : tlKey)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', cursor: 'pointer', transition: 'background 0.2s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <span style={{ display: 'inline-block', fontSize: '0.55rem', transition: 'transform 0.2s', transform: isTlExpanded ? 'rotate(90deg)' : 'none', color: '#5A5650' }}>▶</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '1px' }}>{tl.tl_name}</div>
+                          <div style={{ fontSize: '0.52rem', color: '#5A5650' }}>{tlSellers.length} sellers</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.48rem', color: '#5A5650', textTransform: 'uppercase', marginBottom: '2px' }}>Planned → Final</div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#F0EDE8' }}>
+                            <span style={{ color: '#8A8278' }}>{tlPlanned}</span>
+                            <span style={{ color: '#3A3A3A', margin: '0 4px' }}>→</span>
+                            <span style={{ color: '#22C55E' }}>{tlActual}</span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', minWidth: '70px' }}>
+                          <div style={{ height: '3px', background: '#1A1A1A', borderRadius: '3px', overflow: 'hidden', marginBottom: '3px' }}>
+                            <div style={{ height: '100%', width: `${tlFulf}%`, background: tlFulfColor, borderRadius: '3px' }} />
+                          </div>
+                          <div style={{ fontSize: '0.52rem', color: tlFulfColor, fontWeight: 700 }}>{tlFulf}% fulfilled</div>
+                        </div>
+                        <button
+                          onClick={e => { e.stopPropagation(); onFunnelClick(tlSellers, tl.tl_name) }}
+                          style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', color: '#3B82F6', padding: '5px 10px', borderRadius: '6px', fontSize: '0.58rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.15)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(59,130,246,0.08)'}
+                        >
+                          View Funnel
+                        </button>
+                      </div>
+
+                      {/* Expanded: Step flow + seller cards */}
+                      {isTlExpanded && (
+                        <div style={{ borderTop: '1px solid #1A1A1A', padding: '14px 16px' }}>
+                          {/* Step flow */}
+                          <div style={{ fontSize: '0.55rem', color: '#5A5650', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>How this team's target was calculated</div>
+                          <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', paddingBottom: '12px', marginBottom: '14px' }}>
+                            {tlSteps.map((step, idx) => (
+                              <div key={step.label} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0 }}>
+                                <div style={{ background: '#111', border: `1px solid ${step.color}40`, borderRadius: '10px', padding: '10px 14px', minWidth: '110px', flexShrink: 0 }}>
+                                  <div style={{ fontSize: '0.52rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>{step.label}</div>
+                                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                                  <div style={{ fontSize: '0.48rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
+                                </div>
+                                {idx < tlSteps.length - 1 && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 6px', minWidth: '52px' }}>
+                                    {step.drop !== null && step.drop !== 0 && (
+                                      <div style={{ fontSize: '0.52rem', fontWeight: 700, color: step.drop > 0 ? '#EF4444' : '#22C55E', background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', padding: '2px 5px', borderRadius: '5px', marginBottom: '3px', whiteSpace: 'nowrap' }}>
+                                        {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
+                                      </div>
+                                    )}
+                                    <div style={{ fontSize: '0.46rem', color: '#4A4642', textAlign: 'center', lineHeight: 1.2, marginBottom: '3px' }}>{step.dropLabel}</div>
+                                    <span style={{ color: '#3A3A3A', fontSize: '0.9rem' }}>→</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Seller cards */}
+                          <div style={{ fontSize: '0.55rem', color: '#5A5650', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Sellers</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px' }}>
+                            {tlSellers.map((s: any) => {
+                              const sActual = s.ltaActual || 0
+                              const sAllotted = s.totalLeads || 0
+                              const sPlanned = s.ltaPlanned || 0
+                              const sFulf = sActual > 0 ? Math.min(100, Math.round((sAllotted / sActual) * 100)) : 0
+                              const lostPct = sPlanned > 0 ? ((sPlanned - sActual) / sPlanned) * 100 : 0
+                              const ltaColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#EAB308' : '#EF4444'
+                              const fulfColor = sFulf >= 90 ? '#22C55E' : sFulf >= 70 ? '#EAB308' : '#EF4444'
+
+                              return (
+                                <div
+                                  key={s.seller_email}
+                                  onClick={() => onFunnelClick([s], s.seller_name)}
+                                  style={{ background: '#111', border: `1px solid ${s.isAbsent ? 'rgba(239,68,68,0.15)' : '#1A1A1A'}`, borderRadius: '10px', padding: '12px', cursor: 'pointer', opacity: s.isAbsent ? 0.6 : 1, transition: 'border-color 0.2s, background 0.2s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = '#161616'; e.currentTarget.style.borderColor = '#2A2A2A'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = '#111'; e.currentTarget.style.borderColor = s.isAbsent ? 'rgba(239,68,68,0.15)' : '#1A1A1A'; }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#F0EDE8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.seller_name}</div>
+                                    {s.isAbsent && <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '3px', fontWeight: 700 }}>ABSENT</span>}
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+                                    <div>
+                                      <div style={{ fontSize: '0.45rem', color: '#5A5650', marginBottom: '1px', textTransform: 'uppercase' }}>Planned</div>
+                                      <div style={{ fontSize: '1rem', fontWeight: 800, color: '#8A8278' }}>{sPlanned}</div>
+                                    </div>
+                                    <div style={{ color: '#2A2A2A', alignSelf: 'center', fontSize: '0.7rem' }}>→</div>
+                                    <div>
+                                      <div style={{ fontSize: '0.45rem', color: '#5A5650', marginBottom: '1px', textTransform: 'uppercase' }}>Final</div>
+                                      <div style={{ fontSize: '1rem', fontWeight: 800, color: ltaColor }}>{sActual}</div>
+                                    </div>
+                                    <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                                      <div style={{ fontSize: '0.45rem', color: '#5A5650', marginBottom: '1px', textTransform: 'uppercase' }}>Allotted</div>
+                                      <div style={{ fontSize: '1rem', fontWeight: 800, color: '#F0EDE8' }}>{sAllotted}</div>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div style={{ height: '3px', background: '#1A1A1A', borderRadius: '3px', overflow: 'hidden', marginBottom: '3px' }}>
+                                      <div style={{ height: '100%', width: `${Math.min(100, sFulf)}%`, background: fulfColor, borderRadius: '3px', transition: 'width 0.5s ease' }} />
+                                    </div>
+                                    <div style={{ fontSize: '0.46rem', color: '#5A5650' }}>{sFulf}% fulfilled</div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )
                 })}
-              </React.Fragment>
-            )
-          })}
-        </tbody>
-      </table>
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -2428,7 +2588,10 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
 
         <div className="la-accordion">
 <AccordionSection title="LTA — Lead Time Availability" badges={[{ text: `Planned: ${orgTotalLtaPlanned}`, color: 'blue' }, { text: `Actual: ${orgTotalLtaActual}`, color: 'blue' }]}>
-            <LTASection hierarchy={hierarchy} />
+            <LTASection hierarchy={hierarchy} onFunnelClick={(sellers, title) => {
+              setFunnelTitle(title)
+              setFunnelData(aggregateLtaFunnel(sellers))
+            }} />
           </AccordionSection>
 
 <AccordionSection title="Auto vs Manual Allotment" badges={[
