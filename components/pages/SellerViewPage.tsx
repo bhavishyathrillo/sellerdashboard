@@ -652,7 +652,15 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
               bodyColor: '#E5E7EB',
               borderColor: 'rgba(255, 255, 255, 0.08)',
               borderWidth: 1,
-              cornerRadius: 6
+              cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const sum = dotChartData.reduce((s, b) => s + b.value, 0)
+                  const pctVal = sum > 0 ? ((val / sum) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
             }
           },
           cutout: '70%'
@@ -698,7 +706,15 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
             legend: { display: false },
             tooltip: {
               backgroundColor: '#111111',
-              cornerRadius: 6
+              cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const total = monthTotalLeads
+                  const pctVal = total > 0 ? ((val / total) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
             }
           },
           scales: {
@@ -752,7 +768,15 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
             legend: { display: false },
             tooltip: {
               backgroundColor: '#111111',
-              cornerRadius: 6
+              cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const total = paxVals.reduce((s, v) => s + v, 0)
+                  const pctVal = total > 0 ? ((val / total) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
             }
           },
           cutout: '70%'

@@ -188,7 +188,8 @@ export async function GET(request: NextRequest) {
         dotMap[row.dot_month] = (dotMap[row.dot_month] || 0) + (row.total_leads_allotted || 0)
       })
 
-    // Use a clean unified color for the DOT chart bars (Brand Orange fading down, or just uniform)
+    // Dynamic sequential color palette for the 6 months: shades from brand orange down to gold/mutes
+    const dotColors = ['#F4631E', '#EF562F', '#E06D3E', '#D17F4E', '#C28E5F', '#B39D70']
     const dotChartData: { label: string; value: number; color: string }[] = []
 
     for (let i = 0; i < 6; i++) {
@@ -198,7 +199,7 @@ export async function GET(request: NextRequest) {
       dotChartData.push({
         label: monthNames[monthIdx],
         value: dotMap[monthKey] || 0,
-        color: '#F4631E', // Unified brand orange
+        color: dotColors[i],
       })
     }
 
@@ -212,7 +213,7 @@ export async function GET(request: NextRequest) {
     dotChartData.push({
       label: '6+ Months',
       value: futureSum,
-      color: '#5A5650', // Muted dark gray
+      color: '#8A8278', // Muted gray
     })
 
     // DOT current month total
