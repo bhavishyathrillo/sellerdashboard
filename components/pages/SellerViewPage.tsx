@@ -192,6 +192,12 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
   const isToday = selectedDate === todayStr()
   const trendChartRef = useRef<HTMLCanvasElement>(null)
   const trendChartInstance = useRef<any>(null)
+  const dotChartCanvasRef = useRef<HTMLCanvasElement>(null)
+  const dotChartInstance = useRef<any>(null)
+  const allotmentChartCanvasRef = useRef<HTMLCanvasElement>(null)
+  const allotmentChartInstance = useRef<any>(null)
+  const paxChartCanvasRef = useRef<HTMLCanvasElement>(null)
+  const paxChartInstance = useRef<any>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -1410,28 +1416,67 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         {/* ── DOT Distribution ── */}
         {(() => {
           const totalDOT = dotChartData.reduce((s, b) => s + b.value, 0)
+          useEffect(() => {
+            if (!dotChartCanvasRef.current || !dotChartData.length) return
+            import('chart.js/auto').then(mod => {
+              const Chart = mod.default || mod
+              if (dotChartInstance.current) dotChartInstance.current.destroy()
+              const ctx = dotChartCanvasRef.current?.getContext('2d')
+              if (!ctx) return
+              dotChartInstance.current = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                  labels: dotChartData.map(d => d.label),
+                  datasets: [{
+                    data: dotChartData.map(d => d.value),
+                    backgroundColor: dotChartData.map(d => d.color),
+                    borderWidth: 1.5,
+                    borderColor: '#111111'
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                      backgroundColor: '#111111',
+                      titleColor: '#FFFFFF',
+                      bodyColor: '#E5E7EB',
+                      borderColor: 'rgba(255, 255, 255, 0.08)',
+                      borderWidth: 1,
+                      cornerRadius: 6
+                    }
+                  },
+                  cutout: '70%'
+                }
+              })
+            })
+            return () => {
+              if (dotChartInstance.current) dotChartInstance.current.destroy()
+            }
+          }, [dotChartData])
+
           return (
-            <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px' }}>
+            <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
               <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DOT Distribution</div>
-              <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '14px' }}>Date-of-travel spread · {totalDOT} leads</div>
-              {/* Stacked track */}
-              <div style={{ display: 'flex', height: '8px', borderRadius: '8px', overflow: 'hidden', gap: '2px', marginBottom: '16px' }}>
-                {dotChartData.filter(b => b.value > 0).map((bar, i) => (
-                  <div key={i} style={{ flex: bar.value, background: bar.color, transition: 'flex 0.6s ease', minWidth: '3px' }} />
-                ))}
+              <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Date-of-travel spread · {totalDOT} leads</div>
+              <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}>
+                <canvas ref={dotChartCanvasRef} />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
                 {dotChartData.map((bar, i) => {
                   const barPct = pct(bar.value, totalDOT)
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: bar.color, flexShrink: 0 }} />
-                      <div style={{ flex: 1, fontSize: '0.6rem', color: '#8A8278', fontWeight: 500 }}>{bar.label}</div>
-                      <div style={{ flex: 2, height: '14px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{ width: `${(bar.value / maxDotValue) * 100}%`, height: '100%', background: `${bar.color}80`, transition: 'width 0.6s ease', minWidth: bar.value > 0 ? '3px' : '0' }} />
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: bar.color }} />
+                        <span style={{ color: '#8A8278' }}>{bar.label}</span>
                       </div>
-                      <div style={{ width: '24px', fontSize: '0.68rem', fontWeight: 700, color: bar.value > 0 ? '#F0EDE8' : '#3A3A3A', textAlign: 'right', flexShrink: 0 }}>{bar.value}</div>
-                      <div style={{ width: '34px', fontSize: '0.55rem', fontWeight: 600, color: bar.value > 0 ? bar.color : '#3A3A3A', background: bar.value > 0 ? `${bar.color}15` : 'transparent', padding: '1px 5px', borderRadius: '100px', textAlign: 'center', flexShrink: 0 }}>{barPct}%</div>
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <span style={{ fontWeight: 700, color: bar.value > 0 ? '#F0EDE8' : '#3A3A3A' }}>{bar.value}</span>
+                        <span style={{ color: bar.value > 0 ? bar.color : '#3A3A3A', width: '32px', textAlign: 'right' }}>{barPct}%</span>
+                      </div>
                     </div>
                   )
                 })}
@@ -1442,37 +1487,74 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
 
         {/* ── Allotment Breakdown ── */}
         {(() => {
-          const autoColor = '#3B82F6', manualColor = '#8B5CF6', rtgColor = '#F4631E', nonRtgColor = '#4B5563'
           const autoVal = monthly?.auto_allotted || 0
           const manualVal = monthly?.manual_allotted || 0
           const rtgVal = monthly?.rtg_leads || 0
           const nonRtgVal = monthly?.non_rtg_leads || 0
+
+          useEffect(() => {
+            if (!allotmentChartCanvasRef.current) return
+            import('chart.js/auto').then(mod => {
+              const Chart = mod.default || mod
+              if (allotmentChartInstance.current) allotmentChartInstance.current.destroy()
+              const ctx = allotmentChartCanvasRef.current?.getContext('2d')
+              if (!ctx) return
+              allotmentChartInstance.current = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                  labels: ['Auto', 'Manual', 'RTG', 'Non-RTG'],
+                  datasets: [{
+                    data: [autoVal, manualVal, rtgVal, nonRtgVal],
+                    backgroundColor: ['#3B82F6', '#8B5CF6', '#F4631E', '#4B5563'],
+                    borderRadius: 4,
+                    barThickness: 16
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                      backgroundColor: '#111111',
+                      cornerRadius: 6
+                    }
+                  },
+                  scales: {
+                    x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { display: false } },
+                    y: { ticks: { color: '#8A8278', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.03)' } }
+                  }
+                }
+              })
+            })
+            return () => {
+              if (allotmentChartInstance.current) allotmentChartInstance.current.destroy()
+            }
+          }, [autoVal, manualVal, rtgVal, nonRtgVal])
+
           return (
-            <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px' }}>
+            <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
               <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
-              <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '14px' }}>How leads were assigned · {monthTotalLeads} total</div>
-              {/* Auto vs Manual stacked track */}
-              <div style={{ marginBottom: '14px' }}>
-                <div style={{ fontSize: '0.55rem', color: '#4A4642', marginBottom: '4px' }}>Auto vs Manual</div>
-                <div style={{ display: 'flex', height: '8px', borderRadius: '8px', overflow: 'hidden', gap: '2px' }}>
-                  {autoVal > 0 && <div style={{ flex: autoVal, background: autoColor, transition: 'flex 0.6s ease' }} />}
-                  {manualVal > 0 && <div style={{ flex: manualVal, background: manualColor, transition: 'flex 0.6s ease' }} />}
-                </div>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
-                  <div style={{ fontSize: '0.6rem', color: '#6B7280' }}><span style={{ color: autoColor, fontWeight: 700 }}>{autoVal}</span> auto ({pct(autoVal, monthTotalLeads)}%)</div>
-                  <div style={{ fontSize: '0.6rem', color: '#6B7280' }}><span style={{ color: manualColor, fontWeight: 700 }}>{manualVal}</span> manual ({pct(manualVal, monthTotalLeads)}%)</div>
-                </div>
+              <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>How leads were assigned · {monthTotalLeads} total</div>
+              <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}>
+                <canvas ref={allotmentChartCanvasRef} />
               </div>
-              {/* RTG vs Non-RTG stacked track */}
-              <div>
-                <div style={{ fontSize: '0.55rem', color: '#4A4642', marginBottom: '4px' }}>RTG vs Non-RTG</div>
-                <div style={{ display: 'flex', height: '8px', borderRadius: '8px', overflow: 'hidden', gap: '2px' }}>
-                  {rtgVal > 0 && <div style={{ flex: rtgVal, background: rtgColor, transition: 'flex 0.6s ease' }} />}
-                  {nonRtgVal > 0 && <div style={{ flex: nonRtgVal, background: nonRtgColor, transition: 'flex 0.6s ease' }} />}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                  <span style={{ color: '#8A8278' }}>Auto Allotted</span>
+                  <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{autoVal} ({pct(autoVal, monthTotalLeads)}%)</span>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
-                  <div style={{ fontSize: '0.6rem', color: '#6B7280' }}><span style={{ color: rtgColor, fontWeight: 700 }}>{rtgVal}</span> RTG ({pct(rtgVal, monthTotalLeads)}%)</div>
-                  <div style={{ fontSize: '0.6rem', color: '#6B7280' }}><span style={{ color: '#8A8278', fontWeight: 700 }}>{nonRtgVal}</span> non-RTG ({pct(nonRtgVal, monthTotalLeads)}%)</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                  <span style={{ color: '#8A8278' }}>Manual Allotted</span>
+                  <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{manualVal} ({pct(manualVal, monthTotalLeads)}%)</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                  <span style={{ color: '#8A8278' }}>RTG Leads</span>
+                  <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{rtgVal} ({pct(rtgVal, monthTotalLeads)}%)</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                  <span style={{ color: '#8A8278' }}>Non-RTG Leads</span>
+                  <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{nonRtgVal} ({pct(nonRtgVal, monthTotalLeads)}%)</span>
                 </div>
               </div>
             </div>
@@ -1484,28 +1566,65 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
           const paxColors = ['#F9FAFB', '#D1D5DB', '#9CA3AF', '#6B7280', '#4B5563']
           const paxLabels = ['Solo (1)', '2 pax', '3 pax', '4 pax', '4+ pax']
           const paxVals = [monthly?.pax_1 || 0, monthly?.pax_2 || 0, monthly?.pax_3 || 0, monthly?.pax_4 || 0, monthly?.pax_4_plus || 0]
+
+          useEffect(() => {
+            if (!paxChartCanvasRef.current) return
+            import('chart.js/auto').then(mod => {
+              const Chart = mod.default || mod
+              if (paxChartInstance.current) paxChartInstance.current.destroy()
+              const ctx = paxChartCanvasRef.current?.getContext('2d')
+              if (!ctx) return
+              paxChartInstance.current = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                  labels: paxLabels,
+                  datasets: [{
+                    data: paxVals,
+                    backgroundColor: paxColors,
+                    borderWidth: 1.5,
+                    borderColor: '#111111'
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                      backgroundColor: '#111111',
+                      cornerRadius: 6
+                    }
+                  },
+                  cutout: '70%'
+                }
+              })
+            })
+            return () => {
+              if (paxChartInstance.current) paxChartInstance.current.destroy()
+            }
+          }, [paxVals])
+
           return (
-            <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px' }}>
+            <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
               <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leads by Group Size</div>
-              <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '14px' }}>Pax mix across {monthTotalLeads} leads</div>
-              {/* Segmented stacked track */}
-              <div style={{ display: 'flex', height: '8px', borderRadius: '8px', overflow: 'hidden', gap: '2px', marginBottom: '16px' }}>
-                {paxVals.map((v, i) => v > 0 ? <div key={i} style={{ flex: v, background: paxColors[i], transition: 'flex 0.6s ease', minWidth: '3px' }} /> : null)}
+              <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Pax mix across {monthTotalLeads} leads</div>
+              <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}>
+                <canvas ref={paxChartCanvasRef} />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
                 {paxLabels.map((label, i) => {
                   const val = paxVals[i]
                   const barPct = pct(val, monthTotalPax)
-                  const maxPax = Math.max(...paxVals, 1)
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: paxColors[i], flexShrink: 0 }} />
-                      <div style={{ flex: 1, fontSize: '0.6rem', color: '#8A8278', fontWeight: 500 }}>{label}</div>
-                      <div style={{ flex: 2, height: '14px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{ width: `${(val / maxPax) * 100}%`, height: '100%', background: `${paxColors[i]}70`, transition: 'width 0.6s ease', minWidth: val > 0 ? '3px' : '0' }} />
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: paxColors[i] }} />
+                        <span style={{ color: '#8A8278' }}>{label}</span>
                       </div>
-                      <div style={{ width: '24px', fontSize: '0.68rem', fontWeight: 700, color: val > 0 ? '#F0EDE8' : '#3A3A3A', textAlign: 'right', flexShrink: 0 }}>{val}</div>
-                      <div style={{ width: '34px', fontSize: '0.55rem', fontWeight: 600, color: val > 0 ? paxColors[i] : '#3A3A3A', background: val > 0 ? `${paxColors[i]}15` : 'transparent', padding: '1px 5px', borderRadius: '100px', textAlign: 'center', flexShrink: 0 }}>{barPct}%</div>
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <span style={{ fontWeight: 700, color: val > 0 ? '#F0EDE8' : '#3A3A3A' }}>{val}</span>
+                        <span style={{ color: val > 0 ? paxColors[i] : '#3A3A3A', width: '32px', textAlign: 'right' }}>{barPct}%</span>
+                      </div>
                     </div>
                   )
                 })}
