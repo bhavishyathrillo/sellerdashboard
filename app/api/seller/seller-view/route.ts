@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
       { data: goalShbMonthData },
       { data: orbitData },
       { data: kalpitData },
+      { data: plannedLtaData },
     ] = await Promise.all([
       supabase.schema('seller_day_to_day')
         .from('daily_allotment_summary')
@@ -138,7 +139,12 @@ export async function GET(request: NextRequest) {
         .eq('seller_email', email)
         .eq('work_date', date)
         .maybeSingle(),
-      supabasePublic.from('kalpit').select('*')
+      supabasePublic.from('kalpit').select('*'),
+      supabasePublic.from('planned_lta')
+        .select('*')
+        .eq('seller_email', email)
+        .gte('log_date', monthStart)
+        .lte('log_date', monthEnd)
     ])
     
     console.log('--- DEBUG GOAL VS SHB ---')
@@ -268,8 +274,8 @@ export async function GET(request: NextRequest) {
         ? { total_leads_allotted: dotCurrentTotal, dot_month: currentMonth }
         : null,
       
-      daily_lta: ltaLogData || null,
-      lta_trend: ltaMonthData || [],
+      daily_lta: ltaLogData ? { ...ltaLogData, planned_lta_override: plannedLtaData?.find((p: any) => p.log_date === date)?.lta } : null,
+      lta_trend: (ltaMonthData || []).map((r: any) => ({ ...r, planned_lta_override: plannedLtaData?.find((p: any) => p.log_date === r.log_date)?.lta })),
       goal_vs_shb: goalVsShbData || null,
       goal_vs_shb_trend: goalShbMonthData || [],
       kalpit: kalpitData || [],

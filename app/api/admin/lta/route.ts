@@ -66,6 +66,7 @@ export async function GET(req: Request) {
       hourlyRes,
       monthlyAllotmentRes,
       ctiRes,
+      plannedLtaRes,
     ] = await Promise.all([
       // Attendance (login, breaks)
       supabase.schema('seller_day_to_day')
@@ -144,6 +145,12 @@ export async function GET(req: Request) {
         .from('seller_cti_availability')
         .select('seller_email, logged_in_at, ready_timestamps')
         .eq('work_date', queryDate),
+
+      // Planned LTA Override
+      supabase
+        .from('planned_lta')
+        .select('seller_email, lta')
+        .eq('log_date', queryDate),
     ])
 
     // ── 3. Build lookup maps ────────────────────────────────────────────
@@ -211,6 +218,11 @@ export async function GET(req: Request) {
       ctiMap.set(cleanEmail(c.seller_email), c)
     })
 
+    const plannedLtaMap = new Map<string, any>()
+    ;(plannedLtaRes.data || []).forEach((p: any) => {
+      plannedLtaMap.set(cleanEmail(p.seller_email), p)
+    })
+
     const dotRowsMap = new Map<string, any[]>()
     ;(dotRes.data || []).forEach((d: any) => {
       const email = cleanEmail(d.seller_email)
@@ -265,7 +277,12 @@ export async function GET(req: Request) {
       // LTA computations
       const leadGoal = lta?.lead_goal || 0
       const wd = lta?.wd || 0
-      const planned = wd > 0 ? Math.floor(leadGoal / wd) : 0
+      let planned = wd > 0 ? Math.floor(leadGoal / wd) : 0
+      const isAfterJuly5 = queryDate >= '2026-07-06'
+      const overrideLta = plannedLtaMap.get(email)?.lta
+      if (isAfterJuly5 && overrideLta !== undefined) {
+        planned = overrideLta
+      }
       const finalLta = Math.floor(lta?.final_lta || 0)
       const mhePct = (lta?.mishandled_pct || 0) * 100
 
