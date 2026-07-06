@@ -620,6 +620,151 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
     { label: '4+ pax', value: monthly?.pax_4_plus || 0, color: '#6B7280' },
   ]
 
+  // DOT Doughnut Chart
+  useEffect(() => {
+    if (!dotChartCanvasRef.current || !dotChartData.length) return
+    let active = true
+    import('chart.js/auto').then(mod => {
+      if (!active) return
+      const Chart = mod.default || mod
+      if (dotChartInstance.current) dotChartInstance.current.destroy()
+      const ctx = dotChartCanvasRef.current?.getContext('2d')
+      if (!ctx) return
+      dotChartInstance.current = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: dotChartData.map(d => d.label),
+          datasets: [{
+            data: dotChartData.map(d => d.value),
+            backgroundColor: dotChartData.map(d => d.color),
+            borderWidth: 1.5,
+            borderColor: '#111111'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111',
+              titleColor: '#FFFFFF',
+              bodyColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              borderWidth: 1,
+              cornerRadius: 6
+            }
+          },
+          cutout: '70%'
+        }
+      })
+    })
+    return () => {
+      active = false
+      if (dotChartInstance.current) dotChartInstance.current.destroy()
+    }
+  }, [dotChartData])
+
+  // Allotment Bar Chart
+  const autoVal = monthly?.auto_allotted || 0
+  const manualVal = monthly?.manual_allotted || 0
+  const rtgVal = monthly?.rtg_leads || 0
+  const nonRtgVal = monthly?.non_rtg_leads || 0
+
+  useEffect(() => {
+    if (!allotmentChartCanvasRef.current) return
+    let active = true
+    import('chart.js/auto').then(mod => {
+      if (!active) return
+      const Chart = mod.default || mod
+      if (allotmentChartInstance.current) allotmentChartInstance.current.destroy()
+      const ctx = allotmentChartCanvasRef.current?.getContext('2d')
+      if (!ctx) return
+      allotmentChartInstance.current = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Auto', 'Manual', 'RTG', 'Non-RTG'],
+          datasets: [{
+            data: [autoVal, manualVal, rtgVal, nonRtgVal],
+            backgroundColor: ['#3B82F6', '#8B5CF6', '#F4631E', '#4B5563'],
+            borderRadius: 4,
+            barThickness: 16
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111',
+              cornerRadius: 6
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { display: false } },
+            y: { ticks: { color: '#8A8278', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.03)' } }
+          }
+        }
+      })
+    })
+    return () => {
+      active = false
+      if (allotmentChartInstance.current) allotmentChartInstance.current.destroy()
+    }
+  }, [autoVal, manualVal, rtgVal, nonRtgVal])
+
+  // PAX Doughnut Chart
+  const paxColors = ['#F9FAFB', '#D1D5DB', '#9CA3AF', '#6B7280', '#4B5563']
+  const paxLabels = ['Solo (1)', '2 pax', '3 pax', '4 pax', '4+ pax']
+  const paxVals = useMemo(() => [
+    monthly?.pax_1 || 0,
+    monthly?.pax_2 || 0,
+    monthly?.pax_3 || 0,
+    monthly?.pax_4 || 0,
+    monthly?.pax_4_plus || 0
+  ], [monthly])
+
+  useEffect(() => {
+    if (!paxChartCanvasRef.current) return
+    let active = true
+    import('chart.js/auto').then(mod => {
+      if (!active) return
+      const Chart = mod.default || mod
+      if (paxChartInstance.current) paxChartInstance.current.destroy()
+      const ctx = paxChartCanvasRef.current?.getContext('2d')
+      if (!ctx) return
+      paxChartInstance.current = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: paxLabels,
+          datasets: [{
+            data: paxVals,
+            backgroundColor: paxColors,
+            borderWidth: 1.5,
+            borderColor: '#111111'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111',
+              cornerRadius: 6
+            }
+          },
+          cutout: '70%'
+        }
+      })
+    })
+    return () => {
+      active = false
+      if (paxChartInstance.current) paxChartInstance.current.destroy()
+    }
+  }, [paxVals])
+
   if (loading) return <Loader text="Loading..." />
   if (error) return <div className={styles.errorWrap}><span className={styles.errorIcon}>⚠</span><p>{error}</p></div>
 
@@ -1416,47 +1561,6 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         {/* ── DOT Distribution ── */}
         {(() => {
           const totalDOT = dotChartData.reduce((s, b) => s + b.value, 0)
-          useEffect(() => {
-            if (!dotChartCanvasRef.current || !dotChartData.length) return
-            import('chart.js/auto').then(mod => {
-              const Chart = mod.default || mod
-              if (dotChartInstance.current) dotChartInstance.current.destroy()
-              const ctx = dotChartCanvasRef.current?.getContext('2d')
-              if (!ctx) return
-              dotChartInstance.current = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                  labels: dotChartData.map(d => d.label),
-                  datasets: [{
-                    data: dotChartData.map(d => d.value),
-                    backgroundColor: dotChartData.map(d => d.color),
-                    borderWidth: 1.5,
-                    borderColor: '#111111'
-                  }]
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                      backgroundColor: '#111111',
-                      titleColor: '#FFFFFF',
-                      bodyColor: '#E5E7EB',
-                      borderColor: 'rgba(255, 255, 255, 0.08)',
-                      borderWidth: 1,
-                      cornerRadius: 6
-                    }
-                  },
-                  cutout: '70%'
-                }
-              })
-            })
-            return () => {
-              if (dotChartInstance.current) dotChartInstance.current.destroy()
-            }
-          }, [dotChartData])
-
           return (
             <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
               <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DOT Distribution</div>
@@ -1486,152 +1590,58 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         })()}
 
         {/* ── Allotment Breakdown ── */}
-        {(() => {
-          const autoVal = monthly?.auto_allotted || 0
-          const manualVal = monthly?.manual_allotted || 0
-          const rtgVal = monthly?.rtg_leads || 0
-          const nonRtgVal = monthly?.non_rtg_leads || 0
-
-          useEffect(() => {
-            if (!allotmentChartCanvasRef.current) return
-            import('chart.js/auto').then(mod => {
-              const Chart = mod.default || mod
-              if (allotmentChartInstance.current) allotmentChartInstance.current.destroy()
-              const ctx = allotmentChartCanvasRef.current?.getContext('2d')
-              if (!ctx) return
-              allotmentChartInstance.current = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                  labels: ['Auto', 'Manual', 'RTG', 'Non-RTG'],
-                  datasets: [{
-                    data: [autoVal, manualVal, rtgVal, nonRtgVal],
-                    backgroundColor: ['#3B82F6', '#8B5CF6', '#F4631E', '#4B5563'],
-                    borderRadius: 4,
-                    barThickness: 16
-                  }]
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                      backgroundColor: '#111111',
-                      cornerRadius: 6
-                    }
-                  },
-                  scales: {
-                    x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { display: false } },
-                    y: { ticks: { color: '#8A8278', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.03)' } }
-                  }
-                }
-              })
-            })
-            return () => {
-              if (allotmentChartInstance.current) allotmentChartInstance.current.destroy()
-            }
-          }, [autoVal, manualVal, rtgVal, nonRtgVal])
-
-          return (
-            <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
-              <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>How leads were assigned · {monthTotalLeads} total</div>
-              <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}>
-                <canvas ref={allotmentChartCanvasRef} />
-              </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
-                  <span style={{ color: '#8A8278' }}>Auto Allotted</span>
-                  <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{autoVal} ({pct(autoVal, monthTotalLeads)}%)</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
-                  <span style={{ color: '#8A8278' }}>Manual Allotted</span>
-                  <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{manualVal} ({pct(manualVal, monthTotalLeads)}%)</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
-                  <span style={{ color: '#8A8278' }}>RTG Leads</span>
-                  <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{rtgVal} ({pct(rtgVal, monthTotalLeads)}%)</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
-                  <span style={{ color: '#8A8278' }}>Non-RTG Leads</span>
-                  <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{nonRtgVal} ({pct(nonRtgVal, monthTotalLeads)}%)</span>
-                </div>
-              </div>
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>How leads were assigned · {monthTotalLeads} total</div>
+          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}>
+            <canvas ref={allotmentChartCanvasRef} />
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+              <span style={{ color: '#8A8278' }}>Auto Allotted</span>
+              <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{autoVal} ({pct(autoVal, monthTotalLeads)}%)</span>
             </div>
-          )
-        })()}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+              <span style={{ color: '#8A8278' }}>Manual Allotted</span>
+              <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{manualVal} ({pct(manualVal, monthTotalLeads)}%)</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+              <span style={{ color: '#8A8278' }}>RTG Leads</span>
+              <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{rtgVal} ({pct(rtgVal, monthTotalLeads)}%)</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+              <span style={{ color: '#8A8278' }}>Non-RTG Leads</span>
+              <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{nonRtgVal} ({pct(nonRtgVal, monthTotalLeads)}%)</span>
+            </div>
+          </div>
+        </div>
 
         {/* ── PAX Distribution ── */}
-        {(() => {
-          const paxColors = ['#F9FAFB', '#D1D5DB', '#9CA3AF', '#6B7280', '#4B5563']
-          const paxLabels = ['Solo (1)', '2 pax', '3 pax', '4 pax', '4+ pax']
-          const paxVals = [monthly?.pax_1 || 0, monthly?.pax_2 || 0, monthly?.pax_3 || 0, monthly?.pax_4 || 0, monthly?.pax_4_plus || 0]
-
-          useEffect(() => {
-            if (!paxChartCanvasRef.current) return
-            import('chart.js/auto').then(mod => {
-              const Chart = mod.default || mod
-              if (paxChartInstance.current) paxChartInstance.current.destroy()
-              const ctx = paxChartCanvasRef.current?.getContext('2d')
-              if (!ctx) return
-              paxChartInstance.current = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                  labels: paxLabels,
-                  datasets: [{
-                    data: paxVals,
-                    backgroundColor: paxColors,
-                    borderWidth: 1.5,
-                    borderColor: '#111111'
-                  }]
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                      backgroundColor: '#111111',
-                      cornerRadius: 6
-                    }
-                  },
-                  cutout: '70%'
-                }
-              })
-            })
-            return () => {
-              if (paxChartInstance.current) paxChartInstance.current.destroy()
-            }
-          }, [paxVals])
-
-          return (
-            <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leads by Group Size</div>
-              <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Pax mix across {monthTotalLeads} leads</div>
-              <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}>
-                <canvas ref={paxChartCanvasRef} />
-              </div>
-              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
-                {paxLabels.map((label, i) => {
-                  const val = paxVals[i]
-                  const barPct = pct(val, monthTotalPax)
-                  return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: paxColors[i] }} />
-                        <span style={{ color: '#8A8278' }}>{label}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <span style={{ fontWeight: 700, color: val > 0 ? '#F0EDE8' : '#3A3A3A' }}>{val}</span>
-                        <span style={{ color: val > 0 ? paxColors[i] : '#3A3A3A', width: '32px', textAlign: 'right' }}>{barPct}%</span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })()}
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leads by Group Size</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Pax mix across {monthTotalLeads} leads</div>
+          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}>
+            <canvas ref={paxChartCanvasRef} />
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
+            {paxLabels.map((label, i) => {
+              const val = paxVals[i]
+              const barPct = pct(val, monthTotalPax)
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: paxColors[i] }} />
+                    <span style={{ color: '#8A8278' }}>{label}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <span style={{ fontWeight: 700, color: val > 0 ? '#F0EDE8' : '#3A3A3A' }}>{val}</span>
+                    <span style={{ color: val > 0 ? paxColors[i] : '#3A3A3A', width: '32px', textAlign: 'right' }}>{barPct}%</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Modals */}
