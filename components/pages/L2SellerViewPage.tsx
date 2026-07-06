@@ -290,17 +290,9 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
 
   const members = teamData?.members || []
 
-  if (viewMode === 'personal') {
-    const toggleNode = members.length > 1 ? (
-      <div className={styles.toggleContainer}>
-        <button className={`${styles.toggleBtn} ${(viewMode as string) === 'personal' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('personal')}>Personal</button>
-        <button className={`${styles.toggleBtn} ${(viewMode as string) === 'team' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('team')}>My Team ({members.length})</button>
-      </div>
-    ) : undefined;
-    return <SellerViewPage session={session} headerCenterContent={toggleNode} />
-  }
 
-  if (loading) return <Loader text="Loading TL dashboard..." />
+
+
 
   
   // Make sure the TL is in the members list if not already (backend usually does, but just in case)
@@ -360,9 +352,9 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   const noLeadsCount = noLeadsSellers.length
 
   const hourlyMap = (() => {
-    const map = {}
-    enrichedMembers.forEach((m) => {
-      (m.hourly || []).forEach((h) => {
+    const map: Record<string, number> = {}
+    enrichedMembers.forEach((m: any) => {
+      (m.hourly || []).forEach((h: any) => {
         let bucket = h.hour_bucket?.toString()?.toUpperCase() || ''
         if (bucket.includes(':')) {
           const parts = extractTimeParts(bucket)
@@ -497,7 +489,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       if (!active) return;
       const Chart = mod.default || mod;
       if (dotChartInstance.current) dotChartInstance.current.destroy();
-      dotChartInstance.current = new Chart(dotChartCanvasRef.current, {
+      dotChartInstance.current = new Chart(dotChartCanvasRef.current!, {
         type: 'bar',
         data: { labels: teamDotChartData.map((d: any) => d.label.split(' ')[0]), datasets: [{ data: teamDotChartData.map((d: any) => d.value), backgroundColor: teamDotChartData.map((d: any) => d.color), borderRadius: 4, barThickness: 16 }] },
         options: {
@@ -518,7 +510,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       if (!active) return;
       const Chart = mod.default || mod;
       if (allotmentChartInstance.current) allotmentChartInstance.current.destroy();
-      allotmentChartInstance.current = new Chart(allotmentChartCanvasRef.current, {
+      allotmentChartInstance.current = new Chart(allotmentChartCanvasRef.current!, {
         type: 'bar',
         data: { labels: teamAllotmentRows.map((d: any) => d.label), datasets: [{ data: teamAllotmentRows.map((d: any) => d.value), backgroundColor: teamAllotmentRows.map((d: any) => d.color), borderRadius: 4, barThickness: 16 }] },
         options: {
@@ -539,7 +531,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       if (!active) return;
       const Chart = mod.default || mod;
       if (paxChartInstance.current) paxChartInstance.current.destroy();
-      paxChartInstance.current = new Chart(paxChartCanvasRef.current, {
+      paxChartInstance.current = new Chart(paxChartCanvasRef.current!, {
         type: 'doughnut',
         data: { labels: teamPaxRows.map((d: any) => d.label), datasets: [{ data: teamPaxRows.map((d: any) => d.value), backgroundColor: teamPaxRows.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
         options: {
@@ -551,6 +543,18 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
     });
     return () => { active = false; if (paxChartInstance.current) paxChartInstance.current.destroy(); }
   }, [teamPaxRows]);
+
+  if (loading) return <Loader text="Loading TL dashboard..." />
+
+  if (viewMode === 'personal') {
+    const toggleNode = members.length > 1 ? (
+      <div className={styles.toggleContainer}>
+        <button className={`${styles.toggleBtn} ${(viewMode as string) === 'personal' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('personal')}>Personal</button>
+        <button className={`${styles.toggleBtn} ${(viewMode as string) === 'team' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('team')}>My Team ({members.length})</button>
+      </div>
+    ) : undefined;
+    return <SellerViewPage session={session} headerCenterContent={toggleNode} />
+  }
 
   return (
     <div className={styles.page}>
@@ -698,12 +702,12 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
 
         {/* MHE Trend */}
-        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => { setMheDrillSeller(null); setShowMheTrendModal(true); }}>
+        <div className={styles.kpiTile}>
           <div className={styles.kpiLabel}>MHE Trend <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span></div>
           {(() => {
-            const dayMap = {}
-            enrichedMembers.forEach((m) => {
-              (m.monthly_lta_logs || []).forEach((r) => {
+            const dayMap: Record<string, any> = {}
+            enrichedMembers.forEach((m: any) => {
+              (m.monthly_lta_logs || []).forEach((r: any) => {
                 const d = r.log_date
                 if (!d) return
                 const pct = typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
@@ -736,13 +740,13 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
 
         {/* Goal vs SHB */}
-        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => { setGoalShbDrillSeller(null); setShowGoalShbTrendModal(true); }}>
+        <div className={styles.kpiTile}>
           <div className={styles.kpiLabel}>Goal vs SHB <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span></div>
           {(() => {
             const targetDay = date || todayStr();
-            const dayMap = {}
-            enrichedMembers.forEach((m) => {
-              (m.monthly_goal_shb || []).forEach((r) => {
+            const dayMap: Record<string, any> = {}
+            enrichedMembers.forEach((m: any) => {
+              (m.monthly_goal_shb || []).forEach((r: any) => {
                 const d = r.date
                 if (!d) return
                 const goalPct = typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
@@ -1251,40 +1255,25 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', marginBottom: '24px' }}>
 
         {/* ── DOT Bar Chart (Horizontal) ── */}
-        <div 
-          style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', cursor: 'pointer', transition: 'border-color 0.2s' }}
-          onClick={() => setActiveBreakdownCard(activeBreakdownCard === 'dot' ? null : 'dot')}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = '#333')}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = '#1e1e1e')}
-        >
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DOT Distribution</div>
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DOT Distribution</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Date-of-travel spread</div>
           <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={dotChartCanvasRef} /></div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
             {teamDotChartData.map((bar, i) => {
               const totalDOT = teamDotChartData.reduce((s, b) => s + b.value, 0)
-              const barPct = pct(bar.value, totalDOT)
+              const barPct = totalDOT > 0 ? Math.round((bar.value / totalDOT) * 100) : 0
               return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '52px', fontSize: '0.6rem', color: '#8A8278', textAlign: 'right', fontWeight: 500 }}>{bar.label}</div>
-                  <div style={{ flex: 1, height: '22px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
-                    <div style={{
-                      width: `${(bar.value / maxTeamDotValue) * 100}%`,
-                      height: '100%',
-                      background: `linear-gradient(90deg, ${bar.color}40, ${bar.color}90)`,
-                      borderRadius: '6px',
-                      transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                      minWidth: bar.value > 0 ? '4px' : '0',
-                    }} />
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: bar.color }} />
+                    <span style={{ color: '#8A8278' }}>{bar.label}</span>
                   </div>
-                  <div style={{ width: '30px', fontSize: '0.6rem', fontWeight: 700, color: bar.value > 0 ? bar.color : '#5A5650', textAlign: 'right' }}>{bar.value}</div>
-                  <span style={{
-                    fontSize: '0.55rem', fontWeight: 600, color: bar.value > 0 ? bar.color : '#5A5650',
-                    background: bar.value > 0 ? `${bar.color}15` : 'rgba(255,255,255,0.03)',
-                    padding: '2px 8px', borderRadius: '100px', minWidth: '38px', textAlign: 'center',
-                  }}>
-                    {barPct}%
-                  </span>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <span style={{ fontWeight: 700, color: bar.value > 0 ? '#F0EDE8' : '#3A3A3A' }}>{bar.value}</span>
+                    <span style={{ color: bar.value > 0 ? bar.color : '#3A3A3A', width: '32px', textAlign: 'right' }}>{barPct}%</span>
+                  </div>
                 </div>
               )
             })}
@@ -1292,26 +1281,20 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
 
         {/* ── Allotment Breakdown ── */}
-        <div 
-          style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', cursor: 'pointer', transition: 'border-color 0.2s' }}
-          onClick={() => setActiveBreakdownCard(activeBreakdownCard === 'allotment' ? null : 'allotment')}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = '#333')}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = '#1e1e1e')}
-        >
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>How leads were assigned</div>
           <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={allotmentChartCanvasRef} /></div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
             {teamAllotmentRows.map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: item.color, flexShrink: 0 }} />
-                <span style={{ fontSize: '0.64rem', color: '#8A8278', flex: 1 }}>{item.label}</span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: item.value > 0 ? item.color : '#5A5650' }}>{item.value}</span>
-                <span style={{
-                  fontSize: '0.55rem', fontWeight: 600, color: item.color,
-                  background: `${item.color}15`, padding: '2px 8px', borderRadius: '100px',
-                }}>
-                  {pct(item.value, teamMonthlyTotalLeads)}%
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }} />
+                  <span style={{ color: '#8A8278' }}>{item.label}</span>
+                </div>
+                <span style={{ color: '#F0EDE8', fontWeight: 700 }}>
+                  {item.value} ({teamMonthlyTotalLeads > 0 ? Math.round((item.value / teamMonthlyTotalLeads) * 100) : 0}%)
                 </span>
               </div>
             ))}
@@ -1319,27 +1302,24 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
 
         {/* ── PAX Distribution ── */}
-        <div 
-          style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', cursor: 'pointer', transition: 'border-color 0.2s' }}
-          onClick={() => setActiveBreakdownCard(activeBreakdownCard === 'pax' ? null : 'pax')}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = '#333')}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = '#1e1e1e')}
-        >
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leads by Group Size</div>
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leads by Group Size</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Pax mix across leads</div>
           <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={paxChartCanvasRef} /></div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
             {teamPaxRows.map((p, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: p.color, flexShrink: 0 }} />
-                <span style={{ fontSize: '0.64rem', color: '#8A8278', flex: 1 }}>{p.label}</span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: p.value > 0 ? p.color : '#5A5650' }}>{p.value}</span>
-                <span style={{
-                  fontSize: '0.55rem', fontWeight: 600, color: p.color,
-                  background: `${p.color}15`, padding: '2px 8px', borderRadius: '100px',
-                }}>
-                  {pct(p.value, teamMonthlyTotalPax)}%
-                </span>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: p.color }} />
+                  <span style={{ color: '#8A8278' }}>{p.label}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <span style={{ fontWeight: 700, color: p.value > 0 ? '#F0EDE8' : '#3A3A3A' }}>{p.value}</span>
+                  <span style={{ color: p.value > 0 ? p.color : '#3A3A3A', width: '32px', textAlign: 'right' }}>
+                    {teamMonthlyTotalPax > 0 ? Math.round((p.value / teamMonthlyTotalPax) * 100) : 0}%
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -2014,7 +1994,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       {/* Funnel Modal */}
       {drillSellerS7 && (
         <div className={sellerStyles.modalOverlay} onClick={() => setDrillSellerS7(null)}>
-          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '760px', width: '880px' }}>
+          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '940px', width: '940px' }}>
             <button className={sellerStyles.modalClose} onClick={() => setDrillSellerS7(null)}>✕</button>
             <div className={sellerStyles.modalHeader} style={{ marginBottom: '24px' }}>
               <span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} />
@@ -2037,7 +2017,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                     (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
 
                   return (
-                    <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0, opacity: isNotUsed ? 0.6 : 1 }}>
+                    <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', opacity: isNotUsed ? 0.6 : 1 }}>
                       {/* Card */}
                       <div style={{
                         background: '#0D0D0D', border: `1px solid ${isNotUsed ? '#333' : `${step.color}40`}`,
@@ -2084,7 +2064,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       {/* Team Funnel Modal */}
       {showTeamFunnel && (
         <div className={sellerStyles.modalOverlay} onClick={() => setShowTeamFunnel(false)}>
-          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '760px', width: '880px' }}>
+          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ width: 'max-content', maxWidth: '95vw', minWidth: '880px' }}>
             <button className={sellerStyles.modalClose} onClick={() => setShowTeamFunnel(false)}>✕</button>
             <div className={sellerStyles.modalHeader} style={{ marginBottom: '24px' }}>
               <span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} />
@@ -2106,7 +2086,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                     (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
 
                   return (
-                    <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0, opacity: isNotUsed ? 0.6 : 1 }}>
+                    <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', opacity: isNotUsed ? 0.6 : 1 }}>
                       {/* Card */}
                       <div style={{
                         background: '#0D0D0D', border: `1px solid ${isNotUsed ? '#333' : `${step.color}40`}`,
