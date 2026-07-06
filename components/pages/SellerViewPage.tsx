@@ -245,7 +245,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         const labels = trendData.map((d: any) => new Date(d.log_date).getDate().toString())
         const maxPlanned = Math.max(...trendData.map((d: any) => {
           const isAfterJuly5 = d.log_date >= '2026-07-06'
-          if (isAfterJuly5 && d.planned_lta_override !== undefined) return d.planned_lta_override
+          if (isAfterJuly5) return d.planned_lta_override || 0
           return d.wd > 0 ? Math.floor(d.lead_goal / d.wd) : 0
         }), 0)
         const ySuggestedMax = maxPlanned > 5 ? 10 : 5
@@ -257,7 +257,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
             datasets: [
               { label: 'Planned', data: trendData.map((d: any) => {
                 const isAfterJuly5 = d.log_date >= '2026-07-06'
-                if (isAfterJuly5 && d.planned_lta_override !== undefined) return d.planned_lta_override
+                if (isAfterJuly5) return d.planned_lta_override || 0
                 return d.wd > 0 ? Math.floor(d.lead_goal / d.wd) : 0
               }), borderColor: '#3B82F6', backgroundColor: '#3B82F6', tension: 0.3, pointRadius: 2 },
               { label: 'Dynamic', data: trendData.map((d: any) => d.real_dynamic_lta || 0), borderColor: '#EAB308', backgroundColor: '#EAB308', tension: 0.3, pointRadius: 2 },
@@ -521,8 +521,8 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
   
   let plannedLtaVal = ltaWd > 0 ? Math.floor(ltaLeadGoal / ltaWd) : 0
   const isAfterJuly5 = selectedDate >= '2026-07-06'
-  if (isAfterJuly5 && dailyLta?.planned_lta_override !== undefined) {
-    plannedLtaVal = dailyLta.planned_lta_override
+  if (isAfterJuly5) {
+    plannedLtaVal = dailyLta?.planned_lta_override || 0
   }
   const dynamicLtaVal = dailyLta.real_dynamic_lta || 0
   const hygieneLtaVal = dailyLta.hygiene_lta || 0

@@ -71,7 +71,7 @@ function computeLtaFunnel(seller: any) {
   const dl = seller?.daily_lta || {}
   const leadGoal = dl.lead_goal || 0
   const wd = dl.wd || 0
-  const planned = wd > 0 ? Math.floor(leadGoal / wd) : 0
+  const planned = seller?.ltaPlanned ?? (wd > 0 ? Math.floor(leadGoal / wd) : 0)
   const dynLta = dl.real_dynamic_lta || 0
   const hygLta = dl.hygiene_lta || 0
   const rev1Lta = dl.goal_completion_logic_lta || 0

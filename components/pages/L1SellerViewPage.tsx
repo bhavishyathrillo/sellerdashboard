@@ -311,8 +311,8 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
       
       let planned = ltaWd > 0 ? Math.floor(ltaLeadGoal / ltaWd) : 0
       const isAfterJuly5 = date >= '2026-07-06'
-      if (isAfterJuly5 && m.planned_lta_override !== undefined) {
-        planned = m.planned_lta_override
+      if (isAfterJuly5) {
+        planned = m.planned_lta_override || 0
       }
       const dynLta = dailyLta.real_dynamic_lta || 0
       const hygLta = dailyLta.hygiene_lta || 0

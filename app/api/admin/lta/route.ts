@@ -290,8 +290,8 @@ export async function GET(req: Request) {
       let planned = wd > 0 ? Math.floor(leadGoal / wd) : 0
       const isAfterJuly5 = queryDate >= '2026-07-06'
       const overrideLta = plannedLtaMap.get(email)?.lta
-      if (isAfterJuly5 && overrideLta !== undefined) {
-        planned = overrideLta
+      if (isAfterJuly5) {
+        planned = overrideLta || 0
       }
       const finalLta = Math.floor(lta?.final_lta || 0)
       const mhePct = (lta?.mishandled_pct || 0) * 100
