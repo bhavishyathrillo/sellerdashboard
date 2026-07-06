@@ -977,82 +977,168 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       </div>
       {activeSectionModal === 's7' && (
         <div className={sellerStyles.sectionContent}>
-              <div className={styles.kpiRow}>
-                <div className={styles.kpiItem}>
-                  <span className={styles.kpiLabel}>Team Planned LTA</span>
-                  <span className={styles.kpiValue}>{teamPlanned}</span>
-                </div>
-                <div className={styles.kpiItem}>
-                  <span className={styles.kpiLabel}>Team Final LTA</span>
-                  <span className={styles.kpiValue}>{teamActual}</span>
-                </div>
-                <div className={styles.kpiItem}>
-                  <span className={styles.kpiLabel}>Leads Allotted</span>
-                  <span className={styles.kpiValue}>{(() => {
-                    return enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0), 0)
-                  })()}</span>
-                </div>
-                <div className={styles.kpiItem} style={{ borderRight: 'none', paddingRight: 0 }}>
-                  <span className={styles.kpiLabel}>Fulfillment %</span>
-                  <span className={styles.kpiValue}>{(() => {
-                    const leads = enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0), 0)
-                    return teamActual > 0 ? Math.round((leads / teamActual) * 100) : 0
-                  })()}%</span>
-                </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: '24px' }}>
-                  <button onClick={() => setShowTeamFunnel(true)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #333', color: '#E5E7EB', padding: '8px 16px', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                    Team Funnel
-                  </button>
-                </div>
-              </div>
 
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Seller</th>
-                      <th>Planned LTA</th>
-                      <th>Final LTA</th>
-                      <th>Leads Allotted</th>
-                      <th>Appetite Fulfillment</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {enrichedMembers.slice().sort((a: any, b: any) => {
-                      if (a.seller_email === session.email) return -1;
-                      if (b.seller_email === session.email) return 1;
-                      return 0;
-                    }).map((m: any) => {
-                      const isYou = m.seller_email === session.email
-                      const lostPct = m.lta.planned > 0 ? (m.lta.totalLost / m.lta.planned) * 100 : 0
-                      const actualColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#F59E0B' : '#EF4444'
-                      const lostColor = m.lta.totalLost < 3 ? '#22C55E' : m.lta.totalLost <= 6 ? '#F59E0B' : '#EF4444'
-                      
-                      const leads = (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)
-                      const fulfPct = m.lta.actual > 0 ? Math.round((leads / m.lta.actual) * 100) : 0
-                      
-                      return (
-                        <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerS7(m)}>
-                          <td>
-                            {m.seller_name}
-                            {isYou && <span className={styles.youBadge}>(You)</span>}
-                            {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
-                          </td>
-                          <td>{m.lta.planned}</td>
-                          <td style={{color: actualColor, fontWeight: 600}}>
-                            {m.lta.actual}
-                          </td>
-                          <td>{leads}</td>
-                          <td style={{ color: fulfPct >= 90 ? '#22C55E' : fulfPct >= 70 ? '#F59E0B' : '#EF4444' }}>
-                            {`${fulfPct}%`}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+          {/* ── Big Team Target + Horizontal Step Flow ── */}
+          <div style={{ background: '#111', border: '1px solid #1E1E1E', borderRadius: '16px', padding: '24px 20px', marginBottom: '14px' }}>
+
+            {/* Top: Team Final LTA + progress */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: '0.65rem', color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '6px' }}>Team target for today</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                  <span style={{ fontSize: '3.2rem', fontWeight: 800, color: teamActual > 0 ? '#F4631E' : '#4A4642', lineHeight: 1 }}>{teamActual}</span>
+                  <span style={{ fontSize: '1rem', color: '#6B7280', fontWeight: 500 }}>leads</span>
+                </div>
               </div>
+              <div style={{ flex: 1, minWidth: '180px', paddingBottom: '6px' }}>
+                <div style={{ fontSize: '0.7rem', color: '#6B7280', marginBottom: '6px' }}>Leads allotted vs appetite</div>
+                <div style={{ height: '8px', background: '#1E1E1E', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: teamActual > 0 ? `${Math.min(100, Math.round((totalLeads / teamActual) * 100))}%` : '0%',
+                    background: totalLeads >= teamActual ? '#22C55E' : totalLeads >= teamActual * 0.5 ? '#EAB308' : '#F4631E',
+                    borderRadius: '8px',
+                    transition: 'width 0.6s ease'
+                  }} />
+                </div>
+                <div style={{ fontSize: '0.65rem', color: '#6B7280', marginTop: '4px' }}>
+                  {totalLeads} allotted · {teamActual > 0 ? Math.min(100, Math.round((totalLeads / teamActual) * 100)) : 0}% fulfilled
+                </div>
+              </div>
+              <button onClick={() => setShowTeamFunnel(true)} style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', color: '#3B82F6', padding: '8px 16px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'background 0.2s', whiteSpace: 'nowrap' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.15)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(59,130,246,0.08)'}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                View Team Funnel
+              </button>
+            </div>
+
+            {/* Step-by-step breakdown */}
+            <div style={{ fontSize: '0.62rem', color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '12px' }}>
+              How the team target was calculated
+            </div>
+            <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', paddingBottom: '4px' }}>
+              {(() => {
+                const steps = [
+                  { id: 'planned', label: 'Base target', sublabel: 'Monthly goal ÷ working days', value: teamPlanned, color: '#3B82F6', drop: teamDynLost, dropLabel: teamDynLost > 0 ? 'Late login / inactive' : teamDynLost < 0 ? 'Bonus added' : null },
+                  { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: teamDynLta, color: '#EAB308', drop: teamHygLost, dropLabel: teamHygLost > 0 ? 'Hygiene penalty' : teamHygLost < 0 ? 'Bonus added' : null },
+                  { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: teamHygLta, color: '#F97316', drop: teamRev1Lost, dropLabel: teamRev1Lost > 0 ? 'Goal correction' : teamRev1Lost < 0 ? 'Bonus added' : null },
+                  { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: teamRev1Lta, color: '#8B5CF6', drop: teamRev2Lost, dropLabel: teamRev2Lost > 0 ? 'Final adjustment' : teamRev2Lost < 0 ? 'Bonus added' : null },
+                  { id: 'final', label: "Team's final target", sublabel: 'Total team lead appetite', value: teamActual, color: '#22C55E', drop: null, dropLabel: null },
+                ]
+                return steps.map((step, idx) => {
+                  const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+                    (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+
+                  return (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0, opacity: isNotUsed ? 0.6 : 1 }}>
+                      {/* Step card */}
+                      <div style={{
+                        background: '#0D0D0D', border: `1px solid ${isNotUsed ? '#333' : `${step.color}40`}`,
+                        borderRadius: '10px', padding: '10px 14px', minWidth: '120px', flexShrink: 0,
+                        position: 'relative'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <div style={{ fontSize: '0.58rem', color: isNotUsed ? '#555' : step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                          {isNotUsed && (
+                            <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '4px', fontWeight: 600 }}>NOT USED</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: isNotUsed ? '#555' : '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                        <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
+                      </div>
+
+                      {/* Arrow + drop indicator */}
+                      {idx < steps.length - 1 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 8px', minWidth: '64px' }}>
+                          {step.drop !== null && step.drop !== 0 && (
+                            <div style={{
+                              fontSize: '0.58rem', fontWeight: 700,
+                              color: step.drop > 0 ? '#EF4444' : '#22C55E',
+                              background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                              padding: '2px 6px', borderRadius: '6px', marginBottom: '4px',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.55rem', color: '#4A4642', textAlign: 'center', lineHeight: 1.2, marginBottom: '4px' }}>
+                            {step.dropLabel}
+                          </div>
+                          <span style={{ color: '#3A3A3A', fontSize: '1rem' }}>→</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+          </div>
+
+          {/* ── Seller Cards Grid ── */}
+          <div style={{ fontSize: '0.62rem', color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '12px' }}>
+            Individual Sellers
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+            {enrichedMembers.slice().sort((a: any, b: any) => {
+              if (a.seller_email === session.email) return -1;
+              if (b.seller_email === session.email) return 1;
+              return 0;
+            }).map((m: any) => {
+              const isYou = m.seller_email === session.email;
+              const leads = (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0);
+              const fulfPct = m.lta.actual > 0 ? Math.round((leads / m.lta.actual) * 100) : 0;
+              const lostPct = m.lta.planned > 0 ? (m.lta.totalLost / m.lta.planned) * 100 : 0;
+              const ltaColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#EAB308' : '#EF4444';
+              const fulfColor = fulfPct >= 90 ? '#22C55E' : fulfPct >= 70 ? '#EAB308' : '#EF4444';
+
+              return (
+                <div
+                  key={m.seller_email}
+                  onClick={() => setDrillSellerS7(m)}
+                  style={{
+                    background: '#0D0D0D',
+                    border: `1px solid ${isYou ? 'rgba(244,99,30,0.3)' : m.isAbsent ? 'rgba(239,68,68,0.15)' : '#1A1A1A'}`,
+                    borderRadius: '12px', padding: '14px', cursor: 'pointer',
+                    transition: 'border-color 0.2s, background 0.2s',
+                    opacity: m.isAbsent ? 0.6 : 1,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#141414'; e.currentTarget.style.borderColor = isYou ? 'rgba(244,99,30,0.5)' : '#2A2A2A'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#0D0D0D'; e.currentTarget.style.borderColor = isYou ? 'rgba(244,99,30,0.3)' : m.isAbsent ? 'rgba(239,68,68,0.15)' : '#1A1A1A'; }}
+                >
+                  {/* Name + badges */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isYou ? '#F4631E' : '#F0EDE8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.seller_name}</div>
+                    {isYou && <span style={{ fontSize: '0.5rem', color: '#F4631E', background: 'rgba(244,99,30,0.1)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>YOU</span>}
+                    {m.isAbsent && <span style={{ fontSize: '0.5rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>ABSENT</span>}
+                  </div>
+
+                  {/* LTA numbers row */}
+                  <div style={{ display: 'flex', gap: '12px', marginBottom: '10px' }}>
+                    <div>
+                      <div style={{ fontSize: '0.5rem', color: '#5A5650', marginBottom: '2px', textTransform: 'uppercase' }}>Planned</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#8A8278', lineHeight: 1 }}>{m.lta.planned}</div>
+                    </div>
+                    <div style={{ color: '#2A2A2A', alignSelf: 'center', fontSize: '0.8rem' }}>→</div>
+                    <div>
+                      <div style={{ fontSize: '0.5rem', color: '#5A5650', marginBottom: '2px', textTransform: 'uppercase' }}>Final</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: ltaColor, lineHeight: 1 }}>{m.lta.actual}</div>
+                    </div>
+                    <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.5rem', color: '#5A5650', marginBottom: '2px', textTransform: 'uppercase' }}>Allotted</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{leads}</div>
+                    </div>
+                  </div>
+
+                  {/* Fulfillment progress bar */}
+                  <div>
+                    <div style={{ height: '4px', background: '#1A1A1A', borderRadius: '4px', overflow: 'hidden', marginBottom: '4px' }}>
+                      <div style={{ height: '100%', width: `${Math.min(100, fulfPct)}%`, background: fulfColor, borderRadius: '4px', transition: 'width 0.5s ease' }} />
+                    </div>
+                    <div style={{ fontSize: '0.52rem', color: '#5A5650' }}>{fulfPct}% fulfilled</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

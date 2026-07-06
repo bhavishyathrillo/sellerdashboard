@@ -911,74 +911,188 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 {
   activeSectionModal === 's9' && (
     <div className={sellerStyles.sectionContent}>
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Team (TL)</th>
-              <th>Planned LTA</th>
-              <th>Final LTA</th>
-              <th>Leads Allotted</th>
-              <th>Fulfillment %</th>
-            </tr>
-          </thead>
-          <tbody>
-            {processedGroups.map((g: any) => (
-              <React.Fragment key={g.l2_email}>
-                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS9, expandedTlS9)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
-                  <td style={{ fontWeight: 600, color: '#C9A84C' }}>
-                    <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS9 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
-                    {g.l2_name}
-                  </td>
-                  <td>{g.agg.teamPlanned}</td>
-                  <td style={{ color: '#22C55E', fontWeight: 600 }}>{g.agg.teamActual}</td>
-                  <td>{g.agg.totalLeads}</td>
-                  {(() => {
-                    const pct = g.agg.teamActual > 0 ? Math.round((g.agg.totalLeads / g.agg.teamActual) * 100) : 0;
-                    const color = pct >= 90 ? '#22C55E' : pct >= 70 ? '#F59E0B' : '#EF4444';
-                    return <td style={{ color: g.agg.teamActual > 0 ? color : 'inherit', fontWeight: 600 }}>{pct}%</td>;
-                  })()}
-                </tr>
 
-                {expandedTlS9 === g.l2_email && (
-                  <tr className={styles.sellerRow}>
-                    <td colSpan={5} style={{ padding: '8px 16px', background: 'rgba(0,0,0,0.2)' }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setActiveFunnelTl(g); setShowTeamFunnel(true); }}
-                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '6px 16px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
-                      >
-                        📊 View Team Funnel
-                      </button>
-                    </td>
-                  </tr>
-                )}
-                {expandedTlS9 === g.l2_email && g.members.map((m: any) => {
-                  const lostPct = m.lta.planned > 0 ? (m.lta.totalLost / m.lta.planned) * 100 : 0
-                  const actualColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#F59E0B' : '#EF4444'
-                  return (
-                    <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setActiveSellerFunnel(m)} style={{ cursor: 'pointer' }}>
-                      <td style={{ paddingLeft: '32px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {m.seller_name}
-                        {m.isAbsent && <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Absent</span>}
-                      </td>
-                      <td>{m.lta.planned}</td>
-                      <td style={{ color: m.isAbsent ? 'inherit' : actualColor, fontWeight: 600 }}>
-                        {m.lta.actual}
-                      </td>
-                      <td>{(m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)}</td>
-                      {(() => {
-                        const pct = m.lta.actual > 0 ? Math.round((((m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)) / m.lta.actual) * 100) : 0;
-                        const color = pct >= 90 ? '#22C55E' : pct >= 70 ? '#F59E0B' : '#EF4444';
-                        return <td style={{ color: m.lta.actual > 0 ? color : 'inherit', fontWeight: 600 }}>{pct}%</td>;
-                      })()}
-                    </tr>
-                  )
-                })}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+      {/* Global summary bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', background: '#111', border: '1px solid #1E1E1E', borderRadius: '12px', padding: '14px 20px', marginBottom: '16px' }}>
+        <div>
+          <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>All Teams Planned</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#8A8278' }}>{globalPlannedLta}</div>
+        </div>
+        <div style={{ width: '1px', height: '36px', background: '#1E1E1E' }} />
+        <div>
+          <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>All Teams Final</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#22C55E' }}>{globalFinalLta}</div>
+        </div>
+        <div style={{ flex: 1, minWidth: '140px' }}>
+          <div style={{ fontSize: '0.55rem', color: '#5A5650', marginBottom: '5px' }}>Overall fulfillment</div>
+          <div style={{ height: '5px', background: '#1A1A1A', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${globalFinalLta > 0 ? Math.min(100, Math.round((globalLeads / globalFinalLta) * 100)) : 0}%`, background: '#22C55E', borderRadius: '4px', transition: 'width 0.6s ease' }} />
+          </div>
+          <div style={{ fontSize: '0.5rem', color: '#5A5650', marginTop: '3px' }}>{globalLeads} allotted · {globalFinalLta > 0 ? Math.min(100, Math.round((globalLeads / globalFinalLta) * 100)) : 0}%</div>
+        </div>
       </div>
+
+      {/* Per-TL group cards */}
+      {processedGroups.map((g: any) => {
+        const gDynLta = g.members.reduce((s: number, m: any) => s + m.lta.dynLta, 0);
+        const gHygLta = g.members.reduce((s: number, m: any) => s + m.lta.hygLta, 0);
+        const gRev1Lta = g.members.reduce((s: number, m: any) => s + m.lta.rev1Lta, 0);
+        const gDynLost = g.agg.teamPlanned - gDynLta;
+        const gHygLost = gDynLta - gHygLta;
+        const gRev1Lost = gHygLta - gRev1Lta;
+        const gRev2Lost = gRev1Lta - g.agg.teamActual;
+        const gFulfPct = g.agg.teamActual > 0 ? Math.min(100, Math.round((g.agg.totalLeads / g.agg.teamActual) * 100)) : 0;
+        const gFulfColor = gFulfPct >= 90 ? '#22C55E' : gFulfPct >= 70 ? '#EAB308' : '#EF4444';
+        const isExpanded = expandedTlS9 === g.l2_email;
+
+        const ltaSteps = [
+          { id: 'planned', label: 'Base target', sublabel: 'Monthly goal ÷ working days', value: g.agg.teamPlanned, color: '#3B82F6', drop: gDynLost, dropLabel: gDynLost > 0 ? 'Late login / inactive' : gDynLost < 0 ? 'Bonus added' : null },
+          { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: gDynLta, color: '#EAB308', drop: gHygLost, dropLabel: gHygLost > 0 ? 'Hygiene penalty' : gHygLost < 0 ? 'Bonus added' : null },
+          { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: gHygLta, color: '#F97316', drop: gRev1Lost, dropLabel: gRev1Lost > 0 ? 'Goal correction' : gRev1Lost < 0 ? 'Bonus added' : null },
+          { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: gRev1Lta, color: '#8B5CF6', drop: gRev2Lost, dropLabel: gRev2Lost > 0 ? 'Final adjustment' : gRev2Lost < 0 ? 'Bonus added' : null },
+          { id: 'final', label: "Team's final target", sublabel: 'Total team lead appetite', value: g.agg.teamActual, color: '#22C55E', drop: null, dropLabel: null },
+        ];
+
+        return (
+          <div key={g.l2_email} style={{ background: '#111', border: '1px solid #1E1E1E', borderRadius: '16px', marginBottom: '12px', overflow: 'hidden' }}>
+            {/* TL Header Row — clickable to expand */}
+            <div
+              onClick={() => toggleTl(g.l2_email, setExpandedTlS9, expandedTlS9)}
+              style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', cursor: 'pointer', transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ display: 'inline-block', fontSize: '0.6rem', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(90deg)' : 'none', color: '#C9A84C' }}>▶</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#C9A84C', marginBottom: '2px' }}>{g.l2_name}</div>
+                <div style={{ fontSize: '0.55rem', color: '#5A5650' }}>{g.members.length} sellers · {g.agg.absentCount} absent</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', marginBottom: '2px' }}>Planned → Final</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#F0EDE8' }}>
+                  <span style={{ color: '#8A8278' }}>{g.agg.teamPlanned}</span>
+                  <span style={{ color: '#3A3A3A', margin: '0 4px' }}>→</span>
+                  <span style={{ color: '#22C55E' }}>{g.agg.teamActual}</span>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', minWidth: '80px' }}>
+                <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', marginBottom: '4px' }}>Fulfillment</div>
+                <div style={{ height: '4px', background: '#1A1A1A', borderRadius: '4px', overflow: 'hidden', marginBottom: '3px' }}>
+                  <div style={{ height: '100%', width: `${gFulfPct}%`, background: gFulfColor, borderRadius: '4px' }} />
+                </div>
+                <div style={{ fontSize: '0.55rem', color: gFulfColor, fontWeight: 700 }}>{gFulfPct}%</div>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); setActiveFunnelTl(g); setShowTeamFunnel(true); }}
+                style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', color: '#3B82F6', padding: '6px 12px', borderRadius: '7px', fontSize: '0.62rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.15)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(59,130,246,0.08)'}
+              >
+                View Funnel
+              </button>
+            </div>
+
+            {/* Expanded: Step flow + seller cards */}
+            {isExpanded && (
+              <div style={{ borderTop: '1px solid #1A1A1A', padding: '16px 20px' }}>
+
+                {/* Horizontal step flow */}
+                <div style={{ fontSize: '0.58rem', color: '#5A5650', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+                  How this team's target was calculated
+                </div>
+                <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', paddingBottom: '14px', marginBottom: '16px' }}>
+                  {ltaSteps.map((step, idx) => (
+                    <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0 }}>
+                      <div style={{
+                        background: '#0D0D0D', border: `1px solid ${step.color}40`,
+                        borderRadius: '10px', padding: '10px 14px', minWidth: '112px', flexShrink: 0
+                      }}>
+                        <div style={{ fontSize: '0.55rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>{step.label}</div>
+                        <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                        <div style={{ fontSize: '0.52rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
+                      </div>
+                      {idx < ltaSteps.length - 1 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 6px', minWidth: '56px' }}>
+                          {step.drop !== null && step.drop !== 0 && (
+                            <div style={{
+                              fontSize: '0.55rem', fontWeight: 700,
+                              color: step.drop > 0 ? '#EF4444' : '#22C55E',
+                              background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                              padding: '2px 5px', borderRadius: '5px', marginBottom: '3px', whiteSpace: 'nowrap',
+                            }}>
+                              {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.5rem', color: '#4A4642', textAlign: 'center', lineHeight: 1.2, marginBottom: '3px' }}>
+                            {step.dropLabel}
+                          </div>
+                          <span style={{ color: '#3A3A3A', fontSize: '0.9rem' }}>→</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Seller mini-cards */}
+                <div style={{ fontSize: '0.58rem', color: '#5A5650', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+                  Sellers
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '8px' }}>
+                  {g.members.map((m: any) => {
+                    const leads = (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0);
+                    const fulfPct = m.lta.actual > 0 ? Math.round((leads / m.lta.actual) * 100) : 0;
+                    const lostPct = m.lta.planned > 0 ? (m.lta.totalLost / m.lta.planned) * 100 : 0;
+                    const ltaColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#EAB308' : '#EF4444';
+                    const fulfColor = fulfPct >= 90 ? '#22C55E' : fulfPct >= 70 ? '#EAB308' : '#EF4444';
+
+                    return (
+                      <div
+                        key={m.seller_email}
+                        onClick={(e) => { e.stopPropagation(); setActiveSellerFunnel(m); }}
+                        style={{
+                          background: '#0A0A0A',
+                          border: `1px solid ${m.isAbsent ? 'rgba(239,68,68,0.15)' : '#1A1A1A'}`,
+                          borderRadius: '10px', padding: '12px', cursor: 'pointer',
+                          transition: 'border-color 0.2s, background 0.2s',
+                          opacity: m.isAbsent ? 0.6 : 1,
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#111'; e.currentTarget.style.borderColor = '#2A2A2A'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#0A0A0A'; e.currentTarget.style.borderColor = m.isAbsent ? 'rgba(239,68,68,0.15)' : '#1A1A1A'; }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#F0EDE8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.seller_name}</div>
+                          {m.isAbsent && <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '3px', fontWeight: 700 }}>ABSENT</span>}
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+                          <div>
+                            <div style={{ fontSize: '0.45rem', color: '#5A5650', marginBottom: '1px', textTransform: 'uppercase' }}>Planned</div>
+                            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#8A8278' }}>{m.lta.planned}</div>
+                          </div>
+                          <div style={{ color: '#2A2A2A', alignSelf: 'center', fontSize: '0.7rem' }}>→</div>
+                          <div>
+                            <div style={{ fontSize: '0.45rem', color: '#5A5650', marginBottom: '1px', textTransform: 'uppercase' }}>Final</div>
+                            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: ltaColor }}>{m.lta.actual}</div>
+                          </div>
+                          <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                            <div style={{ fontSize: '0.45rem', color: '#5A5650', marginBottom: '1px', textTransform: 'uppercase' }}>Allotted</div>
+                            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#F0EDE8' }}>{leads}</div>
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ height: '3px', background: '#1A1A1A', borderRadius: '3px', overflow: 'hidden', marginBottom: '3px' }}>
+                            <div style={{ height: '100%', width: `${Math.min(100, fulfPct)}%`, background: fulfColor, borderRadius: '3px', transition: 'width 0.5s ease' }} />
+                          </div>
+                          <div style={{ fontSize: '0.48rem', color: '#5A5650' }}>{fulfPct}% fulfilled</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   )
 }
