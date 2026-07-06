@@ -13,6 +13,21 @@ function cleanEmail(e: string): string {
 }
 
 export async function GET(req: Request) {
+  const fetchAll = async (builder: any) => {
+    let allData: any[] = []
+    let from = 0
+    const step = 1000
+    while (true) {
+      const { data, error } = await builder.range(from, from + step - 1)
+      if (error) { console.error(error); break }
+      if (!data || data.length === 0) break
+      allData = allData.concat(data)
+      if (data.length < step) break
+      from += step
+    }
+    return { data: allData }
+  }
+
   try {
     const { searchParams } = new URL(req.url)
     const dateParam = searchParams.get('date')
@@ -104,41 +119,36 @@ export async function GET(req: Request) {
         .eq('date', queryDate),
 
       // SRS July for monthly goals
-      supabase
+      fetchAll(supabase
         .from('srs_july')
-        .select('seller_email, bottomline_goal, bl_actual_splits, bottomline_should_have_been, seller_flag')
-        .limit(5000),
+        .select('seller_email, bottomline_goal, bl_actual_splits, bottomline_should_have_been, seller_flag')),
 
       // Monthly LTA log for MHE trend and Appetite
-      supabase
+      fetchAll(supabase
         .from('daily_lta_log')
         .select('seller_email, log_date, mishandled_pct, mishandled_enquiries, final_lta')
         .gte('log_date', monthStart)
-        .lte('log_date', monthEnd)
-        .limit(25000),
+        .lte('log_date', monthEnd)),
 
       // Monthly Goal vs SHB for Goal trend
-      supabase
+      fetchAll(supabase
         .from('goal_vs_shb')
         .select('seller_email, date, goal_completion, shb_percent')
         .gte('date', monthStart)
-        .lte('date', monthEnd)
-        .limit(25000),
+        .lte('date', monthEnd)),
 
       // Hourly Leads for Timeline
-      supabase.schema('seller_day_to_day')
-        .from('seller_hourly_leads')
+      fetchAll(supabase.schema('seller_day_to_day')
+        .from('seller_hourly_allotment')
         .select('seller_email, time_bucket, leads_allotted_in_bucket')
-        .eq('work_date', queryDate)
-        .limit(25000),
+        .eq('work_date', queryDate)),
 
       // Monthly Allotment for Breakdown KPIs
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('daily_allotment_summary')
         .select('seller_email, allotment_date, total_leads_allotted, auto_allotted, manual_allotted, rtg_leads, non_rtg_leads, pax_1, pax_2, pax_3, pax_4, pax_4_plus, median_creation_to_allotment_mins')
         .gte('allotment_date', monthStart)
-        .lte('allotment_date', monthEnd)
-        .limit(25000),
+        .lte('allotment_date', monthEnd)),
 
       // CTI / Ozontell readiness
       supabase.schema('seller_day_to_day')
