@@ -240,51 +240,46 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         const allVals = [...plannedVals, ...finalVals].filter(Boolean)
         const yMax = allVals.length > 0 ? Math.max(...allVals) + 2 : 10
 
-        // bar colors: green if final >= planned, amber if 50-99%, red if <50%
-        const barColors = finalVals.map((f: number, i: number) => {
-          const p = plannedVals[i]
-          if (p === 0) return 'rgba(59,130,246,0.5)'
-          const ratio = f / p
-          if (ratio >= 1) return 'rgba(34,197,94,0.75)'
-          if (ratio >= 0.7) return 'rgba(234,179,8,0.75)'
-          return 'rgba(239,68,68,0.65)'
-        })
-        const barBorderColors = finalVals.map((f: number, i: number) => {
-          const p = plannedVals[i]
-          if (p === 0) return '#3B82F6'
-          const ratio = f / p
-          if (ratio >= 1) return '#22C55E'
-          if (ratio >= 0.7) return '#EAB308'
-          return '#EF4444'
-        })
+        // Create elegant gradient backgrounds
+        const gradientFinal = ctx.createLinearGradient(0, 0, 0, 200)
+        gradientFinal.addColorStop(0, 'rgba(244, 99, 30, 0.25)')
+        gradientFinal.addColorStop(1, 'rgba(244, 99, 30, 0.0)')
+
+        const gradientPlanned = ctx.createLinearGradient(0, 0, 0, 200)
+        gradientPlanned.addColorStop(0, 'rgba(59, 130, 246, 0.1)')
+        gradientPlanned.addColorStop(1, 'rgba(59, 130, 246, 0.0)')
 
         trendChartInstance.current = new Chart(ctx, {
-          type: 'bar',
+          type: 'line',
           data: {
             labels,
             datasets: [
               {
-                type: 'bar' as const,
-                label: 'Final target',
+                label: 'Final Daily Target',
                 data: finalVals,
-                backgroundColor: barColors,
-                borderColor: barBorderColors,
-                borderWidth: 1.5,
-                borderRadius: 4,
-                barPercentage: 0.65,
-                maxBarThickness: 28,
+                borderColor: '#F4631E',
+                backgroundColor: gradientFinal,
+                borderWidth: 2.5,
+                tension: 0.35,
+                fill: true,
+                pointBackgroundColor: '#F4631E',
+                pointHoverRadius: 6,
+                pointRadius: 3,
+                pointHoverBackgroundColor: '#FFFFFF',
+                pointHoverBorderColor: '#F4631E',
+                pointHoverBorderWidth: 2,
               },
               {
-                type: 'line' as const,
-                label: 'Planned (base)',
+                label: 'Base Planned Target',
                 data: plannedVals,
                 borderColor: '#3B82F6',
-                backgroundColor: 'transparent',
+                backgroundColor: gradientPlanned,
                 borderWidth: 1.5,
-                borderDash: [4, 3],
+                borderDash: [5, 4],
+                tension: 0.2,
+                fill: true,
                 pointRadius: 0,
-                tension: 0,
-                fill: false,
+                pointHoverRadius: 4,
               }
             ]
           },
@@ -294,16 +289,24 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
             plugins: {
               legend: {
                 display: true,
+                position: 'top',
+                align: 'end',
                 labels: {
-                  color: '#8A8278', font: { size: 10 }, usePointStyle: true, boxWidth: 8, padding: 16,
-                  generateLabels: (chart: any) => [
-                    { text: 'Final target', fillStyle: 'rgba(34,197,94,0.75)', strokeStyle: '#22C55E', lineWidth: 1, pointStyle: 'rect', hidden: false, datasetIndex: 0 },
-                    { text: '--- Planned base', fillStyle: 'transparent', strokeStyle: '#3B82F6', lineWidth: 1.5, pointStyle: 'line', hidden: false, datasetIndex: 1 },
-                    { text: '🟢 ≥ planned  🟡 70–99%  🔴 < 70%', fillStyle: 'transparent', strokeStyle: 'transparent', lineWidth: 0, pointStyle: 'rect', hidden: false, datasetIndex: -1 }
-                  ]
+                  color: '#8A8278',
+                  font: { size: 10 },
+                  usePointStyle: true,
+                  boxWidth: 6,
+                  padding: 15
                 }
               },
               tooltip: {
+                backgroundColor: '#111111',
+                titleColor: '#FFFFFF',
+                bodyColor: '#E5E7EB',
+                borderColor: 'rgba(255, 255, 255, 0.08)',
+                borderWidth: 1,
+                padding: 10,
+                cornerRadius: 8,
                 callbacks: {
                   title: (ctx: any) => `Day ${ctx[0].label}`,
                   label: (ctx: any) => {
@@ -311,8 +314,8 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                     if (!d) return ''
                     const planned = d.wd > 0 ? Math.floor(d.lead_goal / d.wd) : 0
                     const fin = d.final_lta || 0
-                    if (ctx.datasetIndex === 0) return ` Final: ${fin} leads (base: ${planned})`
-                    return ` Base planned: ${planned} leads`
+                    if (ctx.datasetIndex === 0) return ` Final Target: ${fin} leads`
+                    return ` Base Planned: ${planned} leads`
                   },
                   afterBody: (context: any) => {
                     if (!context?.length) return []
@@ -321,16 +324,24 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                     const p = d.wd > 0 ? Math.floor(d.lead_goal / d.wd) : 0
                     const fin = d.final_lta || 0
                     const diff = fin - p
-                    if (diff === 0) return ['No change from base']
-                    return [diff > 0 ? `+${diff} above base` : `${diff} below base (deductions applied)`]
+                    if (diff === 0) return ['Matches planned baseline']
+                    return [diff > 0 ? `+${diff} added above base` : `${diff} deduction applied`]
                   }
                 }
               }
             },
             interaction: { mode: 'index', intersect: false },
             scales: {
-              x: { ticks: { color: '#6B7280', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
-              y: { ticks: { color: '#6B7280', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true, suggestedMax: yMax }
+              x: {
+                ticks: { color: '#8A8278', font: { size: 9 } },
+                grid: { display: false }
+              },
+              y: {
+                ticks: { color: '#8A8278', font: { size: 9 }, precision: 0 },
+                grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                beginAtZero: true,
+                suggestedMax: yMax
+              }
             }
           }
         })
@@ -1335,12 +1346,12 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         </div>
       </div>
 
-      {/* ── LTA Trend chart ── */}
+      {/* LTA Trend chart */}
       <div style={{ background: '#111', border: '1px solid #1E1E1E', borderRadius: '16px', padding: '20px', marginBottom: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '4px' }}>
           <div>
             <div style={{ fontSize: '0.65rem', color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>LTA trend — this month</div>
-            <div style={{ fontSize: '0.58rem', color: '#4A4642', marginTop: '3px' }}>Bars = your final daily target · dashed line = planned base · colour shows if target was met</div>
+            <div style={{ fontSize: '0.58rem', color: '#4A4642', marginTop: '3px' }}>Solid curve = actual target allotted · dashed line = base planned target baseline</div>
           </div>
         </div>
         <div style={{ height: '200px', marginTop: '16px' }}>
