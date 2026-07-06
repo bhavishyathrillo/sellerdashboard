@@ -270,6 +270,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   // Modals and drill-downs
   const [showNoLeadsModal, setShowNoLeadsModal] = useState(false)
   const [showMheTrendModal, setShowMheTrendModal] = useState(false)
+  const [showHourlyView, setShowHourlyView] = useState(false)
   const [mheDrillSeller, setMheDrillSeller] = useState<any>(null)
   const [mheExpandedTl, setMheExpandedTl] = useState<string | null>(null)
   const [showGoalShbTrendModal, setShowGoalShbTrendModal] = useState(false)
@@ -428,6 +429,8 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   const globalNonRtg = processedGroups.reduce((sum: number, g: any) => sum + g.agg.totalNonRtg, 0)
   const globalRtgPct = globalLeads > 0 ? Math.round((globalRtg / globalLeads) * 100) : 0
   const globalNoLeads = processedGroups.reduce((sum: number, g: any) => sum + g.agg.noLeadsCount, 0)
+
+  
   const globalPlannedLta = processedGroups.reduce((sum: number, g: any) => sum + g.agg.teamPlanned, 0)
   const globalFinalLta = processedGroups.reduce((sum: number, g: any) => sum + g.agg.teamActual, 0)
 
@@ -436,7 +439,37 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   let allMembers: any[] = []
   processedGroups.forEach((g: any) => { allMembers = allMembers.concat(g.members) })
 
-  const cmMonthlySum = (key: string) => allMembers.reduce((sum: number, m: any) => {
+ 
+  const hourlyMap = (() => {
+    const map = {}
+    allMembers.forEach((m) => {
+      (m.hourly_allotment_summary || []).forEach((h) => {
+        let bucket = h.hour_bucket?.toString()?.toUpperCase() || ''
+        if (bucket.includes(':')) {
+          const parts = extractTimeParts(bucket)
+          if (parts) {
+            const ampm = parts.h >= 12 ? 'PM' : 'AM'
+            let h12 = parts.h % 12
+            if (h12 === 0) h12 = 12
+            bucket = `${h12}${ampm}`
+          }
+        } else {
+          const match = bucket.match(/^(\d+)/)
+          if (match) {
+            const hr = parseInt(match[1], 10)
+            const ampm = hr >= 12 ? 'PM' : 'AM'
+            let h12 = hr % 12
+            if (h12 === 0) h12 = 12
+            bucket = `${h12}${ampm}`
+          }
+        }
+        const numLeads = (h.auto_allotted || 0) + (h.manual_allotted || 0)
+        map[bucket] = (map[bucket] || 0) + numLeads
+      })
+    })
+    return map
+  })()
+ const cmMonthlySum = (key: string) => allMembers.reduce((sum: number, m: any) => {
     return sum + (m.monthly_rows || []).reduce((s: number, r: any) => s + (r[key] || 0), 0)
   }, 0)
 
@@ -557,201 +590,193 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         </div>
       </div>
 
-            <div className={styles.summaryStrip} style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-        
-        {/* LEADS ALLOTTED */}
-        <div className={styles.summaryCard} style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1.5, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #F4631E, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #F4631E' }} />
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F4631E', boxShadow: '0 0 10px #F4631E' }} />
-            <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Leads Allotted</div>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '16px' }}>
-            <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{globalLeads}</span>
-            <span style={{ fontSize: '1rem', color: '#71717A', fontWeight: 400 }}>/ {globalFinalLta}</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Auto</span>
-              <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#E5E7EB' }}>{globalAuto}</span>
+            
+      {/* KPI Grid */}
+      <div className={styles.sectionHeader}><span className={styles.sectionTitle}>Global Metrics</span></div>
+      <div className={styles.kpiGrid}>
+        {/* Leads Allotted */}
+        <div className={styles.kpiTile} style={{ gridColumn: showHourlyView ? '1 / -1' : undefined, transition: 'all 0.3s ease' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div>
+              <div className={styles.kpiLabel}>Leads Allotted</div>
+              <div className={`${styles.kpiValue} ${globalLeads > 0 ? styles.kpiValueOrange : styles.kpiValueMuted}`}>
+                {globalLeads} <span style={{ fontSize: '1rem', color: '#6B7280', fontWeight: 500 }}>/ {globalFinalLta}</span>
+              </div>
+              <div className={styles.kpiSub}>Auto: {globalAuto} · Manual: {globalManual}</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Manual</span>
-              <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#9CA3AF' }}>{globalManual}</span>
+            {globalLeads > 0 && (
+              <button
+                onClick={() => setShowHourlyView(!showHourlyView)}
+                style={{
+                  background: showHourlyView ? 'rgba(244,99,30,0.15)' : 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${showHourlyView ? 'rgba(244,99,30,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                  color: showHourlyView ? '#F4631E' : '#6B7280',
+                  borderRadius: '6px', padding: '3px 8px', fontSize: '0.6rem', fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit', marginTop: '2px', whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {showHourlyView ? '↑ hide' : '↓ hourly'}
+              </button>
+            )}
+          </div>
+          {showHourlyView && (() => {
+            let cumLeads = 0;
+            const hourRows = HOUR_SLOTS.map(hour => {
+              const count = hourlyMap[hour] || 0;
+              cumLeads += count;
+              const cumPct = globalFinalLta > 0 ? Math.min(100, Math.round((cumLeads / globalFinalLta) * 100)) : 0;
+              return { hour, count, cumLeads, cumPct };
+            });
+            const maxCount = Math.max(...hourRows.map(r => r.count), 1);
+            return (
+              <div style={{ marginTop: '14px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
+                <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Hourly breakdown · {globalFinalLta > 0 ? `Target = ${globalFinalLta} leads` : 'Target not set'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '60px', marginBottom: '4px' }}>
+                  {hourRows.map(({ hour, count, cumLeads: cum, cumPct }) => {
+                    const barColor = count > 0 ? '#F4631E' : 'rgba(255,255,255,0.06)';
+                    const barH = count > 0 ? Math.max(6, Math.round((count / maxCount) * 52)) : 3;
+                    return (
+                      <div key={hour} className={styles.tooltipContainer} style={{ flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', display: 'flex', height: '60px', position: 'relative' }}>
+                        <div style={{ width: '100%', background: barColor, height: `${barH}px`, borderRadius: '3px 3px 0 0', transition: 'height 0.4s ease', position: 'relative' }}>
+                          {count > 0 && barH >= 12 && (
+                            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: '0.5rem', fontWeight: 800, color: '#fff' }}>{count}</div>
+                          )}
+                        </div>
+                        <div className={styles.tooltip}>
+                          <div className={styles.tooltipTime}>{hour}</div>
+                          <div className={styles.tooltipText}>{count} lead{count !== 1 ? 's' : ''}</div>
+                          <div style={{ fontSize: '0.6rem', color: '#9CA3AF', marginTop: '2px' }}>Running: {cum} ({cumPct}%{globalFinalLta > 0 ? ` of ${globalFinalLta}` : ''})</div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {HOUR_SLOTS.map(h => {
+                    const num = parseInt(h.replace(/[AP]M/, ''), 10);
+                    const nextNum = num === 12 ? 1 : num + 1;
+                    return (
+                      <div key={h} style={{ flex: 1, fontSize: '0.42rem', color: '#4A4642', textAlign: 'center', overflow: 'hidden', lineHeight: 1.3 }}>
+                        {num}–{nextNum}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })()}
+        </div>
+
+        {/* RTG Breakdown */}
+        <div className={styles.kpiTile}>
+          <div className={styles.kpiLabel}>RTG Breakdown</div>
+          <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
+            <div className={styles.kpiSplitSide}>
+              <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Count</div>
+              <div className={styles.kpiValue} style={{ color: '#33C2C9' }}>
+                {globalRtg}
+              </div>
+            </div>
+            <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
+            <div className={styles.kpiSplitSide}>
+              <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Percent</div>
+              <div className={styles.kpiValue} style={{ color: '#F0EDE8' }}>
+                {globalRtgPct}%
+              </div>
             </div>
           </div>
         </div>
 
-        {/* RTG BREAKDOWN */}
-        <div className={styles.summaryCard} style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #378ADD, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #378ADD' }} />
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#378ADD', boxShadow: '0 0 10px #378ADD' }} />
-            <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>RTG Breakdown</div>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-            <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{globalRtgPct}</span>
-            <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
-            <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Count</span>
-            <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#378ADD' }}>{globalRtg}</span>
-          </div>
+        {/* Sellers No Leads */}
+        <div className={styles.kpiTile} style={{ cursor: globalNoLeads > 0 ? 'pointer' : 'default' }} onClick={() => { if (globalNoLeads > 0) setShowNoLeadsModal(true); }}>
+          <div className={styles.kpiLabel}>Sellers No Leads {globalNoLeads > 0 && <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span>}</div>
+          <div className={`${styles.kpiValue} ${globalNoLeads > 0 ? styles.kpiValueRed : styles.kpiValueMuted}`}>{globalNoLeads}</div>
         </div>
 
-        {/* SELLERS WITH NO LEADS */}
-        <div
-          className={styles.summaryCard}
-          style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: globalNoLeads > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
-          onClick={() => {
-            if (globalNoLeads > 0) setShowNoLeadsModal(true);
-          }}
-          onMouseEnter={e => { if(globalNoLeads > 0) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
-        >
-          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #EF4444, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #EF4444' }} />
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444' }} />
-            <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Sellers No Leads</div>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{globalNoLeads}</span>
-          </div>
-        </div>
-
-        {/* Monthly MHE Trend KPI Card */}
-        {(() => {
-          const dayMap: Record<string, { sum: number; count: number }> = {}
-          allMembers.forEach((m: any) => {
-            ;(m.monthly_lta_rows || []).forEach((r: any) => {
-              const d = r.log_date
-              if (!d) return
-              const pct = typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
-              if (!dayMap[d]) dayMap[d] = { sum: 0, count: 0 }
-              dayMap[d].sum += pct
-              dayMap[d].count += 1
+        {/* MHE Trend */}
+        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => { setMheDrillSeller(null); setMheExpandedTl(null); setShowMheTrendModal(true); }}>
+          <div className={styles.kpiLabel}>MHE Trend <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span></div>
+          {(() => {
+            const dayMap = {}
+            allMembers.forEach((m) => {
+              (m.monthly_lta_rows || []).forEach((r) => {
+                const d = r.log_date
+                if (!d) return
+                const pct = typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
+                if (!dayMap[d]) dayMap[d] = { sum: 0, count: 0 }
+                dayMap[d].sum += pct
+                dayMap[d].count += 1
+              })
             })
-          })
-          const sortedDays = Object.keys(dayMap).sort()
-          const teamAvgMhePct = sortedDays.length > 0
-            ? parseFloat((sortedDays.reduce((s, d) => s + dayMap[d].sum / dayMap[d].count, 0) / sortedDays.length).toFixed(1))
-            : 0
-          const targetDay = date || todayStr();
-          const latestAvg = dayMap[targetDay] ? parseFloat((dayMap[targetDay].sum / dayMap[targetDay].count).toFixed(1)) : 0;
-          const isGood = teamAvgMhePct <= 20
-
-          return (
-            <div
-              className={styles.summaryCard}
-              style={{
-                background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1.2,
-                border: `1px solid ${isGood ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}`, boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
-                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease'
-              }}
-              onClick={() => { setMheDrillSeller(null); setMheExpandedTl(null); setShowMheTrendModal(true); }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = isGood ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = isGood ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'; }}
-            >
-              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: `linear-gradient(90deg, transparent, ${isGood ? '#22C55E' : '#EF4444'}, transparent)`, opacity: 0.6, boxShadow: `0 0 20px 2px ${isGood ? '#22C55E' : '#EF4444'}` }} />
-              
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isGood ? '#22C55E' : '#EF4444', boxShadow: `0 0 10px ${isGood ? '#22C55E' : '#EF4444'}` }} />
-                  <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>MHE Trend</div>
+            const targetDay = date || todayStr();
+            const latestAvg = dayMap[targetDay] ? parseFloat((dayMap[targetDay].sum / dayMap[targetDay].count).toFixed(1)) : 0;
+            const isGood = latestAvg <= 20
+            return (
+              <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
+                <div className={styles.kpiSplitSide}>
+                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Current</div>
+                  <div className={styles.kpiValue} style={{ color: isGood ? '#22C55E' : '#EF4444' }}>
+                    {latestAvg}%
+                  </div>
                 </div>
-                <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', marginLeft: '8px' }}>Tap to View ▶</span>
+                <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
+                <div className={styles.kpiSplitSide}>
+                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Target</div>
+                  <div className={styles.kpiValue} style={{ color: '#22C55E' }}>
+                    20%
+                  </div>
+                </div>
               </div>
-              
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{latestAvg}</span>
-                <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
-                <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Target</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#22C55E' }}>20%</span>
-              </div>
-            </div>
-          )
-        })()}
+            )
+          })()}
+        </div>
 
-        {/* Goal vs SHB KPI Card */}
-        {(() => {
-          const targetDay = date || todayStr();
-          const dayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
-          const targetDateObj = new Date(targetDay);
-          for (let i = 1; i <= targetDateObj.getDate(); i++) {
-            const dStr = `${targetDateObj.getFullYear()}-${String(targetDateObj.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            dayMap[dStr] = { goalSum: 0, shbSum: 0, count: 0 };
-          }
-          allMembers.forEach((m: any) => {
-            ;(m.monthly_goal_shb || []).forEach((r: any) => {
-              const d = r.date
-              if (!d) return
-              const goalPct = typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
-              const shbPct = typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
-              if (!dayMap[d]) dayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
-              dayMap[d].goalSum += goalPct
-              dayMap[d].shbSum += shbPct
-              dayMap[d].count += 1
+        {/* Goal vs SHB */}
+        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => { setGoalShbDrillSeller(null); setGoalShbExpandedTl(null); setShowGoalShbTrendModal(true); }}>
+          <div className={styles.kpiLabel}>Goal vs SHB <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span></div>
+          {(() => {
+            const targetDay = date || todayStr();
+            const dayMap = {}
+            allMembers.forEach((m) => {
+              (m.monthly_goal_shb || []).forEach((r) => {
+                const d = r.date
+                if (!d) return
+                const goalPct = typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
+                const shbPct = typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
+                if (!dayMap[d]) dayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
+                dayMap[d].goalSum += goalPct
+                dayMap[d].shbSum += shbPct
+                dayMap[d].count += 1
+              })
             })
-          })
-          const sortedDays = Object.keys(dayMap).sort()
-          const latestAvgGoal = dayMap[targetDay] && dayMap[targetDay].count > 0 ? parseFloat((dayMap[targetDay].goalSum / dayMap[targetDay].count).toFixed(0)) : 0
-          const latestAvgShb = dayMap[targetDay] && dayMap[targetDay].count > 0 ? parseFloat((dayMap[targetDay].shbSum / dayMap[targetDay].count).toFixed(0)) : 0
-          
-          return (
-            <div
-              className={styles.summaryCard}
-              style={{
-                background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1.2,
-                border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
-                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease'
-              }}
-              onClick={() => { setGoalShbDrillSeller(null); setGoalShbExpandedTl(null); setShowGoalShbTrendModal(true); }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
-            >
-              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #3B82F6, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #3B82F6' }} />
-              
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 10px #3B82F6' }} />
-                  <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Goal vs SHB</div>
+            const latestAvgGoal = dayMap[targetDay] && dayMap[targetDay].count > 0 ? parseFloat((dayMap[targetDay].goalSum / dayMap[targetDay].count).toFixed(0)) : 0
+            const latestAvgShb = dayMap[targetDay] && dayMap[targetDay].count > 0 ? parseFloat((dayMap[targetDay].shbSum / dayMap[targetDay].count).toFixed(0)) : 0
+            const goalColor = latestAvgGoal >= latestAvgShb ? '#22C55E' : (latestAvgShb - latestAvgGoal <= 10) ? '#EAB308' : '#EF4444';
+            return (
+              <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
+                <div className={styles.kpiSplitSide}>
+                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Goal</div>
+                  <div className={styles.kpiValue} style={{ color: goalColor }}>
+                    {latestAvgGoal}%
+                  </div>
                 </div>
-                <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', marginLeft: '8px' }}>Tap to View ▶</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '20px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{latestAvgGoal}</span>
-                  <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
-                </div>
-                <div style={{ width: '1px', alignSelf: 'stretch', background: 'rgba(255,255,255,0.1)' }} />
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{latestAvgShb}</span>
-                  <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+                <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
+                <div className={styles.kpiSplitSide}>
+                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>SHB</div>
+                  <div className={styles.kpiValue} style={{ color: '#F0EDE8' }}>
+                    {latestAvgShb}%
+                  </div>
                 </div>
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
-                <span style={{ fontSize: '0.65rem', color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Goal</span>
-                <span style={{ fontSize: '0.65rem', color: '#EAB308', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SHB</span>
-              </div>
-            </div>
-          )
-        })()}
+            )
+          })()}
+        </div>
       </div>
 
-      {/* S1: Login & Availability */}
+{/* S1: Login & Availability */}
 
       {/* ═══════════════ 3 CARDS: DOT | ALLOTMENT | PAX ═══════════════ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '28px', marginBottom: '16px' }}>

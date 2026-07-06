@@ -483,3 +483,120 @@
   color: #8A8278;
   text-align: center;
 }
+
+
+/* ── KPI Grid (Copied from Seller View) ── */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.kpiTile {
+  background: var(--card, #121212);
+  border: 1px solid var(--border, #1E1E1E);
+  border-radius: 12px;
+  padding: 16px 20px;
+  text-align: left;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.kpiLabel {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #6B7280;
+  margin-bottom: 8px;
+}
+
+.kpiValue {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+  line-height: 1;
+}
+
+.kpiValueRed {
+  color: #EF4444;
+}
+
+.kpiValueAmber {
+  color: #EAB308;
+}
+
+.kpiValueOrange {
+  color: #F4631E;
+}
+
+.kpiValueMuted {
+  color: #4A4642;
+}
+
+.kpiSub {
+  font-size: 0.7rem;
+  color: #6B7280;
+}
+
+.kpiSplitFlex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpiSplitSide {
+  flex: 1;
+}
+
+.kpiSplitDivider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 16px;
+}
+
+.tooltipContainer {
+  position: relative;
+}
+
+.tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #27272A;
+  border: 1px solid #3F3F46;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #fff;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 100;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.tooltipContainer:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+.tooltipTime {
+  font-weight: 700;
+  color: #A1A1AA;
+  margin-bottom: 4px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tooltipText {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
