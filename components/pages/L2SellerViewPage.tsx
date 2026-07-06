@@ -1904,11 +1904,11 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                 {(() => {
                   const getFunnelDropText = (diff: number, stage: string) => diff < 0 ? `↑ Gained ${Math.abs(diff)} in ${stage}` : `↓ Lost ${diff} in ${stage}`
                   const stages = [
-                    { id: 'planned', label: 'TEAM PLANNED', value: teamPlanned, color: '#3B82F6', dropText: getFunnelDropText(teamDynLost, 'Dynamic'), width: '100%' },
-                    { id: 'dynamic', label: 'TEAM DYNAMIC', value: teamDynLta, color: '#EAB308', dropText: getFunnelDropText(teamHygLost, 'Hygiene'), width: '85%' },
-                    { id: 'hygiene', label: 'TEAM HYGIENE', value: teamHygLta, color: '#F97316', dropText: getFunnelDropText(teamRev1Lost, 'Goal Complete'), width: '70%' },
-                    { id: 'goalComplete', label: 'TEAM GOAL COMPLETE', value: teamRev1Lta, color: '#8B5CF6', dropText: getFunnelDropText(teamRev2Lost, 'Final'), width: '60%' },
-                    { id: 'final', label: 'TEAM FINAL', value: teamActual, color: '#22C55E', dropText: null, width: '50%' },
+                    { id: 'planned', label: 'Base target', value: teamPlanned, color: '#3B82F6', dropText: getFunnelDropText(teamDynLost, 'Dynamic LTA'), width: '100%' },
+                    { id: 'dynamic', label: 'Dynamic LTA', value: teamDynLta, color: '#EAB308', dropText: getFunnelDropText(teamHygLost, 'After Hygiene'), width: '85%' },
+                    { id: 'hygiene', label: 'After hygiene', value: teamHygLta, color: '#F97316', dropText: getFunnelDropText(teamRev1Lost, 'After Goal Check'), width: '70%' },
+                    { id: 'goalComplete', label: 'After goal check', value: teamRev1Lta, color: '#8B5CF6', dropText: getFunnelDropText(teamRev2Lost, 'Final target'), width: '60%' },
+                    { id: 'final', label: "Today's final target", value: teamActual, color: '#22C55E', dropText: null, width: '50%' },
                   ]
                   return stages.map((step, idx) => (
                     <div key={step.id} className={sellerStyles.ltaFunnelStepWrap} style={{ animationDelay: `${idx * 0.15}s` } as any}>

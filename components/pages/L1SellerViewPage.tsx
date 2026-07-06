@@ -1722,11 +1722,11 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 
               const getFunnelDropText = (diff: number, stage: string) => diff < 0 ? `↑ Gained ${Math.abs(diff)} in ${stage}` : `↓ Lost ${diff} in ${stage}`
               const stages = [
-                { id: 'planned', label: 'TEAM PLANNED', value: tfPlanned, color: '#3B82F6', dropText: getFunnelDropText(tfDynLost, 'Dynamic'), width: '100%' },
-                { id: 'dynamic', label: 'TEAM DYNAMIC', value: tfDynLta, color: '#EAB308', dropText: getFunnelDropText(tfHygLost, 'Hygiene'), width: '85%' },
-                { id: 'hygiene', label: 'TEAM HYGIENE', value: tfHygLta, color: '#F97316', dropText: getFunnelDropText(tfRev1Lost, 'Goal Complete'), width: '70%' },
-                { id: 'goalComplete', label: 'TEAM GOAL COMPLETE', value: tfRev1Lta, color: '#8B5CF6', dropText: getFunnelDropText(tfRev2Lost, 'Final'), width: '60%' },
-                { id: 'final', label: 'TEAM FINAL', value: tfActual, color: '#22C55E', dropText: null, width: '50%' },
+                { id: 'planned', label: 'Base target', value: tfPlanned, color: '#3B82F6', dropText: getFunnelDropText(tfDynLost, 'Dynamic LTA'), width: '100%' },
+                { id: 'dynamic', label: 'Dynamic LTA', value: tfDynLta, color: '#EAB308', dropText: getFunnelDropText(tfHygLost, 'After Hygiene'), width: '85%' },
+                { id: 'hygiene', label: 'After hygiene', value: tfHygLta, color: '#F97316', dropText: getFunnelDropText(tfRev1Lost, 'After Goal Check'), width: '70%' },
+                { id: 'goalComplete', label: 'After goal check', value: tfRev1Lta, color: '#8B5CF6', dropText: getFunnelDropText(tfRev2Lost, 'Final target'), width: '60%' },
+                { id: 'final', label: "Today's final target", value: tfActual, color: '#22C55E', dropText: null, width: '50%' },
               ]
               return stages.map((step, idx) => (
                 <div key={step.id} className={sellerStyles.ltaFunnelStepWrap} style={{ animationDelay: `${idx * 0.15}s` } as any}>
