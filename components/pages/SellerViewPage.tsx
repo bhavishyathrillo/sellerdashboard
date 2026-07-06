@@ -17,6 +17,7 @@ interface MonthlyTotals {
   pax_4: number
   pax_4_plus: number
   days_with_data: number
+  revised_lta?: number
 }
 
 interface DotChartItem {
@@ -1159,6 +1160,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
           {(() => {
             const steps = [
               {
+                id: 'planned',
                 label: 'Base target',
                 sublabel: 'Monthly goal ÷ working days',
                 value: plannedLtaVal,
@@ -1167,6 +1169,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                 dropLabel: dropPlannedToDynamic > 0 ? 'Late login / inactive' : dropPlannedToDynamic < 0 ? 'Bonus added' : null,
               },
               {
+                id: 'dynamic',
                 label: 'After availability',
                 sublabel: 'Adjusted for when you were online',
                 value: dynamicLtaVal,
@@ -1175,6 +1178,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                 dropLabel: dropDynamicToHygiene > 0 ? 'Hygiene penalty' : dropDynamicToHygiene < 0 ? 'Bonus added' : null,
               },
               {
+                id: 'hygiene',
                 label: 'After hygiene',
                 sublabel: 'Adjusted for call quality',
                 value: hygieneLtaVal,
@@ -1183,6 +1187,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                 dropLabel: dropHygieneToGoal > 0 ? 'Goal correction' : dropHygieneToGoal < 0 ? 'Bonus added' : null,
               },
               {
+                id: 'goalComplete',
                 label: 'After goal check',
                 sublabel: 'Adjusted for goal completion',
                 value: goalCompleteLtaVal,
@@ -1191,6 +1196,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                 dropLabel: dropGoalToFinal > 0 ? 'Final adjustment' : dropGoalToFinal < 0 ? 'Bonus added' : null,
               },
               {
+                id: 'final',
                 label: "Today's final target",
                 sublabel: 'Your lead appetite today',
                 value: finalLtaVal,
@@ -1199,15 +1205,26 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                 dropLabel: null,
               },
             ]
-            return steps.map((step, idx) => (
-              <div key={idx} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0 }}>
-                {/* Step card */}
-                <div style={{
-                  background: '#0D0D0D', border: `1px solid ${step.color}40`,
-                  borderRadius: '10px', padding: '10px 14px', minWidth: '120px', flexShrink: 0,
-                }}>
-                  <div style={{ fontSize: '0.58rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>{step.label}</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+            return steps.map((step, idx) => {
+              // Collaborator logic: check if the particular logic stage was NOT used
+              const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+                (data as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+
+              return (
+                <div key={idx} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0, opacity: isNotUsed ? 0.6 : 1 }}>
+                  {/* Step card */}
+                  <div style={{
+                    background: '#0D0D0D', border: `1px solid ${isNotUsed ? '#333' : `${step.color}40`}`,
+                    borderRadius: '10px', padding: '10px 14px', minWidth: '120px', flexShrink: 0,
+                    position: 'relative'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '0.58rem', color: isNotUsed ? '#555' : step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                      {isNotUsed && (
+                        <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '4px', fontWeight: 600 }}>NOT USED</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: isNotUsed ? '#555' : '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
                   <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
                 </div>
 
@@ -1231,8 +1248,9 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                     <span style={{ color: '#3A3A3A', fontSize: '1rem' }}>→</span>
                   </div>
                 )}
-              </div>
-            ))
+                </div>
+              )
+            })
           })()}
         </div>
       </div>
@@ -1265,14 +1283,14 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
             <div style={{ fontSize: '0.58rem', color: '#4A4642', marginTop: '4px' }}>Sales Handled Business target</div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.05)', width: '1px', alignSelf: 'stretch' }} />
-          {/* Revised LTA */}
+          {/* Revised Monthly LTA */}
           <div style={{ padding: '0 0 0 16px' }}>
             <div style={{ fontSize: '0.58rem', color: '#5A5650', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Revised Monthly LTA</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-              <span style={{ fontSize: '2rem', fontWeight: 800, color: goalCompleteLtaVal > 0 ? '#8B5CF6' : '#3A3A3A', lineHeight: 1 }}>{goalCompleteLtaVal}</span>
+              <span style={{ fontSize: '2rem', fontWeight: 800, color: monthly?.revised_lta ? '#8B5CF6' : '#3A3A3A', lineHeight: 1 }}>{monthly?.revised_lta || 0}</span>
               <span style={{ fontSize: '0.58rem', color: '#5A5650' }}>leads/day</span>
             </div>
-            <div style={{ fontSize: '0.58rem', color: '#4A4642', marginTop: '4px' }}>After goal adjustment today</div>
+            <div style={{ fontSize: '0.58rem', color: '#4A4642', marginTop: '4px' }}>Planned target for remaining days</div>
           </div>
         </div>
 
@@ -1487,7 +1505,18 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
             {activeTile === 'orbit' && (
               <>
                 <div className={styles.modalHeader}><span className={styles.modalDot} style={{ background: '#8B7FE8' }} /><span className={styles.modalTitle}>Orbit Login</span></div>
-                <p className={styles.modalInsight}>Orbit CRM not connected yet.</p>
+                {orbitTime ? (
+                  <>
+                    <p className={styles.modalInsight}>Logged in at {formatTime(orbitTime)}.</p>
+                    <div className={styles.modalStatGrid}>
+                      <div className={styles.modalStat}><span>Orbit Login</span><strong>{formatTime(orbitTime)}</strong></div>
+                      <div className={styles.modalStat}><span>From Keka</span><strong className={styles.statGood}>{deltaOrbitFromKeka !== null ? (deltaOrbitFromKeka > 0 ? `+${deltaOrbitFromKeka}m` : `${deltaOrbitFromKeka}m`) : '—'}</strong></div>
+                      <div className={styles.modalStat}><span>To Ozontell</span><strong className={styles.statGood}>{minutesBetween(orbitTime, ozontellReady) !== null ? (minutesBetween(orbitTime, ozontellReady)! > 0 ? `+${minutesBetween(orbitTime, ozontellReady)}m` : `${minutesBetween(orbitTime, ozontellReady)}m`) : '—'}</strong></div>
+                    </div>
+                  </>
+                ) : (
+                  <p className={styles.modalInsight}>Orbit CRM not connected yet.</p>
+                )}
               </>
             )}
             {activeTile === 'ozontell' && (
