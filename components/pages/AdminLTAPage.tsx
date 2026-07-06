@@ -2121,6 +2121,45 @@ function NoLeadsModal({ sellers, onClose }: { sellers: any[], onClose: () => voi
   )
 }
 
+function OverallocatedModal({ sellers, onClose }: { sellers: any[], onClose: () => void }) {
+  return (
+    <div className="la-modal-overlay" onClick={onClose}>
+      <div className="la-modal-card" onClick={e => e.stopPropagation()} style={{ width: '850px' }}>
+        <button className="la-modal-close" onClick={onClose}>✕</button>
+        <div className="la-modal-header">
+          <span className="la-modal-title">Overallocated Sellers</span>
+        </div>
+        <div style={{ marginTop: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 2fr', gap: '16px', padding: '0 16px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 600, color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span>SELLER NAME</span>
+            <span>FULFILLMENT %</span>
+            <span>CATEGORY MANAGER</span>
+            <span>TEAM LEAD</span>
+          </div>
+          <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+            {sellers.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#8A8278', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                No overallocated sellers!
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {sellers.map((s, idx) => (
+                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 2fr', gap: '16px', padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', fontSize: '0.85rem' }}>
+                    <span style={{ color: '#F0EDE8', fontWeight: 500 }}>{s.seller_name}</span>
+                    <span style={{ color: '#F59E0B', fontWeight: 500 }}>{s.pct}%</span>
+                    <span style={{ color: '#8A8278' }}>{s.catName}</span>
+                    <span style={{ color: '#F59E0B' }}>{s.tlName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminLTAPage({ session }: AdminLTAPageProps) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -2136,6 +2175,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
   const [showMheModal, setShowMheModal] = useState(false)
   const [showGoalShbModal, setShowGoalShbModal] = useState(false)
   const [showNoLeadsModal, setShowNoLeadsModal] = useState(false)
+  const [showOverallocatedModal, setShowOverallocatedModal] = useState(false)
 
   const fetchData = (date: string, cat: string) => {
     setLoading(true)
@@ -2202,6 +2242,21 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
     )
   )
 
+  const overallocatedSellers = hierarchy.flatMap((cat: any) =>
+    (cat.tls || []).flatMap((tl: any) =>
+      (tl.sellers || []).filter((s: any) => s.totalLeads > (s.ltaActual || 0)).map((s: any) => {
+        const pct = s.ltaActual > 0 ? Math.round((s.totalLeads / s.ltaActual) * 100) : 0;
+        return {
+          ...s,
+          tlName: tl.tl_name,
+          catName: cat.category_name,
+          pct
+        };
+      })
+    )
+  )
+
+  const orgTotalLeads = data.org?.totalLeads || 0
   const displayDate =  new Date(data.date + 'T00:00:00').toLocaleDateString('en-IN', {
     day: '2-digit', month: 'short', year: 'numeric'
   })
@@ -2332,25 +2387,42 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
             </div>
           </div>
 
-          {/* SELLERS NO LEADS */}
-          <div
-            className="la-kpi-card clickable"
-            style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: noLeadsSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
-            onClick={() => {
-              if (noLeadsSellers.length > 0) setShowNoLeadsModal(true);
-            }}
-            onMouseEnter={e => { if(noLeadsSellers.length > 0) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
-          >
-            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #EF4444, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #EF4444' }} />
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444' }} />
-              <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Sellers No Leads</div>
+          {/* EXCEPTIONAL SELLERS */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+            {/* SELLERS NO LEADS */}
+            <div
+              className="la-kpi-card clickable"
+              style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '8px 12px', borderRadius: '12px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: noLeadsSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
+              onClick={() => {
+                if (noLeadsSellers.length > 0) setShowNoLeadsModal(true);
+              }}
+              onMouseEnter={e => { if(noLeadsSellers.length > 0) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
+            >
+              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #EF4444, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #EF4444' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444' }} />
+                <div style={{ fontSize: '0.65rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Sellers No Leads</div>
+              </div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{noLeadsSellers.length}</div>
             </div>
-            
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{noLeadsSellers.length}</span>
+
+            {/* OVERALLOCATED SELLERS */}
+            <div
+              className="la-kpi-card clickable"
+              style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '8px 12px', borderRadius: '12px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: overallocatedSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
+              onClick={() => {
+                if (overallocatedSellers.length > 0) setShowOverallocatedModal(true);
+              }}
+              onMouseEnter={e => { if(overallocatedSellers.length > 0) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
+            >
+              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #F59E0B, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #F59E0B' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#F59E0B', boxShadow: '0 0 10px #F59E0B' }} />
+                <div style={{ fontSize: '0.65rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Overallocated</div>
+              </div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{overallocatedSellers.length}</div>
             </div>
           </div>
 
@@ -2482,6 +2554,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
         )}
 
         {showNoLeadsModal && <NoLeadsModal sellers={noLeadsSellers} onClose={() => setShowNoLeadsModal(false)} />}
+        {showOverallocatedModal && <OverallocatedModal sellers={overallocatedSellers} onClose={() => setShowOverallocatedModal(false)} />}
         {showGoalShbModal && (
           <GoalShbTrendModal hierarchy={hierarchy} dateFrom={dateFrom} onClose={() => setShowGoalShbModal(false)} />
         )}
