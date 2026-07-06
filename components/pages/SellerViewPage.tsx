@@ -1230,7 +1230,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
               {
                 id: 'hygiene',
                 label: 'After hygiene',
-                sublabel: 'Adjusted for call quality',
+                sublabel: 'Based on mishandled',
                 value: hygieneLtaVal,
                 color: '#F97316',
                 drop: dropHygieneToGoal,
@@ -1330,7 +1330,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
               <span style={{ fontSize: '2rem', fontWeight: 800, color: '#EAB308', lineHeight: 1 }}>{dailyLta?.leads_shb || 0}</span>
               <span style={{ fontSize: '0.58rem', color: '#5A5650' }}>leads</span>
             </div>
-            <div style={{ fontSize: '0.58rem', color: '#4A4642', marginTop: '4px' }}>Sales Handled Business target</div>
+            <div style={{ fontSize: '0.58rem', color: '#4A4642', marginTop: '4px' }}>Target</div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.05)', width: '1px', alignSelf: 'stretch' }} />
           {/* Revised Monthly LTA */}
@@ -1340,7 +1340,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
               <span style={{ fontSize: '2rem', fontWeight: 800, color: monthly?.revised_lta ? '#8B5CF6' : '#3A3A3A', lineHeight: 1 }}>{monthly?.revised_lta || 0}</span>
               <span style={{ fontSize: '0.58rem', color: '#5A5650' }}>leads</span>
             </div>
-            <div style={{ fontSize: '0.58rem', color: '#4A4642', marginTop: '4px' }}>Planned target for month</div>
+            <div style={{ fontSize: '0.58rem', color: '#4A4642', marginTop: '4px' }}>Till now Final LTA</div>
           </div>
         </div>
 
