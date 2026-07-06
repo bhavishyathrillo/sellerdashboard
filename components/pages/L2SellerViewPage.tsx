@@ -172,7 +172,7 @@ function GoalShbTrendChart({ labels, goalValues, shbValues }: { labels: string[]
       const yMax = Math.max(20, Math.ceil((maxDataVal + 5) / 10) * 10)
 
       instance = new Chart(ctx, {
-        type: 'bar',
+        type: 'bar' as const,
         data: {
           labels,
           datasets: [
@@ -190,7 +190,7 @@ function GoalShbTrendChart({ labels, goalValues, shbValues }: { labels: string[]
               yAxisID: 'y'
             },
             {
-              type: 'bar',
+              type: 'bar' as const,
               label: 'Goal %',
               data: goalValues,
               backgroundColor: '#3B82F6',
@@ -452,7 +452,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   })
 
   const teamDotChartData: { label: string; value: number; color: string }[] = []
-  const dotColors = ['#F4631E', '#EF562F', '#E06D3E', '#D17F4E', '#C28E5F', '#B39D70']
+  const dotColors = ['#FB923C', '#F59E0B', '#EAB308', '#CA8A04', '#D97706', '#EA580C']
   for (let i = 0; i < 6; i++) {
     let monthIdx = (currentMonthIndex + i) % 12
     let year = dotCy + Math.floor((currentMonthIndex + i) / 12)
@@ -521,7 +521,8 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
     return () => { active = false; if (dotChartInstance.current) dotChartInstance.current.destroy(); }
   }, [teamDotChartData]);
 
-  // Allotment Chart
+  
+  // Allotment Bar Chart
   useEffect(() => {
     if (!allotmentChartCanvasRef.current) return;
     let active = true;
@@ -529,37 +530,38 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       if (!active) return;
       const Chart = mod.default || mod;
       if (allotmentChartInstance.current) allotmentChartInstance.current.destroy();
-      allotmentChartInstance.current = new Chart(allotmentChartCanvasRef.current!, {
-        type: 'bar',
-        data: { labels: teamAllotmentRows.map((d: any) => d.label), datasets: [{ data: teamAllotmentRows.map((d: any) => d.value), backgroundColor: teamAllotmentRows.map((d: any) => d.color), borderRadius: 4, barThickness: 16 }] },
+      
+      const config = {
+        type: 'bar' as const,
+        data: {
+          labels: teamAllotmentRows.map((d: any) => d.label),
+          datasets: [{
+            data: teamAllotmentRows.map((d: any) => d.value),
+            backgroundColor: teamAllotmentRows.map((d: any) => d.color),
+            borderRadius: 4,
+            barThickness: 20
+          }]
+        },
         options: {
-          responsive: true, maintainAspectRatio: false,
+          responsive: true,
+          maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: '#111111',
-              titleColor: '#FFFFFF',
-              bodyColor: '#E5E7EB',
-              borderColor: 'rgba(255, 255, 255, 0.08)',
-              borderWidth: 1,
-              cornerRadius: 6,
-              callbacks: {
-                label: (ctx: any) => {
-                  const val = ctx.raw || 0
-                  const total = teamMonthlyTotalLeads
-                  const pctVal = total > 0 ? ((val / total) * 100).toFixed(0) : '0'
-                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
-                }
-              }
+              backgroundColor: '#111111', titleColor: '#FFFFFF', bodyColor: '#E5E7EB', borderColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, cornerRadius: 6
             }
           },
-          scales: { x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: '#8A8278', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.03)' } } }
+          scales: {
+            x: { display: false },
+            y: { display: false }
+          }
         }
-      });
+      };
+      
+      allotmentChartInstance.current = new Chart(allotmentChartCanvasRef.current!, config);
     });
     return () => { active = false; if (allotmentChartInstance.current) allotmentChartInstance.current.destroy(); }
-  }, [teamAllotmentRows]);
-
+  }, [JSON.stringify(teamAllotmentRows)])
   // PAX Chart
   useEffect(() => {
     if (!paxChartCanvasRef.current) return;
@@ -1307,7 +1309,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         <span style={{ fontSize: '1rem', fontWeight: 600, color: '#F4631E', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monthly Breakdown · {monthStr}</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px', marginBottom: '24px' }}>
 
         {/* ── DOT Bar Chart (Horizontal) ── */}
         <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
@@ -1336,20 +1338,22 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
 
         {/* ── Allotment Breakdown ── */}
-        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'allotment' ? null : 'allotment'); setBreakdownDrillSeller(null); }}>
           <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
           <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>How leads were assigned</div>
           <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={allotmentChartCanvasRef} /></div>
-
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
-            {teamAllotmentRows.map((item, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }} />
-                  <span style={{ color: '#8A8278' }}>{item.label}</span>
-                </div>
-                <span style={{ color: '#F0EDE8', fontWeight: 700 }}>
-                  {item.value} ({teamMonthlyTotalLeads > 0 ? Math.round((item.value / teamMonthlyTotalLeads) * 100) : 0}%)
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, justifyContent: 'center' }}>
+            {teamAllotmentRows.map((item: any, i: number) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: item.color, flexShrink: 0 }} />
+                <span style={{ fontSize: '0.64rem', color: '#8A8278', flex: 1 }}>{item.label}</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: item.value > 0 ? item.color : '#5A5650' }}>{item.value}</span>
+                <span style={{
+                  fontSize: '0.55rem', fontWeight: 600, color: item.color,
+                  background: `${item.color}15`, padding: '2px 8px', borderRadius: '100px',
+                }}>
+                  {teamMonthlyTotalLeads > 0 ? Math.round((item.value / teamMonthlyTotalLeads) * 100) : 0}%
                 </span>
               </div>
             ))}
