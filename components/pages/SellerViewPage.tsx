@@ -17,6 +17,7 @@ interface MonthlyTotals {
   pax_4: number
   pax_4_plus: number
   days_with_data: number
+  revised_lta?: number
 }
 
 interface DotChartItem {
@@ -90,15 +91,23 @@ function formatTime(raw: string | null): string {
   return `${String(h12).padStart(2, '0')}:${mm} ${ampm}`
 }
 
-function minutesBetween(a: string | null, b: string | null): number | null {
+function minutesBetween(a: string | null, b: string | null, allowNegative: boolean = false): number | null {
   const pa = extractTimeParts(a)
   const pb = extractTimeParts(b)
   if (!pa || !pb) return null
   let minsA = pa.h * 60 + pa.m
   let minsB = pb.h * 60 + pb.m
-  // basic wrap-around assuming next day if b is smaller
-  if (minsB < minsA) minsB += 24 * 60
-  return minsB - minsA
+  
+  if (allowNegative) {
+    let diff = minsB - minsA
+    if (diff < -12 * 60) diff += 24 * 60
+    else if (diff > 12 * 60) diff -= 24 * 60
+    return diff
+  } else {
+    // basic wrap-around assuming next day if b is smaller
+    if (minsB < minsA) minsB += 24 * 60
+    return minsB - minsA
+  }
 }
 
 interface BreakWindow { startH: number; startM: number; endH: number; endM: number; rawLabel: string }
@@ -483,10 +492,10 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
 
   const hasDailyPresence = !!kekaTime || !!orbitTime || !!ozontellReady
 
-  const deltaOrbitFromKeka = minutesBetween(kekaTime, orbitTime)
-  const deltaOzontellFromKeka = minutesBetween(kekaTime, ozontellReady)
-  const deltaOzontellToFirst = minutesBetween(ozontellReady, firstLead)
-  const deltaKekaToFirst = minutesBetween(kekaTime, firstLead)
+  const deltaOrbitFromKeka = minutesBetween(kekaTime, orbitTime, true)
+  const deltaOzontellFromKeka = minutesBetween(kekaTime, ozontellReady, true)
+  const deltaOzontellToFirst = minutesBetween(ozontellReady, firstLead, true)
+  const deltaKekaToFirst = minutesBetween(kekaTime, firstLead, true)
   const totalLoginToLogout = minutesBetween(kekaTime, lastLogout)
   const breakAmber = breaks.windows.length > 3 || breaks.totalMinutes > 45
 
@@ -570,9 +579,9 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
       <div className={styles.loginStrip}>
         {[
           { key: 'keka', cls: styles.loginTileKeka, label: 'Keka Login', value: formatTime(kekaTime), sub: ' ' },
-          { key: 'orbit', cls: styles.loginTileOrbit, label: 'Orbit Login', value: formatTime(orbitTime), sub: deltaOrbitFromKeka !== null ? `+${deltaOrbitFromKeka} min from Keka` : '—' },
+          { key: 'orbit', cls: styles.loginTileOrbit, label: 'Orbit Login', value: formatTime(orbitTime), sub: deltaOrbitFromKeka !== null ? (deltaOrbitFromKeka > 0 ? `+${deltaOrbitFromKeka} min from Keka` : `${deltaOrbitFromKeka} min from Keka`) : '—' },
           { key: 'ozontell', cls: styles.loginTileOzontell, label: 'Ozontell Ready', value: formatTime(ozontellReady), sub: deltaOzontellFromKeka !== null ? (deltaOzontellFromKeka > 0 ? `+${deltaOzontellFromKeka} min from Keka` : `${deltaOzontellFromKeka} min from Keka`) : '—' },
-          { key: 'first', cls: styles.loginTileFirst, label: 'First Lead', value: formatTime(firstLead), sub: deltaOzontellToFirst !== null ? `+${deltaOzontellToFirst} min from Ozontell` : '—' },
+          { key: 'first', cls: styles.loginTileFirst, label: 'First Lead', value: formatTime(firstLead), sub: deltaOzontellToFirst !== null ? (deltaOzontellToFirst > 0 ? `+${deltaOzontellToFirst} min from Ozontell` : `${deltaOzontellToFirst} min from Ozontell`) : '—' },
         ].map((t: { key: string; cls: string; label: string; value: string; sub: string; muted?: boolean }) => (
           <button key={t.key} className={`${styles.loginTile} ${t.cls}`} onClick={() => setActiveTile(t.key)}>
             <div className={styles.loginTileLabel}>{t.label}</div>
@@ -930,8 +939,8 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
 
       {/* LTA & Goal */}
       <div className={styles.placeholderGrid}>
-        <div className={styles.placeholderCard}>
-          <div className={styles.placeholderTitle}>Daily LTA Funnel</div>
+        <div style={{ padding: '20px 0', width: '100%' }}>
+          <div style={{ fontSize: '1rem', fontWeight: 600, color: '#EAB308', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>Daily LTA Funnel</div>
           <div className={styles.ltaFunnel3DContainer}>
             <svg className={styles.ltaFunnelBg} preserveAspectRatio="none" viewBox="0 0 100 100">
               <polygon points="0,0 100,0 75,100 25,100" fill="url(#funnelGrad)" opacity="0.08" />
@@ -979,37 +988,77 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
             </div>
           </div>
         </div>
-        <div className={styles.placeholderCard}>
-          <div className={styles.placeholderTitle}>Monthly LTA</div>
-          <div className={styles.monthlyLtaGrid}>
-            <div className={styles.monthlyLtaItem}>
-              <div className={styles.kpiLabel}>Lead Goal</div>
-              <div className={`${styles.kpiValue} ${styles.kpiValueMuted}`}>{dailyLta?.lead_goal || 0}</div>
-            </div>
-            <div className={styles.monthlyLtaItem}>
-              <div className={styles.kpiLabel}>Lead SHB</div>
-              <div className={`${styles.kpiValue} ${styles.kpiValueMuted}`}>{dailyLta?.leads_shb || 0}</div>
-            </div>
-            <div className={styles.monthlyLtaItem}>
-              <div className={styles.kpiLabel}>Revised LTA</div>
-              <div className={`${styles.kpiValue} ${styles.kpiValueMuted}`} style={{ fontSize: '1rem', marginTop: '8px' }}>
-                Data coming soon
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'center', padding: '20px 0', width: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <span style={{ fontSize: '1rem', fontWeight: 600, color: '#F4631E', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monthly LTA</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+            
+            {/* LEAD GOAL */}
+            <div style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #F4631E, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #F4631E' }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F4631E', boxShadow: '0 0 10px #F4631E' }} />
+                <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Lead Goal</div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: 'auto' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{dailyLta?.lead_goal || 0}</span>
               </div>
             </div>
-            <div className={styles.monthlyLtaItem}>
-              <div className={styles.kpiLabel}>Leads</div>
-              <div className={styles.kpiSplitFlex}>
-                <div className={styles.kpiSplitSide}>
-                  <div className={`${styles.kpiValue} ${styles.kpiValueMuted}`}>{dailyLta?.leads_actual_planned_region || 0}</div>
-                  <div className={styles.kpiSub}>Planned Region</div>
+
+            {/* LEADS SHB AS PER PLANNED */}
+            <div style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #378ADD, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #378ADD' }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#378ADD', boxShadow: '0 0 10px #378ADD' }} />
+                <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Leads SHB as per planned</div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: 'auto' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{dailyLta?.leads_shb || 0}</span>
+              </div>
+            </div>
+
+            {/* REVISED LTA */}
+            <div style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #C9A84C' }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#C9A84C', boxShadow: '0 0 10px #C9A84C' }} />
+                <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Revised LTA</div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: 'auto' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{monthly?.revised_lta || 0}</span>
+              </div>
+            </div>
+
+            {/* LEADS (PLANNED REGION / ACTUAL) */}
+            <div style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #22C55E, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #22C55E' }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 10px #22C55E' }} />
+                <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Leads</div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginTop: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{dailyLta?.leads_actual_planned_region || 0}</span>
+                  <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Planned Region</span>
                 </div>
-                <div className={styles.kpiSplitDivider} />
-                <div className={styles.kpiSplitSide}>
-                  <div className={`${styles.kpiValue} ${styles.kpiValueMuted}`}>{dailyLta?.leads_actual || 0}</div>
-                  <div className={styles.kpiSub}>Actual</div>
+                <div style={{ width: '1px', height: '30px', background: 'rgba(255,255,255,0.1)' }}></div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{dailyLta?.leads_actual || 0}</span>
+                  <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Actual</span>
                 </div>
               </div>
             </div>
+
           </div>
         </div>
 
@@ -1142,14 +1191,25 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                   <div className={styles.modalStat}><span>Login</span><strong>{formatTime(kekaTime)}</strong></div>
                   <div className={styles.modalStat}><span>Logout</span><strong>{formatTime(lastLogout)}</strong></div>
                   <div className={styles.modalStat}><span>Session</span><strong>{totalLoginToLogout ? `${Math.floor(totalLoginToLogout / 60)}h ${totalLoginToLogout % 60}m` : '—'}</strong></div>
-                  <div className={styles.modalStat}><span>To Ozontell</span><strong className={styles.statGood}>{deltaOzontellFromKeka !== null ? `${deltaOzontellFromKeka}m` : '—'}</strong></div>
+                  <div className={styles.modalStat}><span>To Ozontell</span><strong className={styles.statGood}>{deltaOzontellFromKeka !== null ? (deltaOzontellFromKeka > 0 ? `+${deltaOzontellFromKeka}m` : `${deltaOzontellFromKeka}m`) : '—'}</strong></div>
                 </div>
               </>
             )}
             {activeTile === 'orbit' && (
               <>
                 <div className={styles.modalHeader}><span className={styles.modalDot} style={{ background: '#8B7FE8' }} /><span className={styles.modalTitle}>Orbit Login</span></div>
-                <p className={styles.modalInsight}>Orbit CRM not connected yet.</p>
+                {orbitTime ? (
+                  <>
+                    <p className={styles.modalInsight}>Logged in at {formatTime(orbitTime)}.</p>
+                    <div className={styles.modalStatGrid}>
+                      <div className={styles.modalStat}><span>Orbit Login</span><strong>{formatTime(orbitTime)}</strong></div>
+                      <div className={styles.modalStat}><span>From Keka</span><strong className={styles.statGood}>{deltaOrbitFromKeka !== null ? (deltaOrbitFromKeka > 0 ? `+${deltaOrbitFromKeka}m` : `${deltaOrbitFromKeka}m`) : '—'}</strong></div>
+                      <div className={styles.modalStat}><span>To Ozontell</span><strong className={styles.statGood}>{minutesBetween(orbitTime, ozontellReady, true) !== null ? (minutesBetween(orbitTime, ozontellReady, true)! > 0 ? `+${minutesBetween(orbitTime, ozontellReady, true)}m` : `${minutesBetween(orbitTime, ozontellReady, true)}m`) : '—'}</strong></div>
+                    </div>
+                  </>
+                ) : (
+                  <p className={styles.modalInsight}>Orbit CRM not connected yet.</p>
+                )}
               </>
             )}
             {activeTile === 'ozontell' && (
@@ -1160,22 +1220,8 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                     <div className={styles.modalStat}><span>Login</span><strong>{formatTime(kekaTime)}</strong></div>
                     <div className={styles.modalStat}><span>1st Lead</span><strong>{formatTime(firstLead)}</strong></div>
                     <div className={styles.modalStat}><span>Ozontell Ready</span><strong>{formatTime(ozontellReady)}</strong></div>
-                    <div className={styles.modalStat}><span>To Ozontell</span><strong className={styles.statGood}>{deltaOzontellFromKeka !== null ? `${deltaOzontellFromKeka}m` : '—'}</strong></div>
+                    <div className={styles.modalStat}><span>To Ozontell</span><strong className={styles.statGood}>{deltaOzontellFromKeka !== null ? (deltaOzontellFromKeka > 0 ? `+${deltaOzontellFromKeka}m` : `${deltaOzontellFromKeka}m`) : '—'}</strong></div>
                   </div>
-                </div>
-                <div className={styles.modalCard}>
-                  <h4 className={styles.modalH4}>Login Speed</h4>
-                  <div className={styles.modalMetricRow}>
-                    <div className={styles.modalMetricBlock}>
-                      <div className={styles.modalMetricVal}>{deltaOzontellFromKeka !== null ? `${deltaOzontellFromKeka}m` : '—'}</div>
-                      <div className={styles.modalMetricLabel}>Keka to Ozontell</div>
-                    </div>
-                    <div className={styles.modalMetricBlock}>
-                      <div className={styles.modalMetricVal}>{deltaOzontellToFirst !== null ? `${deltaOzontellToFirst}m` : '—'}</div>
-                      <div className={styles.modalMetricLabel}>Ready to 1st Lead</div>
-                    </div>
-                  </div>
-                  <p className={styles.modalInsight}>{deltaOzontellFromKeka !== null && deltaOzontellFromKeka <= 5 ? `Ready in ${deltaOzontellFromKeka} min — great!` : `Ready ${deltaOzontellFromKeka ?? '—'} min after Keka.`}</p>
                 </div>
               </>
             )}

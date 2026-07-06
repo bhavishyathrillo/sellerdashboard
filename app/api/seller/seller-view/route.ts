@@ -165,6 +165,7 @@ export async function GET(request: NextRequest) {
       pax_4: sum('pax_4'),
       pax_4_plus: sum('pax_4_plus'),
       days_with_data: monthRows.length,
+      revised_lta: (ltaMonthData || []).reduce((acc: number, r: any) => acc + Math.floor(r.final_lta || 0), 0),
     }
 
     const mheTrend = (ltaMonthData || []).map((r: any) => {
