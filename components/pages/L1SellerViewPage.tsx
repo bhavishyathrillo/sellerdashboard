@@ -1868,8 +1868,14 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                           <td style={{ padding: '12px 8px' }}>
                             {s.isAbsent ? (
                               <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Absent</span>
+                            ) : (!s.orbit?.first_login && !s.cti?.logged_in_at) ? (
+                              <span style={{ color: '#EAB308', fontSize: '0.8rem' }}>Not logged in to Orbit & Ozonetel</span>
+                            ) : (!s.orbit?.first_login) ? (
+                              <span style={{ color: '#EAB308', fontSize: '0.8rem' }}>Not logged in to Orbit</span>
+                            ) : (!s.cti?.logged_in_at) ? (
+                              <span style={{ color: '#EAB308', fontSize: '0.8rem' }}>Not logged in to Ozonetel</span>
                             ) : (
-                              <span style={{ color: '#EAB308', fontSize: '0.8rem' }}>Wait for lead or not ready on Ozonetel</span>
+                              <span style={{ color: '#22C55E', fontSize: '0.8rem' }}>Waiting for lead</span>
                             )}
                           </td>
                         </tr>
