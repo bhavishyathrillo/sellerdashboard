@@ -312,20 +312,36 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                   label: (ctx: any) => {
                     const d = trendData[ctx.dataIndex]
                     if (!d) return ''
-                    const planned = d.wd > 0 ? Math.floor(d.lead_goal / d.wd) : 0
-                    const fin = d.final_lta || 0
-                    if (ctx.datasetIndex === 0) return ` Final Target: ${fin} leads`
-                    return ` Base Planned: ${planned} leads`
+                    const p = d.wd > 0 ? Math.floor(d.lead_goal / d.wd) : 0
+                    const dyn = d.real_dynamic_lta ?? p
+                    const hyg = d.hygiene_lta ?? dyn
+                    const fin = d.final_lta ?? hyg
+                    
+                    if (ctx.datasetIndex === 0) {
+                      return ` Final Target: ${fin} leads`
+                    }
+                    return ` Base Planned: ${p} leads`
                   },
                   afterBody: (context: any) => {
                     if (!context?.length) return []
                     const d = trendData[context[0].dataIndex]
                     if (!d) return []
+                    
                     const p = d.wd > 0 ? Math.floor(d.lead_goal / d.wd) : 0
-                    const fin = d.final_lta || 0
-                    const diff = fin - p
-                    if (diff === 0) return ['Matches planned baseline']
-                    return [diff > 0 ? `+${diff} added above base` : `${diff} deduction applied`]
+                    const dyn = d.real_dynamic_lta ?? p
+                    const hyg = d.hygiene_lta ?? dyn
+                    const fin = d.final_lta ?? hyg
+
+                    const fmtDiff = (v: number) => v > 0 ? `+${v}` : `${v}`
+
+                    return [
+                      `------------------------------`,
+                      `1. Base Planned : ${p} leads`,
+                      `2. Dynamic LTA  : ${dyn} leads (${fmtDiff(dyn - p)})`,
+                      `3. After Hygiene: ${hyg} leads (${fmtDiff(hyg - dyn)})`,
+                      `4. Final Target : ${fin} leads (${fmtDiff(fin - hyg)})`,
+                      `------------------------------`
+                    ]
                   }
                 }
               }
