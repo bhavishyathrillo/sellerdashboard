@@ -1,3 +1,4 @@
+import '@/components/kpi/kpiStyles.css';
 import type { Metadata } from 'next'
 import './globals.css'
 
