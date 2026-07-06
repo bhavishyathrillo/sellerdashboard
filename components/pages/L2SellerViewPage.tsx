@@ -374,7 +374,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
             bucket = `${h12}${ampm}`
           }
         }
-        const numLeads = (h.auto_allotted || 0) + (h.manual_allotted || 0)
+        const numLeads = Number(h.leads_allotted_in_bucket) || 0
         map[bucket] = (map[bucket] || 0) + numLeads
       })
     })
@@ -432,11 +432,11 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   ]
 
   const teamPaxRows = [
-    { label: '1-pax', value: teamMonthlyPax1, color: '#F3F4F6' },
-    { label: '2-pax', value: teamMonthlyPax2, color: '#E5E7EB' },
-    { label: '3-pax', value: teamMonthlyPax3, color: '#D1D5DB' },
-    { label: '4-pax', value: teamMonthlyPax4, color: '#9CA3AF' },
-    { label: '4+ pax', value: teamMonthlyPax4Plus, color: '#6B7280' },
+    { label: '1-pax', value: teamMonthlyPax1, color: '#DBEAFE' },
+    { label: '2-pax', value: teamMonthlyPax2, color: '#93C5FD' },
+    { label: '3-pax', value: teamMonthlyPax3, color: '#3B82F6' },
+    { label: '4-pax', value: teamMonthlyPax4, color: '#1D4ED8' },
+    { label: '4+ pax', value: teamMonthlyPax4Plus, color: '#172554' },
   ]
 
   // DOT aggregation
@@ -452,11 +452,12 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   })
 
   const teamDotChartData: { label: string; value: number; color: string }[] = []
+  const dotColors = ['#F4631E', '#EF562F', '#E06D3E', '#D17F4E', '#C28E5F', '#B39D70']
   for (let i = 0; i < 6; i++) {
     let monthIdx = (currentMonthIndex + i) % 12
     let year = dotCy + Math.floor((currentMonthIndex + i) / 12)
     const monthKey = `${year}-${String(monthIdx + 1).padStart(2, '0')}`
-    teamDotChartData.push({ label: monthNames[monthIdx], value: teamDotMap[monthKey] || 0, color: '#F4631E' })
+    teamDotChartData.push({ label: monthNames[monthIdx], value: teamDotMap[monthKey] || 0, color: dotColors[i] || '#F4631E' })
   }
   let futureSum = 0
   Object.entries(teamDotMap).forEach(([key, val]) => {
@@ -490,12 +491,30 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       const Chart = mod.default || mod;
       if (dotChartInstance.current) dotChartInstance.current.destroy();
       dotChartInstance.current = new Chart(dotChartCanvasRef.current!, {
-        type: 'bar',
-        data: { labels: teamDotChartData.map((d: any) => d.label.split(' ')[0]), datasets: [{ data: teamDotChartData.map((d: any) => d.value), backgroundColor: teamDotChartData.map((d: any) => d.color), borderRadius: 4, barThickness: 16 }] },
+        type: 'doughnut',
+        data: { labels: teamDotChartData.map((d: any) => d.label.split(' ')[0]), datasets: [{ data: teamDotChartData.map((d: any) => d.value), backgroundColor: teamDotChartData.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111111' } },
-          scales: { x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: '#8A8278', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.03)' } } }
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111',
+              titleColor: '#FFFFFF',
+              bodyColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              borderWidth: 1,
+              cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const sum = teamDotChartData.reduce((s, b) => s + b.value, 0)
+                  const pctVal = sum > 0 ? ((val / sum) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
+            }
+          },
+          cutout: '65%'
         }
       });
     });
@@ -515,7 +534,25 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         data: { labels: teamAllotmentRows.map((d: any) => d.label), datasets: [{ data: teamAllotmentRows.map((d: any) => d.value), backgroundColor: teamAllotmentRows.map((d: any) => d.color), borderRadius: 4, barThickness: 16 }] },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111111' } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111',
+              titleColor: '#FFFFFF',
+              bodyColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              borderWidth: 1,
+              cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const total = teamMonthlyTotalLeads
+                  const pctVal = total > 0 ? ((val / total) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
+            }
+          },
           scales: { x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: '#8A8278', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.03)' } } }
         }
       });
@@ -536,7 +573,25 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         data: { labels: teamPaxRows.map((d: any) => d.label), datasets: [{ data: teamPaxRows.map((d: any) => d.value), backgroundColor: teamPaxRows.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111111' } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111',
+              titleColor: '#FFFFFF',
+              bodyColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              borderWidth: 1,
+              cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const total = teamPaxRows.reduce((s, v) => s + v.value, 0)
+                  const pctVal = total > 0 ? ((val / total) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
+            }
+          },
           cutout: '65%'
         }
       });

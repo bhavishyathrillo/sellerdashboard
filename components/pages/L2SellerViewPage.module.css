@@ -119,36 +119,58 @@
 }
 
 .tableWrap {
-  overflow-x: auto;
+  background: var(--card, #121212);
+  border: 1px solid var(--border, #1E1E1E);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .table th, .table td {
-  padding: 12px 16px;
+  padding: 16px 20px;
   text-align: left;
-  border-bottom: 1px solid #262626;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   font-size: 0.85rem;
+  color: #F9FAFB;
 }
 
 .table th {
+  background: rgba(255, 255, 255, 0.02);
   color: #8A8278;
-  font-weight: 600;
-  font-size: 0.75rem;
+  font-weight: 700;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tlRow {
+  background: rgba(255, 255, 255, 0.015);
+  transition: all 0.2s ease;
+}
+
+.tlRow:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .sellerRow {
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.2s ease;
+  background: transparent;
 }
 
 .sellerRow:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .youBadge {

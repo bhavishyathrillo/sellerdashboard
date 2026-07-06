@@ -731,7 +731,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
   }, [autoVal, manualVal, rtgVal, nonRtgVal])
 
   // PAX Doughnut Chart
-  const paxColors = ['#F9FAFB', '#D1D5DB', '#9CA3AF', '#6B7280', '#4B5563']
+  const paxColors = ['#DBEAFE', '#93C5FD', '#3B82F6', '#1D4ED8', '#172554']
   const paxLabels = ['Solo (1)', '2 pax', '3 pax', '4 pax', '4+ pax']
   const paxVals = useMemo(() => [
     monthly?.pax_1 || 0,

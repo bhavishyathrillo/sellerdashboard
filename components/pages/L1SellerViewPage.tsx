@@ -463,7 +463,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
             bucket = `${h12}${ampm}`
           }
         }
-        const numLeads = (h.auto_allotted || 0) + (h.manual_allotted || 0)
+        const numLeads = Number(h.leads_allotted_in_bucket) || 0
         map[bucket] = (map[bucket] || 0) + numLeads
       })
     })
@@ -505,11 +505,11 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   ]
 
   const cmPaxRows = [
-    { label: '1-pax', value: cmMonthlyPax1, color: '#F3F4F6' },
-    { label: '2-pax', value: cmMonthlyPax2, color: '#E5E7EB' },
-    { label: '3-pax', value: cmMonthlyPax3, color: '#D1D5DB' },
-    { label: '4-pax', value: cmMonthlyPax4, color: '#9CA3AF' },
-    { label: '4+ pax', value: cmMonthlyPax4Plus, color: '#6B7280' },
+    { label: '1-pax', value: cmMonthlyPax1, color: '#DBEAFE' },
+    { label: '2-pax', value: cmMonthlyPax2, color: '#93C5FD' },
+    { label: '3-pax', value: cmMonthlyPax3, color: '#3B82F6' },
+    { label: '4-pax', value: cmMonthlyPax4, color: '#1D4ED8' },
+    { label: '4+ pax', value: cmMonthlyPax4Plus, color: '#172554' },
   ]
 
   const dotMonthsConfig = [
@@ -529,12 +529,13 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   })
 
   const cmDotChartData: { label: string; value: number; color: string }[] = []
-  dotMonthsConfig.forEach(mo => {
+  const dotColors = ['#F4631E', '#EF562F', '#E06D3E', '#D17F4E', '#C28E5F', '#B39D70']
+  dotMonthsConfig.forEach((mo, i) => {
     let val = 0;
     Object.entries(cmDotMap).forEach(([k, v]) => {
       if (k.endsWith('-' + mo.key)) val += v;
     });
-    cmDotChartData.push({ label: mo.label, value: val, color: '#F4631E' })
+    cmDotChartData.push({ label: mo.label, value: val, color: dotColors[i] || '#F4631E' })
   });
 
   let futureSum = 0
@@ -575,12 +576,30 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
       const Chart = mod.default || mod;
       if (dotChartInstance.current) dotChartInstance.current.destroy();
       dotChartInstance.current = new Chart(dotChartCanvasRef.current!, {
-        type: 'bar',
-        data: { labels: cmDotChartData.map((d: any) => d.label.split(' ')[0]), datasets: [{ data: cmDotChartData.map((d: any) => d.value), backgroundColor: cmDotChartData.map((d: any) => d.color), borderRadius: 4, barThickness: 16 }] },
+        type: 'doughnut',
+        data: { labels: cmDotChartData.map((d: any) => d.label.split(' ')[0]), datasets: [{ data: cmDotChartData.map((d: any) => d.value), backgroundColor: cmDotChartData.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111111' } },
-          scales: { x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: '#8A8278', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.03)' } } }
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111',
+              titleColor: '#FFFFFF',
+              bodyColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              borderWidth: 1,
+              cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const sum = cmDotChartData.reduce((s, b) => s + b.value, 0)
+                  const pctVal = sum > 0 ? ((val / sum) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
+            }
+          },
+          cutout: '65%'
         }
       });
     });
@@ -600,7 +619,25 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         data: { labels: cmAllotmentRows.map((d: any) => d.label), datasets: [{ data: cmAllotmentRows.map((d: any) => d.value), backgroundColor: cmAllotmentRows.map((d: any) => d.color), borderRadius: 4, barThickness: 16 }] },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111111' } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111',
+              titleColor: '#FFFFFF',
+              bodyColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              borderWidth: 1,
+              cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const total = cmMonthlyTotalLeads
+                  const pctVal = total > 0 ? ((val / total) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
+            }
+          },
           scales: { x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: '#8A8278', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.03)' } } }
         }
       });
@@ -621,7 +658,25 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         data: { labels: cmPaxRows.map((d: any) => d.label), datasets: [{ data: cmPaxRows.map((d: any) => d.value), backgroundColor: cmPaxRows.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111111' } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111',
+              titleColor: '#FFFFFF',
+              bodyColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              borderWidth: 1,
+              cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const total = cmPaxRows.reduce((s, v) => s + v.value, 0)
+                  const pctVal = total > 0 ? ((val / total) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
+            }
+          },
           cutout: '65%'
         }
       });
@@ -1209,7 +1264,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
           <tbody>
             {processedGroups.map((g: any) => (
               <React.Fragment key={g.l2_email}>
-                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS3, expandedTlS3)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS3, expandedTlS3)} style={{ cursor: 'pointer' }}>
                   <td style={{ fontWeight: 600, color: '#C9A84C' }}>
                     <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS3 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
                     {g.l2_name}
@@ -1271,7 +1326,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
               <tbody>
                 {processedGroups.map((g: any) => (
                   <React.Fragment key={g.l2_email}>
-                    <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS1, expandedTlS1)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                    <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS1, expandedTlS1)} style={{ cursor: 'pointer' }}>
                       <td style={{ fontWeight: 600, color: '#C9A84C' }}>
                         <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS1 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span> 
                         {g.l2_name}
@@ -1701,7 +1756,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
           <tbody>
             {processedGroups.map((g: any) => (
               <React.Fragment key={g.l2_email}>
-                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS2, expandedTlS2)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS2, expandedTlS2)} style={{ cursor: 'pointer' }}>
                   <td style={{ fontWeight: 600, color: '#C9A84C' }}>
                     <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS2 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
                     {g.l2_name}
@@ -1760,7 +1815,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
           <tbody>
             {processedGroups.map((g: any) => (
               <React.Fragment key={g.l2_email}>
-                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS5, expandedTlS5)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS5, expandedTlS5)} style={{ cursor: 'pointer' }}>
                   <td style={{ fontWeight: 600, color: '#C9A84C' }}>
                     <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS5 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
                     {g.l2_name}
@@ -1840,7 +1895,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 
               return (
                 <React.Fragment key={g.l2_email}>
-                  <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS7, expandedTlS7)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                  <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setExpandedTlS7, expandedTlS7)} style={{ cursor: 'pointer' }}>
                     <td style={{ fontWeight: 600, color: '#C9A84C' }}>
                       <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: expandedTlS7 === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
                       {g.l2_name}
@@ -2168,7 +2223,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 
                           return (
                             <React.Fragment key={g.l2_email}>
-                              <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setBreakdownExpandedTl, breakdownExpandedTl)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                              <tr className={styles.tlRow} onClick={() => toggleTl(g.l2_email, setBreakdownExpandedTl, breakdownExpandedTl)} style={{ cursor: 'pointer' }}>
                                 <td style={{ fontWeight: 600, color: '#C9A84C', paddingLeft: '24px' }}>
                                   <span style={{ display: 'inline-block', width: '16px', transition: 'transform 0.2s', transform: breakdownExpandedTl === g.l2_email ? 'rotate(90deg)' : 'none' }}>▶</span>
                                   {g.l2_name}
