@@ -396,55 +396,111 @@
     transform: scale(1.02);
   }
 
-  .blockLeadReceived {
-    background: #22C55E;
+  /* ── Timeline block states (8 distinct) ── */
+
+  /* 1. Lead received — normal (eligible + got lead) */
+  .blockLeadNormal {
+    background: #16A34A;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
   }
-  
-  .blockOrbit {
+
+  /* 2. Lead received — on break exception */
+  .blockLeadOnBreak {
+    background: #D97706;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+
+  /* 3. Lead received — Ozontell not ready exception */
+  .blockLeadNotReady {
+    background: #EA580C;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+
+  /* 4. Lead received — via Orbit */
+  .blockLeadOrbit {
     background: #7C3AED;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
   }
 
-  .blockManualLead {
-    background: #EAB308;
+  /* 5. Eligible window — no lead yet */
+  .blockEligibleWait {
+    background: rgba(20, 184, 166, 0.18);
+    border: 1px solid rgba(20, 184, 166, 0.3);
   }
 
-  .blockBreak {
-    background: #7F1D1D;
-    border: 1px solid #991B1B;
-  }
-  
-  .blockBreakText {
-    font-size: 0.5rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.9);
-    line-height: 1;
-    margin-top: 2px;
+  /* 6. On break — no lead */
+  .blockOnBreak {
+    background: rgba(153, 27, 27, 0.55);
+    border: 1px solid rgba(185, 28, 28, 0.4);
   }
 
-  .blockLeadCount {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #ffffff;
-  }
-  
-  .blockOrbitText {
-    font-size: 0.5rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.9);
-    line-height: 1;
-    margin-top: 2px;
-  }
-
-  .blockEligibleNoLead {
-    background: #404040;
-    border: 1px solid #52525B;
-  }
-
-  .blockNotEligible {
-    background: #27272A;
+  /* 7. Not ready on Ozontell — no lead */
+  .blockNotReady {
+    background: rgba(39, 39, 42, 0.8);
     border: 1px solid #3F3F46;
+  }
+
+  /* 8. Orbit-eligible window — no lead */
+  .blockOrbitWait {
+    background: rgba(124, 58, 237, 0.18);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+  }
+
+  /* Shared text inside blocks */
+  .blockLeadCount {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+
+  .blockTag {
+    font-size: 0.42rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+  }
+
+  /* Legacy aliases — so nothing else breaks */
+  .blockLeadReceived { background: #16A34A; }
+  .blockOrbit { background: #7C3AED; }
+  .blockManualLead { background: #D97706; }
+  .blockBreak { background: rgba(153,27,27,0.55); border: 1px solid rgba(185,28,28,0.4); }
+  .blockEligibleNoLead { background: rgba(20,184,166,0.18); border: 1px solid rgba(20,184,166,0.3); }
+  .blockNotEligible { background: rgba(39,39,42,0.8); border: 1px solid #3F3F46; }
+  .blockBreakText { font-size: 0.42rem; font-weight: 700; text-transform: uppercase; color: rgba(255,255,255,0.8); line-height: 1; margin-top: 2px; }
+  .blockOrbitText { font-size: 0.42rem; font-weight: 700; text-transform: uppercase; color: rgba(255,255,255,0.8); line-height: 1; margin-top: 2px; }
+
+  /* ── Legend ── */
+  .timelineLegend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 12px;
+    margin-top: 12px;
+    padding: 9px 12px;
+    background: rgba(255,255,255,0.015);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 8px;
+  }
+
+  .legendItem {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.58rem;
+    color: #6B7280;
+    font-weight: 500;
+  }
+
+  .legendDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
   }
 
   .timelineLabelsRow {
