@@ -608,7 +608,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
       </div>
 
       {/* Login Strip */}
-      <div className={styles.sectionHeader}><span className={styles.sectionTitle}>Login Timestamps</span><span className={styles.sectionHint}>tap for details</span></div>
+      <div className={styles.sectionHeader}><span className={styles.sectionTitle}>Login Timestamps</span></div>
       <div className={styles.loginStrip}>
         {[
           { key: 'keka', cls: styles.loginTileKeka, label: 'Keka Login', value: formatTime(kekaTime), sub: ' ' },
@@ -616,11 +616,11 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
           { key: 'ozontell', cls: styles.loginTileOzontell, label: 'Ozontell Ready', value: formatTime(ozontellReady), sub: deltaOzontellFromKeka !== null ? (deltaOzontellFromKeka > 0 ? `+${deltaOzontellFromKeka} min from Keka` : `${deltaOzontellFromKeka} min from Keka`) : '—' },
           { key: 'first', cls: styles.loginTileFirst, label: 'First Lead', value: formatTime(firstLead), sub: deltaOzontellToFirst !== null ? `+${deltaOzontellToFirst} min from Ozontell` : '—' },
         ].map((t: { key: string; cls: string; label: string; value: string; sub: string; muted?: boolean }) => (
-          <button key={t.key} className={`${styles.loginTile} ${t.cls}`} onClick={() => setActiveTile(t.key)}>
+          <div key={t.key} className={`${styles.loginTile} ${t.cls}`} style={{ cursor: 'default' }}>
             <div className={styles.loginTileLabel}>{t.label}</div>
             <div className={styles.loginTileValue} style={t.muted ? { color: '#6B7280' } : undefined}>{t.value}</div>
             <div className={styles.loginTileDelta}>{t.sub}</div>
-          </button>
+          </div>
         ))}
       </div>
 
@@ -1170,7 +1170,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
               },
               {
                 id: 'dynamic',
-                label: 'After availability',
+                label: 'Dynamic LTA',
                 sublabel: 'Adjusted for when you were online',
                 value: dynamicLtaVal,
                 color: '#EAB308',
@@ -1288,9 +1288,9 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
             <div style={{ fontSize: '0.58rem', color: '#5A5650', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Revised Monthly LTA</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
               <span style={{ fontSize: '2rem', fontWeight: 800, color: monthly?.revised_lta ? '#8B5CF6' : '#3A3A3A', lineHeight: 1 }}>{monthly?.revised_lta || 0}</span>
-              <span style={{ fontSize: '0.58rem', color: '#5A5650' }}>leads/day</span>
+              <span style={{ fontSize: '0.58rem', color: '#5A5650' }}>leads</span>
             </div>
-            <div style={{ fontSize: '0.58rem', color: '#4A4642', marginTop: '4px' }}>Planned target for remaining days</div>
+            <div style={{ fontSize: '0.58rem', color: '#4A4642', marginTop: '4px' }}>Planned target for month</div>
           </div>
         </div>
 
@@ -1307,12 +1307,12 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
               <span style={{ fontSize: '1.8rem', fontWeight: 800, color: (dailyLta?.leads_actual || 0) > 0 ? '#22C55E' : '#3A3A3A', lineHeight: 1 }}>{dailyLta?.leads_actual || 0}</span>
               <span style={{ fontSize: '0.58rem', color: '#5A5650' }}>leads</span>
             </div>
-            {(dailyLta?.lead_goal || 0) > 0 && (
+            {(monthly?.revised_lta || 0) > 0 && (
               <>
                 <div style={{ height: '4px', background: '#1E1E1E', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${Math.min(100, Math.round(((dailyLta?.leads_actual || 0) / (dailyLta?.lead_goal || 1)) * 100))}%`, background: '#22C55E', borderRadius: '4px', transition: 'width 0.6s ease' }} />
+                  <div style={{ height: '100%', width: `${Math.min(100, Math.round(((dailyLta?.leads_actual || 0) / (monthly?.revised_lta || 1)) * 100))}%`, background: '#22C55E', borderRadius: '4px', transition: 'width 0.6s ease' }} />
                 </div>
-                <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px' }}>{Math.min(100, Math.round(((dailyLta?.leads_actual || 0) / (dailyLta?.lead_goal || 1)) * 100))}% of monthly goal</div>
+                <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px' }}>{Math.min(100, Math.round(((dailyLta?.leads_actual || 0) / (monthly?.revised_lta || 1)) * 100))}% of revised monthly goal</div>
               </>
             )}
           </div>
@@ -1323,12 +1323,12 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
               <span style={{ fontSize: '1.8rem', fontWeight: 800, color: (dailyLta?.leads_actual_planned_region || 0) > 0 ? '#F97316' : '#3A3A3A', lineHeight: 1 }}>{dailyLta?.leads_actual_planned_region || 0}</span>
               <span style={{ fontSize: '0.58rem', color: '#5A5650' }}>leads</span>
             </div>
-            {(dailyLta?.leads_actual || 0) > 0 && (
+            {(monthly?.revised_lta || 0) > 0 && (
               <>
                 <div style={{ height: '4px', background: '#1E1E1E', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${Math.min(100, Math.round(((dailyLta?.leads_actual_planned_region || 0) / (dailyLta?.leads_actual || 1)) * 100))}%`, background: '#F97316', borderRadius: '4px', transition: 'width 0.6s ease' }} />
+                  <div style={{ height: '100%', width: `${Math.min(100, Math.round(((dailyLta?.leads_actual_planned_region || 0) / (monthly?.revised_lta || 1)) * 100))}%`, background: '#F97316', borderRadius: '4px', transition: 'width 0.6s ease' }} />
                 </div>
-                <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px' }}>{Math.min(100, Math.round(((dailyLta?.leads_actual_planned_region || 0) / (dailyLta?.leads_actual || 1)) * 100))}% of overall received</div>
+                <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px' }}>{Math.min(100, Math.round(((dailyLta?.leads_actual_planned_region || 0) / (monthly?.revised_lta || 1)) * 100))}% of revised monthly goal</div>
               </>
             )}
           </div>
