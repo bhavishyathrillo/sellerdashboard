@@ -761,35 +761,56 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         </div>
         <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setActiveTile('goal_shb')}>
           <div className={styles.kpiLabel}>Goal % vs SHB <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span></div>
-          <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
-            <div className={styles.kpiSplitSide}>
-              <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Goal</div>
-              <div className={`${styles.kpiValue} ${data?.goal_vs_shb ? '' : styles.kpiValueMuted}`}>
-                {data?.goal_vs_shb?.goal_completion !== undefined ? `${(data.goal_vs_shb.goal_completion * 100).toFixed(0)}%` : '0%'}
+          {(() => {
+            const goalVal = data?.goal_vs_shb?.goal_completion !== undefined ? Math.round(data.goal_vs_shb.goal_completion * 100) : 0;
+            const shbVal = data?.goal_vs_shb?.shb_percent !== undefined ? Math.round(data.goal_vs_shb.shb_percent * 100) : 0;
+            // goal >= shb -> green, within 10% -> yellow, else red
+            const goalColor = goalVal >= shbVal ? '#22C55E' : (shbVal - goalVal <= 10) ? '#EAB308' : '#EF4444';
+            return (
+              <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
+                <div className={styles.kpiSplitSide}>
+                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Goal</div>
+                  <div className={styles.kpiValue} style={{ color: data?.goal_vs_shb ? goalColor : '#5A5650' }}>
+                    {goalVal}%
+                  </div>
+                </div>
+                <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
+                <div className={styles.kpiSplitSide}>
+                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>SHB</div>
+                  <div className={styles.kpiValue} style={{ color: data?.goal_vs_shb ? '#F0EDE8' : '#5A5650' }}>
+                    {shbVal}%
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
-            <div className={styles.kpiSplitSide}>
-              <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>SHB</div>
-              <div className={`${styles.kpiValue} ${data?.goal_vs_shb ? '' : styles.kpiValueMuted}`}>
-                {data?.goal_vs_shb?.shb_percent !== undefined ? `${(data.goal_vs_shb.shb_percent * 100).toFixed(0)}%` : '0%'}
-              </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
         <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setActiveTile('mhe')}>
           <div className={styles.kpiLabel}>MHE % <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span></div>
-          <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
-            <div className={styles.kpiSplitSide}>
-              <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Yesterday</div>
-              <div className={`${styles.kpiValue} ${styles.kpiValueMuted}`}>{yesterdayMhe.pct}%</div>
-            </div>
-            <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
-            <div className={styles.kpiSplitSide}>
-              <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Today</div>
-              <div className={`${styles.kpiValue} ${styles.kpiValueMuted}`}>{todayMhe.pct}%</div>
-            </div>
-          </div>
+          {(() => {
+            const getMheColor = (pct: number) => {
+              if (pct <= 15) return '#22C55E';
+              if (pct <= 20) return '#EAB308';
+              return '#EF4444';
+            };
+            return (
+              <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
+                <div className={styles.kpiSplitSide}>
+                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Yesterday</div>
+                  <div className={styles.kpiValue} style={{ color: getMheColor(yesterdayMhe.pct) }}>
+                    {yesterdayMhe.pct}%
+                  </div>
+                </div>
+                <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
+                <div className={styles.kpiSplitSide}>
+                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Today</div>
+                  <div className={styles.kpiValue} style={{ color: getMheColor(todayMhe.pct) }}>
+                    {todayMhe.pct}%
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
         <div className={styles.kpiTile}>
           <div className={styles.kpiLabel}>Breaks today</div>
@@ -832,8 +853,10 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
               if (percent < 0) percent = 0;
               if (percent > 100) percent = 100;
 
-              // alternate height for appetite vs login to reduce overlap
+              // alternate height to appetite vs login to reduce overlap
               const paddingBottom = isTriangle ? '0' : '8px';
+              // Move Appetite markers higher (e.g. 52px line height) so they clear login/logout
+              const markerLineHeight = isTriangle ? '28px' : '52px';
 
               return (
                 <div key={label} className="timeline-marker-group" style={{
@@ -848,7 +871,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                   {isTriangle ? (
                     <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: `5px solid ${color}` }} />
                   ) : (
-                    <div style={{ width: '2px', height: isTriangle ? '6px' : '28px', background: color, borderRadius: '1px' }} />
+                    <div style={{ width: '2px', height: markerLineHeight, background: color, borderRadius: '1px' }} />
                   )}
                 </div>
               )
