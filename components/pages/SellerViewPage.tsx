@@ -1362,7 +1362,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                 <div style={{ height: '4px', background: '#1E1E1E', borderRadius: '4px', overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${Math.min(100, Math.round(((dailyLta?.leads_actual || 0) / (monthly?.revised_lta || 1)) * 100))}%`, background: '#22C55E', borderRadius: '4px', transition: 'width 0.6s ease' }} />
                 </div>
-                <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px' }}>{Math.min(100, Math.round(((dailyLta?.leads_actual || 0) / (monthly?.revised_lta || 1)) * 100))}% of revised monthly goal</div>
+                <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px' }}>{Math.min(100, Math.round(((dailyLta?.leads_actual || 0) / (monthly?.revised_lta || 1)) * 100))}% of SHB revised LTA</div>
               </>
             )}
           </div>
@@ -1378,7 +1378,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                 <div style={{ height: '4px', background: '#1E1E1E', borderRadius: '4px', overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${Math.min(100, Math.round(((dailyLta?.leads_actual_planned_region || 0) / (monthly?.revised_lta || 1)) * 100))}%`, background: '#F97316', borderRadius: '4px', transition: 'width 0.6s ease' }} />
                 </div>
-                <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px' }}>{Math.min(100, Math.round(((dailyLta?.leads_actual_planned_region || 0) / (monthly?.revised_lta || 1)) * 100))}% of revised monthly goal</div>
+                <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px' }}>{Math.min(100, Math.round(((dailyLta?.leads_actual_planned_region || 0) / (monthly?.revised_lta || 1)) * 100))}% of SHB revised LTA</div>
               </>
             )}
           </div>
