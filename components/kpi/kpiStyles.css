@@ -479,17 +479,17 @@
   overflow-x: auto;
 }
 
-table {
+.kpi-tab-container table {
   width: 100%;
   border-collapse: collapse;
   font-size: 11px;
 }
 
-thead {
+.kpi-tab-container thead {
   background: #FAFAFA;
 }
 
-th {
+.kpi-tab-container th {
   padding: 8px 10px;
   text-align: left;
   font-size: 9px;
@@ -500,13 +500,13 @@ th {
   white-space: nowrap;
 }
 
-td {
+.kpi-tab-container td {
   padding: 10px 10px;
   border-top: 1px solid #F2F2F7;
   color: #3C3C43;
 }
 
-tr:hover td {
+.kpi-tab-container tr:hover td {
   background: #FFF8F5;
 }
 
