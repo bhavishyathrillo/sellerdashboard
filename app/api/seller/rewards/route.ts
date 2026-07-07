@@ -61,7 +61,26 @@ export async function GET(req: Request) {
         .eq('seller_email', trimmedEmail)
         .single()
       if (sellerRow?.goal_achieved_date) {
-        completionDay = new Date(sellerRow.goal_achieved_date).getDate()
+        const raw = String(sellerRow.goal_achieved_date).trim()
+        // goal_achieved_date can be:
+        // 1. Excel serial number (e.g., "46198")
+        // 2. DD/MM/YYYY (e.g., "19/06/2026")
+        // 3. Standard date string (e.g., "2026-06-19")
+        const num = Number(raw)
+        let parsedDate: Date
+        if (!isNaN(num) && num > 40000 && num < 60000) {
+          // Excel serial date
+          parsedDate = new Date((num - 25569) * 86400000)
+        } else if (raw.includes('/')) {
+          // DD/MM/YYYY format
+          const parts = raw.split('/')
+          parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`)
+        } else {
+          parsedDate = new Date(raw)
+        }
+        if (!isNaN(parsedDate.getTime())) {
+          completionDay = parsedDate.getUTCDate()
+        }
       }
     }
     const achieved = {

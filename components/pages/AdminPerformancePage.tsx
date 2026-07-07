@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import styles from './PerformancePage.module.css'
+import Loader from '@/components/ui/Loader'
 
 function fmt(n: number) { if (!n && n !== 0) return '₹0'; if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`; if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`; return `₹${n.toFixed(0)}` }
 
@@ -116,7 +117,7 @@ export default function AdminPerformancePage() {
       .then(d => { setL1Data(d.l1_data || []); setLoading(false) }) 
   }, [])
 
-  if (loading) return <div className={styles.loading}>Loading...</div>
+  if (loading) return <Loader text="Loading..." />
 
   const totalGoal = l1Data.reduce((s: number, l: any) => s + l.goal, 0)
   const totalAch = l1Data.reduce((s: number, l: any) => s + l.achieved, 0)

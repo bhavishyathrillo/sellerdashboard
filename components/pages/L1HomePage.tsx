@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './HomePage.module.css'
+import Loader from '@/components/ui/Loader'
 
 function fmt(n: number) {
   if (!n && n !== 0) return '₹0'
@@ -89,9 +90,7 @@ export default function L1HomePage({ session }: { session: UserSession }) {
     setFilteredResults(results)
   }, [search, data])
 
-  if (loading) return (
-    <div className={styles.loadingWrap}><div className={styles.spinner}/><p>Loading team...</p></div>
-  )
+  if (loading) return <Loader text="Loading..." />
 
   if (!data || data.totalSellers === 0) return (
     <div className={styles.errorWrap}><p>No team data found</p></div>

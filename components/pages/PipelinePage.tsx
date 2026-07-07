@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './PipelinePage.module.css'
+import Loader from '@/components/ui/Loader'
 
 interface PipelineSubmission {
   id: number
@@ -197,12 +198,7 @@ export default function PipelinePage({ session }: PipelinePageProps) {
     }
   }
 
-  if (loading) return (
-    <div className={styles.loadingWrap}>
-      <div className={styles.spinner} />
-      <p>Loading pipeline...</p>
-    </div>
-  )
+  if (loading) return <Loader text="Loading..." />
 
   // Use filteredHistory for display
   const displayHistory = filteredHistory

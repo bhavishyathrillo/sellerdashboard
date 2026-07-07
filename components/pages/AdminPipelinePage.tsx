@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import styles from './PipelinePage.module.css'
+import Loader from '@/components/ui/Loader'
 
 interface PipelineSubmission {
   id: number
@@ -165,7 +166,7 @@ export default function AdminPipelinePage() {
     setDateFilter('all')
   }
 
-  if (loading) return <div className={styles.loadingWrap}><div className={styles.spinner}/><p>Loading...</p></div>
+  if (loading) return <Loader text="Loading..." />
 
   // Calculate totals from filtered data
   const getFilteredL1Data = () => {

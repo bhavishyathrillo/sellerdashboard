@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './LeaderboardPage.module.css'
+import Loader from '@/components/ui/Loader'
 
 interface Seller {
   seller_name: string; seller_email: string
@@ -111,9 +112,7 @@ export default function LeaderboardPage({ session }: Props) {
     setLoading(false)
   }
 
-  if (loading) return (
-    <div className={styles.loaderWrap}><div className={styles.loaderRing} /><p className={styles.loaderText}>Loading rankings...</p></div>
-  )
+  if (loading) return <Loader text="Loading..." />
 
   // Admin always sees overall, managers can toggle
   const activeSellers = (viewMode === 'team' && isManager) ? teamSellers : allSellers

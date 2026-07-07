@@ -7,6 +7,9 @@ import L1HomePage from '@/components/pages/L1HomePage'
 import PipelinePage from '@/components/pages/PipelinePage'
 import PriorityPage from '@/components/pages/PriorityPage'
 import MHLPage from '@/components/pages/MHLPage'
+import L1SellerViewPage from '@/components/pages/L1SellerViewPage'
+import L2SellerViewPage from '@/components/pages/L2SellerViewPage'
+import SellerViewPage from '@/components/pages/SellerViewPage'
 import LeaderboardPage from '@/components/pages/LeaderboardPage'
 import RoadmapPage from '@/components/pages/RoadmapPage'
 import HygienePage from '@/components/pages/HygienePage'
@@ -30,6 +33,7 @@ const personaTabs = [
   { id: 'pipeline', label: 'Pipeline' },
   { id: 'priority', label: 'Priority / QB Stats' },
   { id: 'leaderboard', label: 'Leaderboard' },
+  { id: 'seller-view', label: 'LTA' },
   { id: 'performance', label: 'Performance' },
   { id: 'rewards', label: 'Rewards' },
   { id: 'mhl', label: 'Mishandled' },
@@ -298,6 +302,9 @@ export default function SelectPersonaPage({ session }: Props) {
               {activePersonaTab === 'mhl' && <MHLPage session={personaSession} />}
               {activePersonaTab === 'roadmap' && <RoadmapPage session={personaSession} />}
               {activePersonaTab === 'hygiene' && <HygienePage session={personaSession} />}
+              {activePersonaTab === 'seller-view' && personaSession.role === 'L1' && <L1SellerViewPage session={personaSession} />}
+              {activePersonaTab === 'seller-view' && personaSession.role === 'L2' && <L2SellerViewPage session={personaSession} />}
+              {activePersonaTab === 'seller-view' && !['L1', 'L2'].includes(personaSession.role) && <SellerViewPage session={personaSession} />}
             </div>
           </div>
         </div>

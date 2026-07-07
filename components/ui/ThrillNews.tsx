@@ -77,10 +77,9 @@ export default function ThrillNews({ email, role }: Props) {
             const mhlRes = await fetch(`/api/mhl?email=${encodeURIComponent(email)}&role=${role}&view=team`)
             const mhlData = await mhlRes.json()
             if (Array.isArray(mhlData)) {
-              const mhlCount = mhlData.filter((l: any) => l.mhl_mho === 'MHL').length
-              const mhoCount = mhlData.filter((l: any) => l.mhl_mho === 'MHO').length
-              if (mhlCount > 0 || mhoCount > 0) {
-                news.push(`👥 Your team: ${mhlCount} MHL & ${mhoCount} MHO leads`)
+              const count = mhlData.length
+              if (count > 0) {
+                news.push(`👥 Your team: ${count} mishandled leads`)
               }
             }
           } catch {}
@@ -127,10 +126,9 @@ export default function ThrillNews({ email, role }: Props) {
           const mhlRes = await fetch(`/api/mhl?email=${encodeURIComponent(email)}&role=${role}&view=${view}`)
           const mhlData = await mhlRes.json()
           if (Array.isArray(mhlData)) {
-            const mhlCount = mhlData.filter((l: any) => l.mhl_mho === 'MHL').length
-            const mhoCount = mhlData.filter((l: any) => l.mhl_mho === 'MHO').length
-            if (mhlCount > 0 || mhoCount > 0) {
-              news.push(`⚠️ ${mhlCount} MHL | ${mhoCount} MHO — Check MHL/MHO tab`)
+            const count = mhlData.length
+            if (count > 0) {
+              news.push(`⚠️ ${count} Mishandled leads — Check MHL/MHO tab`)
             }
           }
         } catch {}

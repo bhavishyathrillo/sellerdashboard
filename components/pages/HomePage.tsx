@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './HomePage.module.css'
+import Loader from '@/components/ui/Loader'
 
 interface SellerData {
   seller_email: string
@@ -109,12 +110,7 @@ export default function HomePage({ session }: HomePageProps) {
     load()
   }, [session.email])
 
-  if (loading) return (
-    <div className={styles.loadingWrap}>
-      <div className={styles.spinner} />
-      <p>Loading your overview...</p>
-    </div>
-  )
+  if (loading) return <Loader text="Loading..." />
 
   if (error) return (
     <div className={styles.errorWrap}><p>{error}</p></div>
@@ -196,20 +192,13 @@ export default function HomePage({ session }: HomePageProps) {
           <p className={styles.statLabel}>% Achieved</p>
           <p className={styles.statValue}>{pct.toFixed(1)}%</p>
           <div className={styles.progressBar}>
-            <div className={styles.progressFill} style={{ width: `${Math.min(pct, 100)}%` }} />
+            <div className={styles.progressFill} style={{ width: `${Math.min(data.goal_achieved_percent, 100)}%` }} />
           </div>
-          {(() => {
-            const sbhPct = data.should_have_been_monthly > 0 ? (data.actual_achieved_monthly / data.should_have_been_monthly) * 100 : 0
-            const diff = sbhPct - 100
-            const above = diff >= 0
-            return (
-              <p className={styles.statHint}>
-                <span className={above ? styles.hintGreen : styles.hintRed}>
-                  {above ? '↑' : '↓'} {Math.abs(diff).toFixed(1)}% {above ? 'ahead of SHB pace' : 'behind SHB pace'}
-                </span>
-              </p>
-            )
-          })()}
+          <p className={styles.statHint}>
+            <span className={data.goal_achieved_percent >= 100 ? styles.hintGreen : styles.hintRed}>
+              {data.goal_achieved_percent >= 100 ? '↑' : '↓'} {Math.abs(data.goal_achieved_percent - 100).toFixed(1)}% {data.goal_achieved_percent >= 100 ? 'ahead of' : 'behind'} SHB pace
+            </span>
+          </p>
         </div>
       </div>
 

@@ -225,6 +225,7 @@ export default function AdminMHLPage() {
 
   const toggleStage = (stage: string) => setExpandedStage((p: any) => ({ ...p, [stage]: !p[stage] }))
 
+
   const totalLeads = l1Data.reduce((s: number, l: any) => s + l.total_leads, 0)
   const allLeadsFlat: any[] = []
   l1Data.forEach((l1: any) => {

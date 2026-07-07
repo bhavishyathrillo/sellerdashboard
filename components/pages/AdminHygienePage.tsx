@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import styles from './HygienePage.module.css'
+import Loader from '@/components/ui/Loader'
 
 function fmtDuration(min: number) { 
   if (min >= 60) return `${Math.floor(min / 60)}h ${min % 60}m`; 
@@ -134,7 +135,7 @@ export default function AdminHygienePage() {
     setFilteredResults(results.slice(0, 500))
   }, [search, data])
 
-  if (loading) return <div className={styles.loading}><div className={styles.spinner}/><p>Loading...</p></div>
+  if (loading) return <Loader text="Loading..." />
 
   const l1Data = data?.l1_data || []
   const summary = data?.summary || {}
