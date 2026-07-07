@@ -1139,47 +1139,66 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                   How this team's target was calculated
                 </div>
                 <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', paddingBottom: '14px', marginBottom: '16px' }}>
-                  {ltaSteps.map((step, idx) => {
-                    const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
-                      (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+                          {(() => {
+                    const usedSteps = ltaSteps.filter((step) => {
+                      const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+                        (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+                      return !isNotUsed;
+                    });
 
-                    return (
-                      <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0, opacity: isNotUsed ? 0.6 : 1 }}>
-                        <div style={{
-                          background: '#0D0D0D', border: `1px solid ${isNotUsed ? '#333' : `${step.color}40`}`,
-                          borderRadius: '10px', padding: '10px 14px', minWidth: '112px', flexShrink: 0,
-                          position: 'relative'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                            <div style={{ fontSize: '0.55rem', color: isNotUsed ? '#555' : step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
-                            {isNotUsed && (
-                              <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '4px', fontWeight: 600 }}>NOT USED</span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: isNotUsed ? '#555' : '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
-                          <div style={{ fontSize: '0.52rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
-                        </div>
-                        {idx < ltaSteps.length - 1 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 6px', minWidth: '56px' }}>
-                            {step.drop !== null && step.drop !== 0 && (
-                              <div style={{
-                                fontSize: '0.55rem', fontWeight: 700,
-                                color: step.drop > 0 ? '#EF4444' : '#22C55E',
-                                background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
-                                padding: '2px 5px', borderRadius: '5px', marginBottom: '3px', whiteSpace: 'nowrap',
-                              }}>
-                                {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
-                              </div>
-                            )}
-                            <div style={{ fontSize: '0.5rem', color: '#4A4642', textAlign: 'center', lineHeight: 1.2, marginBottom: '3px' }}>
-                              {step.dropLabel}
+                    const actualSteps = usedSteps.map((step, idx, arr) => {
+                      if (idx === arr.length - 1) return step;
+                      const nextStep = arr[idx + 1];
+                      const dropValue = step.value - nextStep.value;
+                      let dropLabel = null;
+                      if (dropValue > 0) {
+                        if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
+                        else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
+                        else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                        else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
+                      } else if (dropValue < 0) {
+                        dropLabel = 'Bonus added';
+                      }
+                      return { ...step, drop: dropValue, dropLabel };
+                    });
+
+                    return actualSteps.map((step, idx) => {
+                      return (
+                        <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0,  }}>
+                          <div style={{
+                            background: '#0D0D0D', border: `1px solid ${`${step.color}40`}`,
+                            borderRadius: '10px', padding: '10px 14px', minWidth: '112px', flexShrink: 0,
+                            position: 'relative'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                              <div style={{ fontSize: '0.55rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                              
                             </div>
-                            <span style={{ color: '#3A3A3A', fontSize: '0.9rem' }}>→</span>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                            <div style={{ fontSize: '0.52rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
                           </div>
-                        )}
-                      </div>
-                    )
-                  })}
+                          {idx < actualSteps.length - 1 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 6px', minWidth: '56px' }}>
+                              {step.drop !== null && step.drop !== 0 && (
+                                <div style={{
+                                  fontSize: '0.55rem', fontWeight: 700,
+                                  color: step.drop > 0 ? '#EF4444' : '#22C55E',
+                                  background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                                  padding: '2px 5px', borderRadius: '5px', marginBottom: '3px', whiteSpace: 'nowrap',
+                                }}>
+                                  {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
+                                </div>
+                              )}
+                              <div style={{ fontSize: '0.5rem', color: '#4A4642', textAlign: 'center', lineHeight: 1.2, marginBottom: '3px' }}>
+                                {step.dropLabel}
+                              </div>
+                              <span style={{ color: '#3A3A3A', fontSize: '0.9rem' }}>→</span>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })
+                  })()}
                 </div>
 
                 {/* Seller mini-cards */}
@@ -1981,28 +2000,48 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
               { id: 'final', label: "Team final target", sublabel: 'Total team lead appetite', value: tfActual, color: '#22C55E', drop: null, dropLabel: null },
             ]
 
-            return steps.map((step, idx) => {
+            const usedSteps = steps.filter((step) => {
               const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
                 (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+              return !isNotUsed;
+            });
+
+            const actualSteps = usedSteps.map((step, idx, arr) => {
+              if (idx === arr.length - 1) return step;
+              const nextStep = arr[idx + 1];
+              const dropValue = step.value - nextStep.value;
+              let dropLabel = null;
+              if (dropValue > 0) {
+                if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
+                else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
+                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
+              } else if (dropValue < 0) {
+                dropLabel = 'Bonus added';
+              }
+              return { ...step, drop: dropValue, dropLabel };
+            });
+
+            return actualSteps.map((step, idx) => {
 
               return (
-                <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', opacity: isNotUsed ? 0.6 : 1 }}>
+                <div key={step.id} style={{ display: 'flex', alignItems: 'stretch',  }}>
                   {/* Card */}
                   <div style={{
-                    background: '#0D0D0D', border: `1px solid ${isNotUsed ? '#333' : `${step.color}40`}`,
+                    background: '#0D0D0D', border: `1px solid ${`${step.color}40`}`,
                     borderRadius: '10px', padding: '12px 16px', minWidth: '130px', flexShrink: 0,
                     position: 'relative'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <div style={{ fontSize: '0.58rem', color: isNotUsed ? '#555' : step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
-                      {isNotUsed && <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '4px', fontWeight: 600 }}>NOT USED</span>}
+                      <div style={{ fontSize: '0.58rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                      
                     </div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: isNotUsed ? '#555' : '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
                     <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px', lineHeight: 1.3 }}>{step.sublabel}</div>
                   </div>
 
                   {/* Arrow */}
-                  {idx < steps.length - 1 && (
+                  {idx < actualSteps.length - 1 && (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 8px', minWidth: '60px' }}>
                       {step.drop !== null && step.drop !== 0 && (
                         <div style={{
@@ -2052,28 +2091,48 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
               { id: 'final', label: "Today's final target", sublabel: 'Final lead appetite target', value: lta.actual, color: '#22C55E', drop: null, dropLabel: null },
             ]
 
-            return steps.map((step, idx) => {
+            const usedSteps = steps.filter((step) => {
               const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
                 (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+              return !isNotUsed;
+            });
+
+            const actualSteps = usedSteps.map((step, idx, arr) => {
+              if (idx === arr.length - 1) return step;
+              const nextStep = arr[idx + 1];
+              const dropValue = step.value - nextStep.value;
+              let dropLabel = null;
+              if (dropValue > 0) {
+                if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
+                else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
+                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
+              } else if (dropValue < 0) {
+                dropLabel = 'Bonus added';
+              }
+              return { ...step, drop: dropValue, dropLabel };
+            });
+
+            return actualSteps.map((step, idx) => {
 
               return (
-                <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', opacity: isNotUsed ? 0.6 : 1 }}>
+                <div key={step.id} style={{ display: 'flex', alignItems: 'stretch',  }}>
                   {/* Card */}
                   <div style={{
-                    background: '#0D0D0D', border: `1px solid ${isNotUsed ? '#333' : `${step.color}40`}`,
+                    background: '#0D0D0D', border: `1px solid ${`${step.color}40`}`,
                     borderRadius: '10px', padding: '12px 16px', minWidth: '130px', flexShrink: 0,
                     position: 'relative'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <div style={{ fontSize: '0.58rem', color: isNotUsed ? '#555' : step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
-                      {isNotUsed && <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '4px', fontWeight: 600 }}>NOT USED</span>}
+                      <div style={{ fontSize: '0.58rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                      
                     </div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: isNotUsed ? '#555' : '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
                     <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px', lineHeight: 1.3 }}>{step.sublabel}</div>
                   </div>
 
                   {/* Arrow */}
-                  {idx < steps.length - 1 && (
+                  {idx < actualSteps.length - 1 && (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 8px', minWidth: '60px' }}>
                       {step.drop !== null && step.drop !== 0 && (
                         <div style={{

@@ -76,7 +76,7 @@ export async function GET(req: Request) {
     supabase.from('daily_lta_log').select('seller_email,log_date,mishandled_pct,mishandled_enquiries').gte('log_date', monthStart).lte('log_date', monthEnd).in('seller_email', emails).order('log_date', { ascending: true }),
     // Monthly Goal vs SHB for the team
     supabase.from('goal_vs_shb').select('*').gte('date', monthStart).lte('date', monthEnd).or(emailFilters).order('date', { ascending: true }),
-    supabase.from('kalpit').select('*'),
+    supabase.from('kalpit_2').select('*').eq('date', queryDate),
     supabase.from('planned_lta').select('*').gte('log_date', monthStart).lte('log_date', monthEnd).in('seller_email', emails),
   ])
 

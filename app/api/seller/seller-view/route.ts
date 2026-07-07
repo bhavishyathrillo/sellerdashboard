@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
         .eq('seller_email', email)
         .eq('work_date', date)
         .maybeSingle(),
-      supabasePublic.from('kalpit').select('*'),
+      supabasePublic.from('kalpit_2').select('*').eq('date', date),
       
       // Planned LTA for the month
       supabasePublic.from('planned_lta')

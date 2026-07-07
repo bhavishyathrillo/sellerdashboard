@@ -171,7 +171,7 @@ export async function GET(req: Request) {
         .eq('assigned_date', queryDate)),
 
       // Kalpit for toggles
-      supabase.from('kalpit').select('*')
+      supabase.from('kalpit_2').select('*').eq('date', queryDate)
     ])
 
     // ── 3. Build lookup maps ────────────────────────────────────────────
