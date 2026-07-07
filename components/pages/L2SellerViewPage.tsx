@@ -430,8 +430,6 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   const teamAllotmentRows = [
     { label: 'Auto Allotted', value: teamMonthlyAutoAllotted, color: '#E5E7EB' },
     { label: 'Manual Allotted', value: teamMonthlyManualAllotted, color: '#9CA3AF' },
-    { label: 'RTG Leads', value: teamMonthlyRtgLeads, color: '#F4631E' },
-    { label: 'Non-RTG', value: teamMonthlyNonRtgLeads, color: '#4B5563' },
   ]
 
   const teamPaxRows = [
@@ -545,7 +543,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
             data: teamAllotmentRows.map((d: any) => d.value),
             backgroundColor: teamAllotmentRows.map((d: any) => d.color),
             borderRadius: 4,
-            barThickness: 20
+            barThickness: 40
           }]
         },
         options: {
@@ -1196,7 +1194,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'allotment' ? null : 'allotment'); setBreakdownDrillSeller(null); }}>
           <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
           <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>How leads were assigned</div>
-          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={allotmentChartCanvasRef} /></div>
+          <div style={{ height: '160px', position: 'relative', marginBottom: '16px' }}><canvas ref={allotmentChartCanvasRef} /></div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, justifyContent: 'center' }}>
             {teamAllotmentRows.map((item: any, i: number) => (
@@ -1390,8 +1388,6 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                         {activeBreakdownCard === 'allotment' && <>
                           <th style={{ padding: '12px 10px', textAlign: 'center', color: '#8A8278', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', borderBottom: '1px solid #2a2a2a' }}>Auto</th>
                           <th style={{ padding: '12px 10px', textAlign: 'center', color: '#8A8278', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', borderBottom: '1px solid #2a2a2a' }}>Manual</th>
-                          <th style={{ padding: '12px 10px', textAlign: 'center', color: '#8A8278', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', borderBottom: '1px solid #2a2a2a' }}>RTG</th>
-                          <th style={{ padding: '12px 10px', textAlign: 'center', color: '#8A8278', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', borderBottom: '1px solid #2a2a2a' }}>Non-RTG</th>
                           <th style={{ padding: '12px 10px', textAlign: 'center', color: '#8A8278', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', borderBottom: '1px solid #2a2a2a' }}>Total</th>
                         </>}
                         {activeBreakdownCard === 'pax' && <>
@@ -1450,15 +1446,11 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                             {activeBreakdownCard === 'allotment' && (() => {
                               const auto = memberMonthlySum(m, 'auto_allotted')
                               const manual = memberMonthlySum(m, 'manual_allotted')
-                              const rtg = memberMonthlySum(m, 'rtg_leads')
-                              const nonRtg = memberMonthlySum(m, 'non_rtg_leads')
                               const total = memberMonthlySum(m, 'total_leads_allotted')
                               const cellStyle = (v: any, highlight?: boolean) => ({ padding: '14px 10px', textAlign: 'center' as const, borderBottom: '1px solid #1e1e1e', color: v === 0 ? '#555' : highlight ? '#F4631E' : '#E5E7EB', fontWeight: highlight ? 700 : 600, fontVariantNumeric: 'tabular-nums' as const })
                               return <>
                                 <td style={cellStyle(auto)}>{auto}</td>
                                 <td style={cellStyle(manual)}>{manual}</td>
-                                <td style={cellStyle(rtg, true)}>{rtg}</td>
-                                <td style={cellStyle(nonRtg)}>{nonRtg}</td>
                                 <td style={{ ...cellStyle(total), fontWeight: 700, color: total === 0 ? '#555' : '#fff' }}>{total}</td>
                               </>
                             })()}
