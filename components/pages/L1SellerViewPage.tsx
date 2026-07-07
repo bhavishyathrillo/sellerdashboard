@@ -505,8 +505,6 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   const cmAllotmentRows = [
     { label: 'Auto Allotted', value: cmMonthlyAutoAllotted, color: '#E5E7EB' },
     { label: 'Manual Allotted', value: cmMonthlyManualAllotted, color: '#9CA3AF' },
-    { label: 'RTG Leads', value: cmMonthlyRtgLeads, color: '#F4631E' },
-    { label: 'Non-RTG', value: cmMonthlyNonRtgLeads, color: '#4B5563' },
   ]
 
   const cmPaxRows = [
@@ -629,7 +627,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
             data: cmAllotmentRows.map((d: any) => d.value),
             backgroundColor: cmAllotmentRows.map((d: any) => d.color),
             borderRadius: 4,
-            barThickness: 20
+            barThickness: 40
           }]
         },
         options: {
@@ -951,7 +949,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'allotment' ? null : 'allotment'); setBreakdownDrillSeller(null); setBreakdownExpandedTl(null); }}>
           <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
           <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>How leads were assigned</div>
-          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={allotmentChartCanvasRef} /></div>
+          <div style={{ height: '160px', position: 'relative', marginBottom: '16px' }}><canvas ref={allotmentChartCanvasRef} /></div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, justifyContent: 'center' }}>
             {cmAllotmentRows.map((item: any, i: number) => (

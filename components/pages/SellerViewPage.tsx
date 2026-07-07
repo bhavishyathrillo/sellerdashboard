@@ -697,12 +697,12 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
       allotmentChartInstance.current = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: ['Auto', 'Manual', 'RTG', 'Non-RTG'],
+          labels: ['Auto', 'Manual'],
           datasets: [{
-            data: [autoVal, manualVal, rtgVal, nonRtgVal],
-            backgroundColor: ['#3B82F6', '#8B5CF6', '#F4631E', '#4B5563'],
+            data: [autoVal, manualVal],
+            backgroundColor: ['#3B82F6', '#8B5CF6'],
             borderRadius: 4,
-            barThickness: 16
+            barThickness: 40
           }]
         },
         options: {
@@ -1623,7 +1623,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
           <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
           <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>How leads were assigned · {monthTotalLeads} total</div>
-          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}>
+          <div style={{ height: '160px', position: 'relative', marginBottom: '16px' }}>
             <canvas ref={allotmentChartCanvasRef} />
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
@@ -1634,14 +1634,6 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
               <span style={{ color: '#8A8278' }}>Manual Allotted</span>
               <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{manualVal} ({pct(manualVal, monthTotalLeads)}%)</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
-              <span style={{ color: '#8A8278' }}>RTG Leads</span>
-              <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{rtgVal} ({pct(rtgVal, monthTotalLeads)}%)</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
-              <span style={{ color: '#8A8278' }}>Non-RTG Leads</span>
-              <span style={{ color: '#F0EDE8', fontWeight: 700 }}>{nonRtgVal} ({pct(nonRtgVal, monthTotalLeads)}%)</span>
             </div>
           </div>
         </div>

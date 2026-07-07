@@ -1290,8 +1290,6 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                   const sAllotRows = [
                     { label: 'Auto Allotted', value: memberMonthlySum(sm, 'auto_allotted'), color: '#E5E7EB' },
                     { label: 'Manual Allotted', value: memberMonthlySum(sm, 'manual_allotted'), color: '#9CA3AF' },
-                    { label: 'RTG Leads', value: memberMonthlySum(sm, 'rtg_leads'), color: '#F4631E' },
-                    { label: 'Non-RTG', value: memberMonthlySum(sm, 'non_rtg_leads'), color: '#4B5563' },
                   ]
 
                   // Per-seller PAX
