@@ -2200,8 +2200,8 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
             }
           },
           scales: {
-            x: { display: false },
-            y: { display: false }
+            x: { ticks: { display: false }, grid: { display: false } },
+            y: { ticks: { color: '#8A8278', font: { size: 9 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.03)' } }
           }
         }
       };

@@ -833,8 +833,8 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         </div>
 
         {/* MHE Trend */}
-        <div className={styles.kpiTile}>
-          <div className={styles.kpiLabel}>MHE Trend <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span></div>
+        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setShowMheTrendModal(true)}>
+          <div className={styles.kpiLabel}>MHE Trend</div>
           {(() => {
             const dayMap: Record<string, any> = {}
             allMembers.forEach((m: any) => {
@@ -871,8 +871,8 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         </div>
 
         {/* Goal vs SHB */}
-        <div className={styles.kpiTile}>
-          <div className={styles.kpiLabel}>Goal vs SHB <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span></div>
+        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setShowGoalShbTrendModal(true)}>
+          <div className={styles.kpiLabel}>Goal vs SHB</div>
           {(() => {
             const targetDay = date || todayStr();
             const dayMap: Record<string, any> = {}
@@ -2145,11 +2145,27 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                           <td style={{ padding: '12px 8px', fontWeight: 500 }}>{s.seller_name}</td>
                           <td style={{ padding: '12px 8px', color: '#A1A1AA' }}>{s.tlName}</td>
                           <td style={{ padding: '12px 8px' }}>
-                            {s.isAbsent ? (
-                              <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Absent</span>
-                            ) : (
-                              <span style={{ color: '#EAB308', fontSize: '0.8rem' }}>Wait for lead or not ready on Ozonetel</span>
-                            )}
+                            {(() => {
+                              if (s.isAbsent) {
+                                return <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Absent</span>;
+                              }
+                              const isOrbitReady = !!s.orbit?.first_login;
+                              const isOzonetelReady = !!s.cti?.ready_timestamps;
+                              
+                              if (isOrbitReady && isOzonetelReady) {
+                                return <span style={{ color: '#EAB308', fontSize: '0.8rem' }}>0 Leads</span>;
+                              }
+                              if (!isOrbitReady && !isOzonetelReady) {
+                                return <span style={{ color: '#EAB308', fontSize: '0.8rem' }}>Not ready on Ozonetel and not logged in on Orbit</span>;
+                              }
+                              if (!isOrbitReady) {
+                                return <span style={{ color: '#EAB308', fontSize: '0.8rem' }}>Not logged in on Orbit</span>;
+                              }
+                              if (!isOzonetelReady) {
+                                return <span style={{ color: '#EAB308', fontSize: '0.8rem' }}>Not ready on Ozonetel</span>;
+                              }
+                              return null;
+                            })()}
                           </td>
                         </tr>
                       ))}

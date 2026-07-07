@@ -494,7 +494,9 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       if (!active) return;
       const Chart = mod.default || mod;
       if (dotChartInstance.current) dotChartInstance.current.destroy();
-      dotChartInstance.current = new Chart(dotChartCanvasRef.current!, {
+      const ctx = dotChartCanvasRef.current?.getContext('2d');
+      if (!ctx) return;
+      dotChartInstance.current = new Chart(ctx, {
         type: 'doughnut',
         data: { labels: teamDotChartData.map((d: any) => d.label.split(' ')[0]), datasets: [{ data: teamDotChartData.map((d: any) => d.value), backgroundColor: teamDotChartData.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
         options: {
@@ -523,7 +525,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       });
     });
     return () => { active = false; if (dotChartInstance.current) dotChartInstance.current.destroy(); }
-  }, [teamDotChartData]);
+  }, [teamDotChartData, activeSectionModal, viewMode]);
 
   
   // Allotment Bar Chart
@@ -535,6 +537,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       const Chart = mod.default || mod;
       if (allotmentChartInstance.current) allotmentChartInstance.current.destroy();
       
+      if (allotmentChartInstance.current) allotmentChartInstance.current.destroy();
       const config = {
         type: 'bar' as const,
         data: {
@@ -556,16 +559,18 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
             }
           },
           scales: {
-            x: { display: false },
-            y: { display: false }
+            x: { ticks: { display: false }, grid: { display: false } },
+            y: { ticks: { color: '#8A8278', font: { size: 9 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.03)' } }
           }
         }
       };
       
-      allotmentChartInstance.current = new Chart(allotmentChartCanvasRef.current!, config);
+      const ctx = allotmentChartCanvasRef.current?.getContext('2d');
+      if (!ctx) return;
+      allotmentChartInstance.current = new Chart(ctx, config);
     });
     return () => { active = false; if (allotmentChartInstance.current) allotmentChartInstance.current.destroy(); }
-  }, [JSON.stringify(teamAllotmentRows)])
+  }, [JSON.stringify(teamAllotmentRows), date, activeSectionModal, viewMode])
   // PAX Chart
   useEffect(() => {
     if (!paxChartCanvasRef.current) return;
@@ -574,7 +579,9 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       if (!active) return;
       const Chart = mod.default || mod;
       if (paxChartInstance.current) paxChartInstance.current.destroy();
-      paxChartInstance.current = new Chart(paxChartCanvasRef.current!, {
+      const ctx = paxChartCanvasRef.current?.getContext('2d');
+      if (!ctx) return;
+      paxChartInstance.current = new Chart(ctx, {
         type: 'doughnut',
         data: { labels: teamPaxRows.map((d: any) => d.label), datasets: [{ data: teamPaxRows.map((d: any) => d.value), backgroundColor: teamPaxRows.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
         options: {
@@ -603,7 +610,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       });
     });
     return () => { active = false; if (paxChartInstance.current) paxChartInstance.current.destroy(); }
-  }, [teamPaxRows]);
+  }, [JSON.stringify(teamPaxRows), activeSectionModal, viewMode]);
 
   if (loading) return <Loader text="Loading TL dashboard..." />
 
@@ -763,8 +770,8 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
 
         {/* MHE Trend */}
-        <div className={styles.kpiTile}>
-          <div className={styles.kpiLabel}>MHE Trend <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span></div>
+        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setShowMheTrendModal(true)}>
+          <div className={styles.kpiLabel}>MHE Trend</div>
           {(() => {
             const dayMap: Record<string, any> = {}
             enrichedMembers.forEach((m: any) => {
@@ -801,8 +808,8 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
 
         {/* Goal vs SHB */}
-        <div className={styles.kpiTile}>
-          <div className={styles.kpiLabel}>Goal vs SHB <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span></div>
+        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setShowGoalShbTrendModal(true)}>
+          <div className={styles.kpiLabel}>Goal vs SHB</div>
           {(() => {
             const targetDay = date || todayStr();
             const dayMap: Record<string, any> = {}
