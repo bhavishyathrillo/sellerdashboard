@@ -17,15 +17,16 @@ export async function GET(req: Request) {
     let allData: any[] = []
     let from = 0
     const step = 1000
+    let lastError: any = null
     while (true) {
       const { data, error } = await builder.range(from, from + step - 1)
-      if (error) { console.error(error); break }
+      if (error) { console.error(error); lastError = error; break }
       if (!data || data.length === 0) break
       allData = allData.concat(data)
       if (data.length < step) break
       from += step
     }
-    return { data: allData }
+    return { data: allData, error: lastError }
   }
 
   try {
@@ -37,10 +38,9 @@ export async function GET(req: Request) {
     const queryDate = dateParam || new Date(Date.now() + 19800000).toISOString().split('T')[0]
 
     // ── 1. Fetch org hierarchy ──────────────────────────────────────────
-    const { data: allSellers, error: sellersError } = await supabase
+    const { data: allSellers, error: sellersError } = await fetchAll(supabase
       .from('srs_raw')
-      .select('seller_email, seller_name, l1_email, l1_name, l2_email, l2_name')
-      .limit(5000)
+      .select('seller_email, seller_name, l1_email, l1_name, l2_email, l2_name'))
 
     if (sellersError) {
       return NextResponse.json({ error: sellersError.message }, { status: 500 })
@@ -82,41 +82,43 @@ export async function GET(req: Request) {
       monthlyAllotmentRes,
       ctiRes,
       plannedLtaRes,
+      timelineRes,
+      kalpitRes,
     ] = await Promise.all([
       // Attendance (login, breaks)
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('seller_attendance')
         .select('email, first_login, last_logout, break_timestamps')
-        .eq('work_date', queryDate),
+        .eq('work_date', queryDate)),
 
       // Orbit availability
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('seller_availability')
         .select('seller_email, available_timestamps_ist')
-        .eq('work_date', queryDate),
+        .eq('work_date', queryDate)),
 
       // Allotment summary (auto/manual, RTG, pax, first lead time)
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('daily_allotment_summary')
         .select('seller_email, total_leads_allotted, auto_allotted, manual_allotted, rtg_leads, non_rtg_leads, pax_1, pax_2, pax_3, pax_4, pax_4_plus, first_lead_allotted_at_ist, median_creation_to_allotment_mins')
-        .eq('allotment_date', queryDate),
+        .eq('allotment_date', queryDate)),
 
       // LTA log (LTA funnel + MHE)
-      supabase
+      fetchAll(supabase
         .from('daily_lta_log')
         .select('seller_email, lead_goal, wd, final_lta, real_dynamic_lta, hygiene_lta, goal_completion_logic_lta, mishandled_pct, mishandled_enquiries, open_enquiries')
-        .eq('log_date', queryDate),
+        .eq('log_date', queryDate)),
 
       // DOT distribution
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('seller_dot_distribution')
-        .select('seller_email, dot_month, total_leads_allotted'),
+        .select('seller_email, dot_month, total_leads_allotted')),
 
       // Goal vs SHB
-      supabase
+      fetchAll(supabase
         .from('goal_vs_shb')
         .select('seller_email, goal_pct, achievement_pct')
-        .eq('date', queryDate),
+        .eq('date', queryDate)),
 
       // SRS July for monthly goals
       fetchAll(supabase
@@ -139,7 +141,7 @@ export async function GET(req: Request) {
 
       // Hourly Leads for Timeline
       fetchAll(supabase.schema('seller_day_to_day')
-        .from('seller_hourly_allotment')
+        .from('seller_hourly_leads')
         .select('seller_email, time_bucket, leads_allotted_in_bucket')
         .eq('work_date', queryDate)),
 
@@ -151,16 +153,25 @@ export async function GET(req: Request) {
         .lte('allotment_date', monthEnd)),
 
       // CTI / Ozontell readiness
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('seller_cti_availability')
         .select('seller_email, logged_in_at, ready_timestamps')
-        .eq('work_date', queryDate),
+        .eq('work_date', queryDate)),
 
       // Planned LTA Override
-      supabase
+      fetchAll(supabase
         .from('planned_lta')
         .select('seller_email, lta')
-        .eq('log_date', queryDate),
+        .eq('log_date', queryDate)),
+
+      // Hourly Leads for Timeline
+      fetchAll(supabase
+        .from('hourly_leads_assigned')
+        .select('*')
+        .eq('assigned_date', queryDate)),
+
+      // Kalpit for toggles
+      supabase.from('kalpit_2').select('*').eq('date', queryDate)
     ])
 
     // ── 3. Build lookup maps ────────────────────────────────────────────
@@ -187,6 +198,11 @@ export async function GET(req: Request) {
     const goalMap = new Map<string, any>()
     ;(goalRes.data || []).forEach((g: any) => {
       goalMap.set(cleanEmail(g.seller_email), g)
+    })
+
+    const plannedLtaMap = new Map<string, any>()
+    ;(plannedLtaRes.data || []).forEach((p: any) => {
+      plannedLtaMap.set(cleanEmail(p.seller_email), p)
     })
 
     const srsJulyMap = new Map<string, any>()
@@ -226,11 +242,6 @@ export async function GET(req: Request) {
     const ctiMap = new Map<string, any>()
     ;(ctiRes.data || []).forEach((c: any) => {
       ctiMap.set(cleanEmail(c.seller_email), c)
-    })
-
-    const plannedLtaMap = new Map<string, any>()
-    ;(plannedLtaRes.data || []).forEach((p: any) => {
-      plannedLtaMap.set(cleanEmail(p.seller_email), p)
     })
 
     const dotRowsMap = new Map<string, any[]>()
@@ -288,9 +299,10 @@ export async function GET(req: Request) {
       const leadGoal = lta?.lead_goal || 0
       const wd = lta?.wd || 0
       let planned = wd > 0 ? Math.floor(leadGoal / wd) : 0
-      const isAfterJuly5 = queryDate >= '2026-07-06'
-      const overrideLta = plannedLtaMap.get(email)?.lta
+      
+      const isAfterJuly5 = new Date(queryDate) > new Date('2026-07-05')
       if (isAfterJuly5) {
+        const overrideLta = plannedLtaMap.get(email)?.lta
         planned = overrideLta || 0
       }
       const finalLta = Math.floor(lta?.final_lta || 0)
@@ -430,6 +442,7 @@ export async function GET(req: Request) {
     const hierarchy = Array.from(catMap.entries()).map(([catName, tlMap]) => {
       const tls = Array.from(tlMap.entries()).map(([tlName, sellers]) => ({
         tl_name: tlName,
+        totalSellers: filteredSellers.length,
         seller_count: sellers.length,
         sellers
       }))
@@ -485,9 +498,11 @@ export async function GET(req: Request) {
         orgLtaPlanned,
         orgLtaActual,
         categoriesAtRisk: catsAtRisk.size,
+        totalSellers: filteredSellers.length,
       },
       hierarchy,
       dotDistribution,
+      kalpit: kalpitRes?.data || []
     })
 
   } catch (err: any) {

@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   try {
     const { data: allData } = await supabase.from('feasibility_seller_metrics').select('*')
     const metrics = allData || []
-    const { data: srsData } = await supabase.from('srs_raw').select('seller_email, seller_name, l1_email, l1_name, l2_email, l2_name').limit(5000)
+    const { data: srsData } = await supabase.from('srs_raw').select('seller_email, seller_name, l1_email, l1_name, l2_email, l2_name')
 
     // ADMIN VIEW
     if (role === 'ADMIN' || role === 'SUPERADMIN') {

@@ -71,7 +71,7 @@ function computeLtaFunnel(seller: any) {
   const dl = seller?.daily_lta || {}
   const leadGoal = dl.lead_goal || 0
   const wd = dl.wd || 0
-  const planned = seller?.ltaPlanned ?? (wd > 0 ? Math.floor(leadGoal / wd) : 0)
+  const planned = wd > 0 ? Math.floor(leadGoal / wd) : 0
   const dynLta = dl.real_dynamic_lta || 0
   const hygLta = dl.hygiene_lta || 0
   const rev1Lta = dl.goal_completion_logic_lta || 0
@@ -687,12 +687,12 @@ function GoalShbTrendChart({ labels, goalValues, shbValues }: { labels: string[]
       const maxDataVal = Math.max(...goalValues, ...shbValues, 0)
       const yMax = Math.max(20, Math.ceil((maxDataVal + 5) / 10) * 10)
       instance = new Chart(ctx, {
-        type: 'bar',
+        type: 'bar' as const,
         data: {
           labels,
           datasets: [
             { type: 'line', label: 'SHB %', data: shbValues, borderColor: '#EAB308', backgroundColor: 'rgba(234, 179, 8, 0.1)', borderWidth: 2, fill: false, tension: 0.3, pointBackgroundColor: '#EAB308', pointRadius: 4, yAxisID: 'y' },
-            { type: 'bar', label: 'Goal %', data: goalValues, backgroundColor: '#3B82F6', borderRadius: 4, barPercentage: 0.6, maxBarThickness: 32, yAxisID: 'y' }
+            { type: 'bar' as const, label: 'Goal %', data: goalValues, backgroundColor: '#3B82F6', borderRadius: 4, barPercentage: 0.6, maxBarThickness: 32, yAxisID: 'y' }
           ]
         },
         options: {
@@ -998,6 +998,7 @@ function AppetiteSection({ hierarchy }: { hierarchy: any[] }) {
             <th>Name</th>
             <th>Leads Allotted</th>
             <th>Appetite (LTA)</th>
+            <th>Overallocation</th>
             <th>Fulfillment %</th>
             <th>Avg C→A Time</th>
           </tr>
@@ -1007,6 +1008,7 @@ function AppetiteSection({ hierarchy }: { hierarchy: any[] }) {
             const allSellers = cat.tls.flatMap((t: any) => t.sellers).filter((s: any) => !s.isAbsent)
             const allotted = allSellers.reduce((s: number, e: any) => s + e.totalLeads, 0)
             const appetite = allSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+            const overallocation = Math.max(0, allotted - appetite)
             const pct = appetite > 0 ? Math.round((allotted / appetite) * 100) : 0
             
             const caSellers = allSellers.filter((s: any) => s.totalLeads > 0 && s.medianCA != null)
@@ -1022,6 +1024,7 @@ function AppetiteSection({ hierarchy }: { hierarchy: any[] }) {
                   <td>{catKey}</td>
                   <td>{allotted}</td>
                   <td>{appetite}</td>
+                  <td style={{ color: overallocation > 0 ? '#EF4444' : '#8A8278' }}>{overallocation}</td>
                   <td style={{ color: pct >= 90 ? '#22C55E' : pct >= 70 ? '#F59E0B' : '#EF4444' }}>{pct}%</td>
                   <td>{avgCa != null ? `${avgCa}m` : '—'}</td>
                 </tr>
@@ -1029,6 +1032,7 @@ function AppetiteSection({ hierarchy }: { hierarchy: any[] }) {
                   const tlSellers = tl.sellers.filter((s: any) => !s.isAbsent)
                   const tlAllotted = tlSellers.reduce((s: number, e: any) => s + e.totalLeads, 0)
                   const tlAppetite = tlSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+                  const tlOverallocation = Math.max(0, tlAllotted - tlAppetite)
                   const tlPct = tlAppetite > 0 ? Math.round((tlAllotted / tlAppetite) * 100) : 0
                   
                   const tlCaSellers = tlSellers.filter((s: any) => s.totalLeads > 0 && s.medianCA != null)
@@ -1047,16 +1051,19 @@ function AppetiteSection({ hierarchy }: { hierarchy: any[] }) {
                         </td>
                         <td>{tlAllotted}</td>
                         <td>{tlAppetite}</td>
+                        <td style={{ color: tlOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{tlOverallocation}</td>
                         <td style={{ color: tlPct >= 90 ? '#22C55E' : tlPct >= 70 ? '#F59E0B' : '#EF4444' }}>{tlPct}%</td>
                         <td>{tlAvgCa != null ? `${tlAvgCa}m` : '—'}</td>
                       </tr>
                       {expandedTl === tlKey && tl.sellers.filter((s: any) => !s.isAbsent).map((s: any) => {
                         const sPct = s.ltaActual > 0 ? Math.round((s.totalLeads / s.ltaActual) * 100) : 0
+                        const sOverallocation = Math.max(0, s.totalLeads - (s.ltaActual || 0))
                         return (
                           <tr key={s.seller_email} className="la-seller-row">
                             <td style={{ paddingLeft: '48px' }}>{s.seller_name}</td>
                             <td>{s.totalLeads}</td>
                             <td>{s.ltaActual || 0}</td>
+                            <td style={{ color: sOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{sOverallocation}</td>
                             <td style={{ color: sPct >= 90 ? '#22C55E' : sPct >= 70 ? '#F59E0B' : '#EF4444' }}>{sPct}%</td>
                             <td>{s.medianCA != null ? `${s.medianCA}m` : '—'}</td>
                           </tr>
@@ -1316,83 +1323,272 @@ function FirstLeadSection({ hierarchy }: { hierarchy: any[] }) {
   )
 }
 
-/* ─── LTA Section (with funnel drill-down) ─── */
-function LTASection({ hierarchy }: { hierarchy: any[] }) {
+/* ─── LTA Section — Premium Card Design ─── */
+function LTASection({ hierarchy, kalpit, onFunnelClick }: { hierarchy: any[]; kalpit: any[]; onFunnelClick: (sellers: any[], title: string) => void }) {
   const [expandedCat, setExpandedCat] = useState<string | null>(null)
   const [expandedTl, setExpandedTl] = useState<string | null>(null)
 
-  return (
-    <div className="la-table-wrap">
-      <table className="la-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Allotted</th>
-            <th>Planned</th>
-            <th>Actual</th>
-            <th>Fulfillment %</th>
-          </tr>
-        </thead>
-        <tbody>
-          {hierarchy.map(cat => {
-            const allSellers = cat.tls.flatMap((t: any) => t.sellers)
-            const allotted = allSellers.reduce((s: number, e: any) => s + (e.totalLeads || 0), 0)
-            const planned = allSellers.reduce((s: number, e: any) => s + (e.ltaPlanned || 0), 0)
-            const actual = allSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
-            const catFulf = actual > 0 ? Math.round((allotted / actual) * 100) : 0
-            const catColor = catFulf >= 90 ? '#22C55E' : catFulf >= 70 ? '#F59E0B' : '#EF4444'
-            const catKey = cat.category_name
+  // Org-level totals
+  const allSellersOrg = hierarchy.flatMap(cat => cat.tls.flatMap((t: any) => t.sellers))
+  const orgAllotted = allSellersOrg.reduce((s: number, e: any) => s + (e.totalLeads || 0), 0)
+  const orgPlanned = allSellersOrg.reduce((s: number, e: any) => s + (e.ltaPlanned || 0), 0)
+  const orgActual = allSellersOrg.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+  const orgFulf = orgActual > 0 ? Math.min(100, Math.round((orgAllotted / orgActual) * 100)) : 0
+  const orgFulfColor = orgFulf >= 90 ? '#22C55E' : orgFulf >= 70 ? '#EAB308' : '#EF4444'
 
-            return (
-              <React.Fragment key={catKey}>
-                <tr className="la-cat-row" onClick={() => setExpandedCat(expandedCat === catKey ? null : catKey)}>
-                  <td>{catKey}</td>
-                  <td>{allotted}</td>
-                  <td>{planned}</td>
-                  <td>{actual}</td>
-                  <td style={{ color: catColor }}>{catFulf}%</td>
-                </tr>
-                {expandedCat === catKey && cat.tls.map((tl: any) => {
-                  const tlAllotted = tl.sellers.reduce((s: number, e: any) => s + (e.totalLeads || 0), 0)
-                  const tlPlanned = tl.sellers.reduce((s: number, e: any) => s + (e.ltaPlanned || 0), 0)
-                  const tlActual = tl.sellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
-                  const tlFulf = tlActual > 0 ? Math.round((tlAllotted / tlActual) * 100) : 0
-                  const tlColor = tlFulf >= 90 ? '#22C55E' : tlFulf >= 70 ? '#F59E0B' : '#EF4444'
+  return (
+    <div style={{ padding: '4px 0' }}>
+      {/* Org summary bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', background: '#111', border: '1px solid #1E1E1E', borderRadius: '12px', padding: '14px 20px', marginBottom: '20px' }}>
+        <div>
+          <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Org Planned</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#8A8278' }}>{orgPlanned}</div>
+        </div>
+        <div style={{ width: '1px', height: '36px', background: '#1E1E1E' }} />
+        <div>
+          <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Org Final LTA</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#22C55E' }}>{orgActual}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Allotted</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F0EDE8' }}>{orgAllotted}</div>
+        </div>
+        <div style={{ flex: 1, minWidth: '140px' }}>
+          <div style={{ fontSize: '0.55rem', color: '#5A5650', marginBottom: '5px' }}>Overall fulfillment</div>
+          <div style={{ height: '5px', background: '#1A1A1A', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${orgFulf}%`, background: orgFulfColor, borderRadius: '4px', transition: 'width 0.6s ease' }} />
+          </div>
+          <div style={{ fontSize: '0.5rem', color: orgFulfColor, marginTop: '3px', fontWeight: 700 }}>{orgAllotted} allotted · {orgFulf}%</div>
+        </div>
+      </div>
+
+      {/* Per-category groups */}
+      {hierarchy.map(cat => {
+        const catSellers = cat.tls.flatMap((t: any) => t.sellers)
+        const catAllotted = catSellers.reduce((s: number, e: any) => s + (e.totalLeads || 0), 0)
+        const catPlanned = catSellers.reduce((s: number, e: any) => s + (e.ltaPlanned || 0), 0)
+        const catActual = catSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+        const catFulf = catActual > 0 ? Math.min(100, Math.round((catAllotted / catActual) * 100)) : 0
+        const catFulfColor = catFulf >= 90 ? '#22C55E' : catFulf >= 70 ? '#EAB308' : '#EF4444'
+        const catKey = cat.category_name
+        const isCatExpanded = expandedCat === catKey
+
+        return (
+          <div key={catKey} style={{ background: '#111', border: '1px solid #1E1E1E', borderRadius: '16px', marginBottom: '12px', overflow: 'hidden' }}>
+            {/* Category Header */}
+            <div
+              onClick={() => setExpandedCat(isCatExpanded ? null : catKey)}
+              style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', cursor: 'pointer', transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ display: 'inline-block', fontSize: '0.6rem', transition: 'transform 0.2s', transform: isCatExpanded ? 'rotate(90deg)' : 'none', color: '#C9A84C' }}>▶</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#C9A84C', marginBottom: '2px' }}>{catKey}</div>
+                <div style={{ fontSize: '0.55rem', color: '#5A5650' }}>{cat.tls.length} teams · {catSellers.length} sellers</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', marginBottom: '2px' }}>Planned → Final</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#F0EDE8' }}>
+                  <span style={{ color: '#8A8278' }}>{catPlanned}</span>
+                  <span style={{ color: '#3A3A3A', margin: '0 4px' }}>→</span>
+                  <span style={{ color: '#22C55E' }}>{catActual}</span>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', minWidth: '80px' }}>
+                <div style={{ fontSize: '0.5rem', color: '#5A5650', textTransform: 'uppercase', marginBottom: '4px' }}>Fulfillment</div>
+                <div style={{ height: '4px', background: '#1A1A1A', borderRadius: '4px', overflow: 'hidden', marginBottom: '3px' }}>
+                  <div style={{ height: '100%', width: `${catFulf}%`, background: catFulfColor, borderRadius: '4px' }} />
+                </div>
+                <div style={{ fontSize: '0.55rem', color: catFulfColor, fontWeight: 700 }}>{catFulf}%</div>
+              </div>
+            </div>
+
+            {/* Expanded: TL cards */}
+            {isCatExpanded && (
+              <div style={{ borderTop: '1px solid #1A1A1A', padding: '16px 20px' }}>
+                <div style={{ fontSize: '0.58rem', color: '#5A5650', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>Teams</div>
+                {cat.tls.map((tl: any) => {
+                  const tlSellers = tl.sellers
+                  const tlAllotted = tlSellers.reduce((s: number, e: any) => s + (e.totalLeads || 0), 0)
+                  const tlPlanned = tlSellers.reduce((s: number, e: any) => s + (e.ltaPlanned || 0), 0)
+                  const tlActual = tlSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+                  const tlFulf = tlActual > 0 ? Math.min(100, Math.round((tlAllotted / tlActual) * 100)) : 0
+                  const tlFulfColor = tlFulf >= 90 ? '#22C55E' : tlFulf >= 70 ? '#EAB308' : '#EF4444'
                   const tlKey = `${catKey}-${tl.tl_name}`
+                  const isTlExpanded = expandedTl === tlKey
+
+                  // Compute LTA step values for TL (aggregate of sellers)
+                  const tlDynLta = tlSellers.reduce((s: number, e: any) => s + (e.daily_lta?.real_dynamic_lta || 0), 0)
+                  const tlHygLta = tlSellers.reduce((s: number, e: any) => s + (e.daily_lta?.hygiene_lta || 0), 0)
+                  const tlRev1Lta = tlSellers.reduce((s: number, e: any) => s + (e.daily_lta?.goal_completion_logic_lta || 0), 0)
+                  const tlDynLost = tlPlanned - tlDynLta
+                  const tlHygLost = tlDynLta - tlHygLta
+                  const tlRev1Lost = tlHygLta - tlRev1Lta
+                  const tlRev2Lost = tlRev1Lta - tlActual
+
+                  const tlSteps = [
+                    { id: 'planned', label: 'Base target', sublabel: 'Monthly goal ÷ working days', value: tlPlanned, color: '#3B82F6', drop: tlDynLost, dropLabel: tlDynLost > 0 ? 'Late login / inactive' : tlDynLost < 0 ? 'Bonus' : null },
+                    { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: tlDynLta, color: '#EAB308', drop: tlHygLost, dropLabel: tlHygLost > 0 ? 'Hygiene penalty' : tlHygLost < 0 ? 'Bonus' : null },
+                    { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: tlHygLta, color: '#F97316', drop: tlRev1Lost, dropLabel: tlRev1Lost > 0 ? 'Goal correction' : tlRev1Lost < 0 ? 'Bonus' : null },
+                    { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: tlRev1Lta, color: '#8B5CF6', drop: tlRev2Lost, dropLabel: tlRev2Lost > 0 ? 'Final adjustment' : tlRev2Lost < 0 ? 'Bonus' : null },
+                    { id: 'final', label: "Team's final LTA", sublabel: 'Total team lead appetite', value: tlActual, color: '#22C55E', drop: null, dropLabel: null },
+                  ]
 
                   return (
-                    <React.Fragment key={tlKey}>
-                      <tr className="la-tl-row" onClick={() => setExpandedTl(expandedTl === tlKey ? null : tlKey)}>
-                        <td style={{ paddingLeft: '28px' }}>↳ {tl.tl_name}</td>
-                        <td>{tlAllotted}</td>
-                        <td>{tlPlanned}</td>
-                        <td>{tlActual}</td>
-                        <td style={{ color: tlColor }}>{tlFulf}%</td>
-                      </tr>
-                      {expandedTl === tlKey && tl.sellers.map((s: any) => {
-                        const sActual = s.ltaActual || 0
-                        const sAllotted = s.totalLeads || 0
-                        const sFulf = sActual > 0 ? Math.round((sAllotted / sActual) * 100) : 0
-                        const sColor = sFulf >= 90 ? '#22C55E' : sFulf >= 70 ? '#F59E0B' : '#EF4444'
-                        
-                        return (
-                          <tr key={s.seller_email} className="la-seller-row">
-                            <td style={{ paddingLeft: '48px' }}>{s.seller_name}</td>
-                            <td>{sAllotted}</td>
-                            <td>{s.ltaPlanned || 0}</td>
-                            <td>{sActual}</td>
-                            <td style={{ color: sColor }}>{sFulf}%</td>
-                          </tr>
-                        )
-                      })}
-                    </React.Fragment>
+                    <div key={tlKey} style={{ background: '#0A0A0A', border: '1px solid #1A1A1A', borderRadius: '12px', marginBottom: '10px', overflow: 'hidden' }}>
+                      {/* TL Header */}
+                      <div
+                        onClick={() => setExpandedTl(isTlExpanded ? null : tlKey)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', cursor: 'pointer', transition: 'background 0.2s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <span style={{ display: 'inline-block', fontSize: '0.55rem', transition: 'transform 0.2s', transform: isTlExpanded ? 'rotate(90deg)' : 'none', color: '#5A5650' }}>▶</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '1px' }}>{tl.tl_name}</div>
+                          <div style={{ fontSize: '0.52rem', color: '#5A5650' }}>{tlSellers.length} sellers</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.48rem', color: '#5A5650', textTransform: 'uppercase', marginBottom: '2px' }}>Planned → Final</div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#F0EDE8' }}>
+                            <span style={{ color: '#8A8278' }}>{tlPlanned}</span>
+                            <span style={{ color: '#3A3A3A', margin: '0 4px' }}>→</span>
+                            <span style={{ color: '#22C55E' }}>{tlActual}</span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', minWidth: '70px' }}>
+                          <div style={{ height: '3px', background: '#1A1A1A', borderRadius: '3px', overflow: 'hidden', marginBottom: '3px' }}>
+                            <div style={{ height: '100%', width: `${tlFulf}%`, background: tlFulfColor, borderRadius: '3px' }} />
+                          </div>
+                          <div style={{ fontSize: '0.52rem', color: tlFulfColor, fontWeight: 700 }}>{tlFulf}% fulfilled</div>
+                        </div>
+                        <button
+                          onClick={e => { e.stopPropagation(); onFunnelClick(tlSellers, tl.tl_name) }}
+                          style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', color: '#3B82F6', padding: '5px 10px', borderRadius: '6px', fontSize: '0.58rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.15)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(59,130,246,0.08)'}
+                        >
+                          View Funnel
+                        </button>
+                      </div>
+
+                      {/* Expanded: Step flow + seller cards */}
+                      {isTlExpanded && (
+                        <div style={{ borderTop: '1px solid #1A1A1A', padding: '14px 16px' }}>
+                          {/* Step flow */}
+                          <div style={{ fontSize: '0.55rem', color: '#5A5650', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>How this team's target was calculated</div>
+                          <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', paddingBottom: '12px', marginBottom: '14px' }}>
+                            {(() => {
+                              const usedSteps = tlSteps.filter((step) => {
+                                const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+                                  kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+                                return !isNotUsed;
+                              });
+
+                              const actualSteps = usedSteps.map((step, idx, arr) => {
+                                if (idx === arr.length - 1) return step;
+                                const nextStep = arr[idx + 1];
+                                const dropValue = step.value - nextStep.value;
+                                let dropLabel = null;
+                                if (dropValue > 0) {
+                                  if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
+                                  else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
+                                  else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                                  else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
+                                } else if (dropValue < 0) {
+                                  dropLabel = 'Bonus added';
+                                }
+                                return { ...step, drop: dropValue, dropLabel };
+                              });
+
+                              return actualSteps.map((step, idx) => {
+                                return (
+                                  <div key={step.label} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0,  }}>
+                                    <div style={{ background: '#111', border: `1px solid ${`${step.color}40`}`, borderRadius: '10px', padding: '10px 14px', minWidth: '110px', flexShrink: 0, position: 'relative' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                        <div style={{ fontSize: '0.52rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                                        
+                                      </div>
+                                      <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                                      <div style={{ fontSize: '0.48rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
+                                    </div>
+                                  {idx < actualSteps.length - 1 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 6px', minWidth: '52px' }}>
+                                      {step.drop !== null && step.drop !== 0 && (
+                                        <div style={{ fontSize: '0.52rem', fontWeight: 700, color: step.drop > 0 ? '#EF4444' : '#22C55E', background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', padding: '2px 5px', borderRadius: '5px', marginBottom: '3px', whiteSpace: 'nowrap' }}>
+                                          {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
+                                        </div>
+                                      )}
+                                      <div style={{ fontSize: '0.46rem', color: '#4A4642', textAlign: 'center', lineHeight: 1.2, marginBottom: '3px' }}>{step.dropLabel}</div>
+                                      <span style={{ color: '#3A3A3A', fontSize: '0.9rem' }}>→</span>
+                                    </div>
+                                  )}
+                                  </div>
+                                )
+                              });
+                            })()}
+                          </div>
+
+                          {/* Seller cards */}
+                          <div style={{ fontSize: '0.55rem', color: '#5A5650', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Sellers</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px' }}>
+                            {tlSellers.map((s: any) => {
+                              const sActual = s.ltaActual || 0
+                              const sAllotted = s.totalLeads || 0
+                              const sPlanned = s.ltaPlanned || 0
+                              const sFulf = sActual > 0 ? Math.min(100, Math.round((sAllotted / sActual) * 100)) : 0
+                              const lostPct = sPlanned > 0 ? ((sPlanned - sActual) / sPlanned) * 100 : 0
+                              const ltaColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#EAB308' : '#EF4444'
+                              const fulfColor = sFulf >= 90 ? '#22C55E' : sFulf >= 70 ? '#EAB308' : '#EF4444'
+
+                              return (
+                                <div
+                                  key={s.seller_email}
+                                  onClick={() => onFunnelClick([s], s.seller_name)}
+                                  style={{ background: '#111', border: `1px solid ${s.isAbsent ? 'rgba(239,68,68,0.15)' : '#1A1A1A'}`, borderRadius: '10px', padding: '12px', cursor: 'pointer', opacity: s.isAbsent ? 0.6 : 1, transition: 'border-color 0.2s, background 0.2s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = '#161616'; e.currentTarget.style.borderColor = '#2A2A2A'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = '#111'; e.currentTarget.style.borderColor = s.isAbsent ? 'rgba(239,68,68,0.15)' : '#1A1A1A'; }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#F0EDE8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.seller_name}</div>
+                                    {s.isAbsent && <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '3px', fontWeight: 700 }}>ABSENT</span>}
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+                                    <div>
+                                      <div style={{ fontSize: '0.45rem', color: '#5A5650', marginBottom: '1px', textTransform: 'uppercase' }}>Planned</div>
+                                      <div style={{ fontSize: '1rem', fontWeight: 800, color: '#8A8278' }}>{sPlanned}</div>
+                                    </div>
+                                    <div style={{ color: '#2A2A2A', alignSelf: 'center', fontSize: '0.7rem' }}>→</div>
+                                    <div>
+                                      <div style={{ fontSize: '0.45rem', color: '#5A5650', marginBottom: '1px', textTransform: 'uppercase' }}>Final</div>
+                                      <div style={{ fontSize: '1rem', fontWeight: 800, color: ltaColor }}>{sActual}</div>
+                                    </div>
+                                    <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                                      <div style={{ fontSize: '0.45rem', color: '#5A5650', marginBottom: '1px', textTransform: 'uppercase' }}>Allotted</div>
+                                      <div style={{ fontSize: '1rem', fontWeight: 800, color: '#F0EDE8' }}>{sAllotted}</div>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div style={{ height: '3px', background: '#1A1A1A', borderRadius: '3px', overflow: 'hidden', marginBottom: '3px' }}>
+                                      <div style={{ height: '100%', width: `${Math.min(100, sFulf)}%`, background: fulfColor, borderRadius: '3px', transition: 'width 0.5s ease' }} />
+                                    </div>
+                                    <div style={{ fontSize: '0.46rem', color: '#5A5650' }}>{sFulf}% fulfilled</div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )
                 })}
-              </React.Fragment>
-            )
-          })}
-        </tbody>
-      </table>
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -1546,33 +1742,84 @@ function aggregateLtaFunnel(sellers: any[]) {
   }
 }
 
-function FunnelModal({ title, funnel, onClose }: { title: string, funnel: ReturnType<typeof aggregateLtaFunnel>, onClose: () => void }) {
-  const getDropText = (diff: number, stage: string) => diff < 0 ? `↑ Gained ${Math.abs(diff)} in ${stage}` : `↓ Lost ${diff} in ${stage}`
+function FunnelModal({ title, funnel, kalpit, onClose }: { title: string, funnel: ReturnType<typeof aggregateLtaFunnel>, kalpit: any[], onClose: () => void }) {
   const stages = [
-    { label: 'PLANNED LTA', value: funnel.planned, color: '#3B82F6', dropText: getDropText(funnel.dynLost, 'Dynamic'), width: '100%' },
-    { label: 'DYNAMIC LTA', value: funnel.dynLta, color: '#EAB308', dropText: getDropText(funnel.hygLost, 'Hygiene'), width: '86%' },
-    { label: 'HYGIENE LTA', value: funnel.hygLta, color: '#F97316', dropText: getDropText(funnel.rev1Lost, 'Goal Complete'), width: '72%' },
-    { label: 'GOAL COMPLETE LTA', value: funnel.rev1Lta, color: '#8B5CF6', dropText: getDropText(funnel.rev2Lost, 'Final'), width: '60%' },
-    { label: 'FINAL LTA', value: funnel.actual, color: '#22C55E', dropText: null, width: '48%' },
+    { 
+      id: 'planned', label: 'Base target', sublabel: 'Planned LTA', value: funnel.planned, color: '#3B82F6', 
+      drop: funnel.dynLost, dropLabel: funnel.dynLost > 0 ? 'Late login / inactive' : funnel.dynLost < 0 ? 'Bonus added' : null
+    },
+    { 
+      id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online time', value: funnel.dynLta, color: '#EAB308', 
+      drop: funnel.hygLost, dropLabel: funnel.hygLost > 0 ? 'Hygiene penalty' : funnel.hygLost < 0 ? 'Bonus added' : null
+    },
+    { 
+      id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled', value: funnel.hygLta, color: '#F97316', 
+      drop: funnel.rev1Lost, dropLabel: funnel.rev1Lost > 0 ? 'Goal correction' : funnel.rev1Lost < 0 ? 'Bonus added' : null
+    },
+    { 
+      id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: funnel.rev1Lta, color: '#8B5CF6', 
+      drop: funnel.rev2Lost, dropLabel: funnel.rev2Lost > 0 ? 'Final adjustment' : funnel.rev2Lost < 0 ? 'Bonus added' : null
+    },
+    { 
+      id: 'final', label: "Final target", sublabel: 'Actual LTA', value: funnel.actual, color: '#22C55E', 
+      drop: null, dropLabel: null
+    },
   ]
   return (
-    <div className="la-modal-overlay" onClick={onClose}>
-      <div className="la-modal-card" onClick={e => e.stopPropagation()}>
-        <button className="la-modal-close" onClick={onClose}>✕</button>
-        <div className="la-modal-header">
-          <span className="la-modal-dot" style={{ background: '#3B82F6' }} />
-          <span className="la-modal-title">{title} — LTA Funnel</span>
+    <div className="la-modal-overlay" onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#111', border: '1px solid #333', borderRadius: '16px', padding: '24px', width: 'auto', maxWidth: '95vw', position: 'relative' }} onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1rem', padding: '4px' }}>✕</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3B82F6' }} />
+          <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#F0EDE8' }}>{title} — LTA Funnel</span>
         </div>
-        <div className="la-funnel-stack">
-          {stages.map((step, idx) => (
-            <div key={idx} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div className="la-funnel-card" style={{ borderColor: step.color, width: step.width }}>
-                <div className="la-funnel-label" style={{ color: step.color }}>{step.label}</div>
-                <div className="la-funnel-value">{step.value}<span className="la-funnel-unit">leads</span></div>
-              </div>
-              {step.dropText && <div className="la-funnel-drop">{step.dropText}</div>}
-            </div>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', paddingBottom: '4px' }}>
+          {(() => {
+            const usedSteps = stages.filter((step) => {
+              const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+                kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+              return !isNotUsed;
+            });
+
+            const actualSteps = usedSteps.map((step, idx, arr) => {
+              if (idx === arr.length - 1) return step;
+              const nextStep = arr[idx + 1];
+              const dropValue = step.value - nextStep.value;
+              let dropLabel = null;
+              if (dropValue > 0) {
+                if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
+                else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
+                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
+              } else if (dropValue < 0) {
+                dropLabel = 'Bonus added';
+              }
+              return { ...step, drop: dropValue, dropLabel };
+            });
+
+            return actualSteps.map((step, idx) => {
+              return (
+                <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0 }}>
+                  <div style={{ background: '#0D0D0D', border: `1px solid ${`${step.color}40`}`, borderRadius: '10px', padding: '10px 14px', minWidth: '100px', flexShrink: 0, position: 'relative' }}>
+                    <div style={{ fontSize: '0.55rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>{step.label}</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                    <div style={{ fontSize: '0.52rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
+                  </div>
+                  {idx < actualSteps.length - 1 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 6px', minWidth: '56px' }}>
+                      {step.drop !== null && step.drop !== 0 && (
+                        <div style={{ fontSize: '0.55rem', fontWeight: 700, color: step.drop > 0 ? '#EF4444' : '#22C55E', background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', padding: '2px 5px', borderRadius: '5px', marginBottom: '3px', whiteSpace: 'nowrap' }}>
+                          {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '0.5rem', color: '#4A4642', textAlign: 'center', lineHeight: 1.2, marginBottom: '3px' }}>{step.dropLabel}</div>
+                      <span style={{ color: '#3A3A3A', fontSize: '0.9rem' }}>→</span>
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          })()}
         </div>
       </div>
     </div>
@@ -1584,6 +1831,16 @@ function MheTrendModal({ hierarchy, dateFrom, onClose }: { hierarchy: any[], dat
   const [drillSeller, setDrillSeller] = useState<any>(null)
   const [expandedCatKey, setExpandedCatKey] = useState<string | null>(null)
   const [expandedTlKey, setExpandedTlKey] = useState<string | null>(null)
+  
+  // Canvas Refs for Monthly Breakdown
+  const dotChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const allotmentChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const paxChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const dotChartInstance = useRef<any>(null);
+  const allotmentChartInstance = useRef<any>(null);
+  const paxChartInstance = useRef<any>(null);
+
+
 
   const flatTls = hierarchy.flatMap(cat => cat.tls.map((tl: any) => ({ ...tl, category_name: cat.category_name, key: `${cat.category_name}-${tl.tl_name}` })))
   const allSellers = flatTls.flatMap(tl => tl.sellers)
@@ -1841,6 +2098,13 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
   const [activeCard, setActiveCard] = useState<'dot' | 'allotment' | 'pax' | 'ca' | null>(null)
   const [expandedCatKey, setExpandedCatKey] = useState<string | null>(null)
   const [expandedTlKey, setExpandedTlKey] = useState<string | null>(null)
+  
+  const dotChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const allotmentChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const paxChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const dotChartInstance = useRef<any>(null);
+  const allotmentChartInstance = useRef<any>(null);
+  const paxChartInstance = useRef<any>(null);
   const flatTls = hierarchy.flatMap(cat => cat.tls.map((tl: any) => ({ ...tl, category_name: cat.category_name, key: `${cat.category_name}-${tl.tl_name}` })))
   const allMembers = flatTls.flatMap(tl => tl.sellers)
 
@@ -1872,10 +2136,11 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
   const dotMap: Record<string, number> = {}
   allMembers.forEach((m: any) => (m.dot_rows || []).forEach((d: any) => { dotMap[d.dot_month] = (dotMap[d.dot_month] || 0) + (d.total_leads_allotted || 0) }))
   const dotChartData: { label: string; value: number; color: string }[] = []
-  dotMonthsConfig.forEach(mo => {
+  const dotColors = ['#FB923C', '#F59E0B', '#EAB308', '#CA8A04', '#D97706', '#EA580C'];
+  dotMonthsConfig.forEach((mo, i) => {
     let val = 0
     Object.entries(dotMap).forEach(([k, v]) => { if (k.endsWith('-' + mo.key)) val += v })
-    dotChartData.push({ label: mo.label, value: val, color: '#F4631E' })
+    dotChartData.push({ label: mo.label, value: val, color: dotColors[i] || '#F4631E' })
   })
   let futureSum = 0
   Object.entries(dotMap).forEach(([k, v]) => { if (!dotMonthsConfig.some(mo => k.endsWith('-' + mo.key))) futureSum += v })
@@ -1883,79 +2148,215 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
   const maxDot = Math.max(...dotChartData.map(d => d.value), 1)
 
   const allotmentRows = [
-    { label: 'Auto Allotted', value: totalAuto, color: '#E5E7EB' },
-    { label: 'Manual Allotted', value: totalManual, color: '#9CA3AF' },
+    { label: 'Auto Allotted', value: totalAuto, color: '#6366F1' },
+    { label: 'Manual Allotted', value: totalManual, color: '#A855F7' },
     { label: 'RTG Leads', value: totalRtg, color: '#F4631E' },
-    { label: 'Non-RTG', value: totalNonRtg, color: '#4B5563' },
+    { label: 'Non-RTG', value: totalNonRtg, color: '#10B981' },
   ]
   const paxRows = [
-    { label: '1-pax', value: totalPax1, color: '#F3F4F6' },
-    { label: '2-pax', value: totalPax2, color: '#E5E7EB' },
-    { label: '3-pax', value: totalPax3, color: '#D1D5DB' },
-    { label: '4-pax', value: totalPax4, color: '#9CA3AF' },
-    { label: '4+ pax', value: totalPax4Plus, color: '#6B7280' },
+    { label: '1-pax', value: totalPax1, color: '#E0F2FE' },
+    { label: '2-pax', value: totalPax2, color: '#7DD3FC' },
+    { label: '3-pax', value: totalPax3, color: '#38BDF8' },
+    { label: '4-pax', value: totalPax4, color: '#0EA5E9' },
+    { label: '4+ pax', value: totalPax4Plus, color: '#0369A1' },
   ]
+
+  // DOT Chart
+  useEffect(() => {
+    if (!dotChartCanvasRef.current) return;
+    let active = true;
+    import('chart.js/auto').then(mod => {
+      if (!active) return;
+      const Chart = mod.default || mod;
+      if (dotChartInstance.current) dotChartInstance.current.destroy();
+      dotChartInstance.current = new Chart(dotChartCanvasRef.current!, {
+        type: 'doughnut',
+        data: { labels: dotChartData.map((d: any) => d.label.split(' ')[0]), datasets: [{ data: dotChartData.map((d: any) => d.value), backgroundColor: dotChartData.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '65%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111', titleColor: '#FFFFFF', bodyColor: '#E5E7EB', borderColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const sum = dotChartData.reduce((s: any, b: any) => s + b.value, 0)
+                  const pctVal = sum > 0 ? ((val / sum) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
+            }
+          }
+        }
+      })
+    })
+    return () => { active = false; if (dotChartInstance.current) dotChartInstance.current.destroy(); }
+  }, [JSON.stringify(dotChartData)])
+
+  
+  // Allotment Bar Chart
+  useEffect(() => {
+    if (!allotmentChartCanvasRef.current) return;
+    let active = true;
+    import('chart.js/auto').then(mod => {
+      if (!active) return;
+      const Chart = mod.default || mod;
+      if (allotmentChartInstance.current) allotmentChartInstance.current.destroy();
+      
+      const config = {
+        type: 'bar' as const,
+        data: {
+          labels: allotmentRows.map((d: any) => d.label),
+          datasets: [{
+            data: allotmentRows.map((d: any) => d.value),
+            backgroundColor: allotmentRows.map((d: any) => d.color),
+            borderRadius: 4,
+            barThickness: 20
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111', titleColor: '#FFFFFF', bodyColor: '#E5E7EB', borderColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, cornerRadius: 6
+            }
+          },
+          scales: {
+            x: { ticks: { display: false }, grid: { display: false } },
+            y: { ticks: { color: '#8A8278', font: { size: 9 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.03)' } }
+          }
+        }
+      };
+      
+      allotmentChartInstance.current = new Chart(allotmentChartCanvasRef.current!, config);
+    });
+    return () => { active = false; if (allotmentChartInstance.current) allotmentChartInstance.current.destroy(); }
+  }, [JSON.stringify(allotmentRows)])
+  // PAX Chart
+  useEffect(() => {
+    if (!paxChartCanvasRef.current) return;
+    let active = true;
+    import('chart.js/auto').then(mod => {
+      if (!active) return;
+      const Chart = mod.default || mod;
+      if (paxChartInstance.current) paxChartInstance.current.destroy();
+      paxChartInstance.current = new Chart(paxChartCanvasRef.current!, {
+        type: 'doughnut',
+        data: { labels: paxRows.map((d: any) => d.label), datasets: [{ data: paxRows.map((d: any) => d.value), backgroundColor: paxRows.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '65%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111', titleColor: '#FFFFFF', bodyColor: '#E5E7EB', borderColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const sum = paxRows.reduce((s: any, b: any) => s + b.value, 0)
+                  const pctVal = sum > 0 ? ((val / sum) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
+            }
+          }
+        }
+      })
+    })
+    return () => { active = false; if (paxChartInstance.current) paxChartInstance.current.destroy(); }
+  }, [JSON.stringify(paxRows)])
 
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const monthStr = `${monthNames[new Date().getMonth()]} ${new Date().getFullYear()}`
 
-  const cardBase = { background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', cursor: 'pointer' as const }
+  const cardBase: React.CSSProperties = { background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px', cursor: 'pointer' }
 
   return (
     <div style={{ marginBottom: '32px' }}>
       <div className="la-section-title">Monthly Breakdown · {monthStr}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px', marginBottom: '24px' }}>
+
+        {/* ── DOT Bar Chart (Horizontal) ── */}
         <div style={cardBase} onClick={() => { setActiveCard(activeCard === 'dot' ? null : 'dot'); setExpandedTlKey(null) }}>
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '16px', textTransform: 'uppercase' }}>DOT Distribution</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DOT Distribution</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Date-of-travel spread</div>
+          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={dotChartCanvasRef} /></div>
+
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
             {dotChartData.map((bar, i) => {
               const totalDOT = dotChartData.reduce((s, b) => s + b.value, 0)
-              const barPct = pctOf(bar.value, totalDOT)
+              const barPct = totalDOT > 0 ? Math.round((bar.value / totalDOT) * 100) : 0
               return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '52px', fontSize: '0.6rem', color: '#8A8278', textAlign: 'right' }}>{bar.label}</div>
-                  <div style={{ flex: 1, height: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', overflow: 'hidden' }}>
-                    <div style={{ width: `${(bar.value / maxDot) * 100}%`, height: '100%', background: `linear-gradient(90deg, ${bar.color}40, ${bar.color}90)`, borderRadius: '6px', minWidth: bar.value > 0 ? '4px' : '0' }} />
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: bar.color }} />
+                    <span style={{ color: '#8A8278' }}>{bar.label}</span>
                   </div>
-                  <div style={{ width: '28px', fontSize: '0.68rem', fontWeight: 700, color: bar.value > 0 ? bar.color : '#5A5650', textAlign: 'right' }}>{bar.value}</div>
-                  <span style={{ fontSize: '0.55rem', fontWeight: 600, color: bar.value > 0 ? bar.color : '#5A5650', background: bar.value > 0 ? `${bar.color}15` : 'rgba(255,255,255,0.03)', padding: '2px 6px', borderRadius: '100px', minWidth: '32px', textAlign: 'center' }}>{barPct}%</span>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <span style={{ fontWeight: 700, color: bar.value > 0 ? '#F0EDE8' : '#3A3A3A' }}>{bar.value}</span>
+                    <span style={{ color: bar.value > 0 ? bar.color : '#3A3A3A', width: '32px', textAlign: 'right' }}>{barPct}%</span>
+                  </div>
                 </div>
               )
             })}
           </div>
         </div>
 
-        <div style={cardBase} onClick={() => { setActiveCard(activeCard === 'allotment' ? null : 'allotment'); setExpandedTlKey(null) }}>
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '16px', textTransform: 'uppercase' }}>Allotment Breakdown</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {allotmentRows.map((item, i) => (
+        {/* ── Allotment Breakdown ── */}
+        <div style={cardBase} onClick={() => { setActiveCard(activeCard === 'allotment' ? null : 'allotment'); setExpandedTlKey(null); }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>How leads were assigned</div>
+          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={allotmentChartCanvasRef} /></div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, justifyContent: 'center' }}>
+            {allotmentRows.map((item: any, i: number) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: item.color, flexShrink: 0 }} />
                 <span style={{ fontSize: '0.64rem', color: '#8A8278', flex: 1 }}>{item.label}</span>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: item.value > 0 ? item.color : '#5A5650' }}>{item.value}</span>
-                <span style={{ fontSize: '0.55rem', fontWeight: 600, color: item.color, background: `${item.color}15`, padding: '2px 8px', borderRadius: '100px' }}>{pctOf(item.value, totalLeads)}%</span>
+                <span style={{
+                  fontSize: '0.55rem', fontWeight: 600, color: item.color,
+                  background: `${item.color}15`, padding: '2px 8px', borderRadius: '100px',
+                }}>
+                  {totalLeads > 0 ? Math.round((item.value / totalLeads) * 100) : 0}%
+                </span>
               </div>
             ))}
           </div>
         </div>
 
+        {/* ── PAX Distribution ── */}
         <div style={cardBase} onClick={() => { setActiveCard(activeCard === 'pax' ? null : 'pax'); setExpandedTlKey(null) }}>
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '16px', textTransform: 'uppercase' }}>Leads by Group Size</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {paxRows.map((p, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: p.color, flexShrink: 0 }} />
-                <span style={{ fontSize: '0.64rem', color: '#8A8278', flex: 1 }}>{p.label}</span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: p.value > 0 ? p.color : '#5A5650' }}>{p.value}</span>
-                <span style={{ fontSize: '0.55rem', fontWeight: 600, color: p.color, background: `${p.color}15`, padding: '2px 8px', borderRadius: '100px' }}>{pctOf(p.value, totalPax)}%</span>
-              </div>
-            ))}
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leads by Group Size</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Pax mix across leads</div>
+          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={paxChartCanvasRef} /></div>
+
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
+            {paxRows.map((p, i) => {
+              const paxPct = totalPax > 0 ? Math.round((p.value / totalPax) * 100) : 0;
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: p.color }} />
+                    <span style={{ color: '#8A8278' }}>{p.label}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <span style={{ fontWeight: 700, color: p.value > 0 ? '#F0EDE8' : '#3A3A3A' }}>{p.value}</span>
+                    <span style={{ color: p.value > 0 ? p.color : '#3A3A3A', width: '32px', textAlign: 'right' }}>{paxPct}%</span>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
 
+        {/* ── CA Time ── */}
         <div style={cardBase} onClick={() => { setActiveCard(activeCard === 'ca' ? null : 'ca'); setExpandedCatKey(null); setExpandedTlKey(null) }}>
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '16px', textTransform: 'uppercase' }}>Appetite & C→A Time</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Appetite & C→A Time</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Key process metrics</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1, justifyContent: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '0.64rem', color: '#8A8278', fontWeight: 600, textTransform: 'uppercase' }}>Fulfillment</span>
@@ -1971,7 +2372,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
           </div>
         </div>
       </div>
-
+      
       {activeCard && (
         <div className="la-modal-overlay" onClick={() => { setActiveCard(null); setExpandedCatKey(null); setExpandedTlKey(null) }}>
           <div className="la-modal-card wide" onClick={e => e.stopPropagation()}>
@@ -1987,7 +2388,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                     <th>Team</th>
                     {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => <th key={mo.key}>{mo.label}</th>)}<th>6+ Months</th></>)
                       : activeCard === 'allotment' ? (<><th>Auto</th><th>Manual</th><th>RTG</th><th>Non-RTG</th></>)
-                      : activeCard === 'ca' ? (<><th>Leads Allotted</th><th>Appetite</th><th>Fulfillment %</th><th>Avg C→A</th></>)
+                      : activeCard === 'ca' ? (<><th>Leads Allotted</th><th>Appetite</th><th>Overallocation</th><th>Fulfillment %</th><th>Avg C→A</th></>)
                       : (<><th>1-pax</th><th>2-pax</th><th>3-pax</th><th>4-pax</th><th>4+ pax</th></>)}
                   </tr>
                 </thead>
@@ -2013,7 +2414,8 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                 const cSumCta = cCaRows.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0)
                                 const cSumLeads = cCaRows.reduce((s: number, r: any) => s + r.total_leads_allotted, 0)
                                 const cAvgCa = cSumLeads > 0 ? Math.round(cSumCta / cSumLeads) : null
-                                return (<><td>{cAllotted}</td><td>{cAppetite}</td><td style={{ color: cFulf >= 90 ? '#22C55E' : cFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{cFulf}%</td><td>{cAvgCa != null ? `${cAvgCa}m` : '—'}</td></>)
+                                const cOverallocation = Math.max(0, cAllotted - cAppetite)
+                                return (<><td>{cAllotted}</td><td>{cAppetite}</td><td style={{ color: cOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{cOverallocation}</td><td style={{ color: cFulf >= 90 ? '#22C55E' : cFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{cFulf}%</td><td>{cAvgCa != null ? `${cAvgCa}m` : '—'}</td></>)
                               })()
                             : (<><td>{sumField(catSellers, 'pax_1')}</td><td>{sumField(catSellers, 'pax_2')}</td><td>{sumField(catSellers, 'pax_3')}</td><td>{sumField(catSellers, 'pax_4')}</td><td>{sumField(catSellers, 'pax_4_plus')}</td></>)}
                         </tr>
@@ -2036,7 +2438,8 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                       const tSumCta = tCaRows.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0)
                                       const tSumLeads = tCaRows.reduce((s: number, r: any) => s + r.total_leads_allotted, 0)
                                       const tAvgCa = tSumLeads > 0 ? Math.round(tSumCta / tSumLeads) : null
-                                      return (<><td>{tAllotted}</td><td>{tAppetite}</td><td style={{ color: tFulf >= 90 ? '#22C55E' : tFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{tFulf}%</td><td>{tAvgCa != null ? `${tAvgCa}m` : '—'}</td></>)
+                                      const tOverallocation = Math.max(0, tAllotted - tAppetite)
+                                      return (<><td>{tAllotted}</td><td>{tAppetite}</td><td style={{ color: tOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{tOverallocation}</td><td style={{ color: tFulf >= 90 ? '#22C55E' : tFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{tFulf}%</td><td>{tAvgCa != null ? `${tAvgCa}m` : '—'}</td></>)
                                     })()
                                   : (<><td>{sumField(tl.sellers, 'pax_1')}</td><td>{sumField(tl.sellers, 'pax_2')}</td><td>{sumField(tl.sellers, 'pax_3')}</td><td>{sumField(tl.sellers, 'pax_4')}</td><td>{sumField(tl.sellers, 'pax_4_plus')}</td></>)}
                               </tr>
@@ -2055,7 +2458,8 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                           const sSumCta = sCaRows.reduce((s2: number, r: any) => s2 + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0)
                                           const sSumLeads = sCaRows.reduce((s2: number, r: any) => s2 + r.total_leads_allotted, 0)
                                           const sAvgCa = sSumLeads > 0 ? Math.round(sSumCta / sSumLeads) : null
-                                          return (<><td>{sAllotted}</td><td>{sAppetite}</td><td>{`${sFulf}%`}</td><td>{(sAvgCa != null ? `${sAvgCa}m` : '—')}</td></>)
+                                          const sOverallocation = Math.max(0, sAllotted - sAppetite)
+                                          return (<><td>{sAllotted}</td><td>{sAppetite}</td><td style={{ color: sOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{sOverallocation}</td><td style={{ color: sFulf >= 90 ? '#22C55E' : sFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{`${sFulf}%`}</td><td>{(sAvgCa != null ? `${sAvgCa}m` : '—')}</td></>)
                                         })()
                                       : (<><td>{sumField([s], 'pax_1')}</td><td>{sumField([s], 'pax_2')}</td><td>{sumField([s], 'pax_3')}</td><td>{sumField([s], 'pax_4')}</td><td>{sumField([s], 'pax_4_plus')}</td></>)}
                                   </tr>
@@ -2121,7 +2525,7 @@ function NoLeadsModal({ sellers, onClose }: { sellers: any[], onClose: () => voi
   )
 }
 
-function OverallocatedModal({ sellers, onClose }: { sellers: any[], onClose: () => void }) {
+function OverallocationModal({ sellers, onClose }: { sellers: any[], onClose: () => void }) {
   return (
     <div className="la-modal-overlay" onClick={onClose}>
       <div className="la-modal-card" onClick={e => e.stopPropagation()} style={{ width: '850px' }}>
@@ -2130,11 +2534,12 @@ function OverallocatedModal({ sellers, onClose }: { sellers: any[], onClose: () 
           <span className="la-modal-title">Overallocated Sellers</span>
         </div>
         <div style={{ marginTop: '16px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 2fr', gap: '16px', padding: '0 16px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 600, color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr 2fr', gap: '16px', padding: '0 16px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 600, color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             <span>SELLER NAME</span>
             <span>FULFILLMENT %</span>
-            <span>CATEGORY MANAGER</span>
+            <span>ALLOTTED / LTA</span>
             <span>TEAM LEAD</span>
+            <span>CATEGORY MANAGER</span>
           </div>
           <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
             {sellers.length === 0 ? (
@@ -2144,11 +2549,12 @@ function OverallocatedModal({ sellers, onClose }: { sellers: any[], onClose: () 
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {sellers.map((s, idx) => (
-                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 2fr', gap: '16px', padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', fontSize: '0.85rem' }}>
+                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr 2fr', gap: '16px', padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', fontSize: '0.85rem' }}>
                     <span style={{ color: '#F0EDE8', fontWeight: 500 }}>{s.seller_name}</span>
-                    <span style={{ color: '#F59E0B', fontWeight: 500 }}>{s.pct}%</span>
-                    <span style={{ color: '#8A8278' }}>{s.catName}</span>
+                    <span style={{ color: '#EF4444', fontWeight: 500 }}>{s.pct}%</span>
+                    <span style={{ color: '#8A8278' }}>{s.totalLeads} / {s.ltaActual || 0}</span>
                     <span style={{ color: '#F59E0B' }}>{s.tlName}</span>
+                    <span style={{ color: '#3B82F6' }}>{s.catName}</span>
                   </div>
                 ))}
               </div>
@@ -2159,6 +2565,7 @@ function OverallocatedModal({ sellers, onClose }: { sellers: any[], onClose: () 
     </div>
   )
 }
+
 
 export default function AdminLTAPage({ session }: AdminLTAPageProps) {
   const [data, setData] = useState<any>(null)
@@ -2175,7 +2582,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
   const [showMheModal, setShowMheModal] = useState(false)
   const [showGoalShbModal, setShowGoalShbModal] = useState(false)
   const [showNoLeadsModal, setShowNoLeadsModal] = useState(false)
-  const [showOverallocatedModal, setShowOverallocatedModal] = useState(false)
+  const [showOverallocationModal, setShowOverallocationModal] = useState(false)
 
   const fetchData = (date: string, cat: string) => {
     setLoading(true)
@@ -2245,18 +2652,17 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
   const overallocatedSellers = hierarchy.flatMap((cat: any) =>
     (cat.tls || []).flatMap((tl: any) =>
       (tl.sellers || []).filter((s: any) => s.totalLeads > (s.ltaActual || 0)).map((s: any) => {
-        const pct = s.ltaActual > 0 ? Math.round((s.totalLeads / s.ltaActual) * 100) : 0;
         return {
           ...s,
           tlName: tl.tl_name,
           catName: cat.category_name,
-          pct
+          overallocation: s.totalLeads - (s.ltaActual || 0),
+          pct: s.ltaActual > 0 ? Math.round((s.totalLeads / s.ltaActual) * 100) : 0
         };
       })
     )
   )
 
-  const orgTotalLeads = data.org?.totalLeads || 0
   const displayDate =  new Date(data.date + 'T00:00:00').toLocaleDateString('en-IN', {
     day: '2-digit', month: 'short', year: 'numeric'
   })
@@ -2324,7 +2730,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
 
         <div className="la-header">
           <h1 className="la-title">
-            Lead <span className="la-title-accent">Allocation</span> — Admin view
+            Lead <span className="la-title-accent">Allocation</span>
           </h1>
           <p className="la-subtitle">
             Operations Head · {selectedCategory} · Today, {displayDate}
@@ -2342,16 +2748,16 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
 
         <div className="la-kpi-row" style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'nowrap', overflowX: 'auto' }}>
           {/* LEADS ALLOTTED */}
-          <div className="la-kpi-card" style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1.5, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #F4631E, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #F4631E' }} />
+          <div className="la-kpi-card" style={{ background: 'var(--card, #121212)', border: '1px solid var(--border, #1E1E1E)', borderRadius: '12px', padding: '16px 20px', display: 'flex', flexDirection: 'column', position: 'relative', flex: 1.5 }}>
+            
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F4631E', boxShadow: '0 0 10px #F4631E' }} />
-              <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Leads Allotted</div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Leads Allotted</div>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{org.totalLeads?.toLocaleString() || 0}</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{org.totalLeads?.toLocaleString() || 0}</span>
               <span style={{ fontSize: '1rem', color: '#71717A', fontWeight: 400 }}>/ {sumFinalLta.toLocaleString()}</span>
             </div>
 
@@ -2368,17 +2774,17 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
           </div>
 
           {/* RTG BREAKDOWN */}
-          <div className="la-kpi-card" style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #378ADD, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #378ADD' }} />
+          <div className="la-kpi-card" style={{ background: 'var(--card, #121212)', border: '1px solid var(--border, #1E1E1E)', borderRadius: '12px', padding: '16px 20px', display: 'flex', flexDirection: 'column', position: 'relative', flex: 1 }}>
+            
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#378ADD', boxShadow: '0 0 10px #378ADD' }} />
-              <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>RTG Breakdown</div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>RTG Breakdown</div>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{org.rtgPct}</span>
-              <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{org.rtgPct}</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 600, color: '#F9FAFB', lineHeight: 1 }}>%</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
@@ -2387,42 +2793,37 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
             </div>
           </div>
 
-          {/* EXCEPTIONAL SELLERS */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-            {/* SELLERS NO LEADS */}
-            <div
-              className="la-kpi-card clickable"
-              style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '8px 12px', borderRadius: '12px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: noLeadsSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
-              onClick={() => {
-                if (noLeadsSellers.length > 0) setShowNoLeadsModal(true);
-              }}
-              onMouseEnter={e => { if(noLeadsSellers.length > 0) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
+          {/* SELLERS NO LEADS & OVERALLOCATION */}
+          <div
+            className="la-kpi-card"
+            style={{ background: 'var(--card, #121212)', border: '1px solid var(--border, #1E1E1E)', borderRadius: '12px', display: 'flex', flexDirection: 'column', position: 'relative', flex: 1, overflow: 'hidden', padding: 0 }}
+          >
+            {/* UPPER HALF: No Leads */}
+            <div 
+              style={{ flex: 1, padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: noLeadsSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+              onClick={() => { if (noLeadsSellers.length > 0) setShowNoLeadsModal(true); }}
+              onMouseEnter={e => { if(noLeadsSellers.length > 0) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
             >
-              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #EF4444, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #EF4444' }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444' }} />
-                <div style={{ fontSize: '0.65rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Sellers No Leads</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444', flexShrink: 0 }} />
+                <div style={{ fontSize: '0.6rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', lineHeight: 1.2 }}>NO LEADS</div>
               </div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{noLeadsSellers.length}</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{noLeadsSellers.length}</div>
             </div>
 
-            {/* OVERALLOCATED SELLERS */}
-            <div
-              className="la-kpi-card clickable"
-              style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '8px 12px', borderRadius: '12px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: overallocatedSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
-              onClick={() => {
-                if (overallocatedSellers.length > 0) setShowOverallocatedModal(true);
-              }}
-              onMouseEnter={e => { if(overallocatedSellers.length > 0) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
+            {/* LOWER HALF: Overallocation */}
+            <div 
+              style={{ flex: 1, padding: '12px 16px', cursor: overallocatedSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+              onClick={() => { if (overallocatedSellers.length > 0) setShowOverallocationModal(true); }}
+              onMouseEnter={e => { if(overallocatedSellers.length > 0) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
             >
-              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #F59E0B, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #F59E0B' }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#F59E0B', boxShadow: '0 0 10px #F59E0B' }} />
-                <div style={{ fontSize: '0.65rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Overallocated</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B', boxShadow: '0 0 10px #F59E0B', flexShrink: 0 }} />
+                <div style={{ fontSize: '0.6rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', lineHeight: 1.2 }}>OVERALLOCATED</div>
               </div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{overallocatedSellers.length}</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{overallocatedSellers.length}</div>
             </div>
           </div>
 
@@ -2434,19 +2835,19 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
             onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
             onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'}
           >
-            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #22C55E, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #22C55E' }} />
+            
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 10px #22C55E' }} />
-                <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>MHE Trend</div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>MHE Trend</div>
               </div>
               <span style={{ fontSize: '0.65rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tap to view ▸</span>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{computedOrgMhe}</span>
-              <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{computedOrgMhe}</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 600, color: '#F9FAFB', lineHeight: 1 }}>%</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
@@ -2463,25 +2864,25 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
             onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
             onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'}
           >
-            <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #3B82F6, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #3B82F6' }} />
+            
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 10px #3B82F6' }} />
-                <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Goal vs SHB</div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Goal vs SHB</div>
               </div>
               <span style={{ fontSize: '0.65rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tap to view ▸</span>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{computedOrgGoal}</span>
-                <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+                <span style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{computedOrgGoal}</span>
+                <span style={{ fontSize: '1.75rem', fontWeight: 600, color: '#F9FAFB', lineHeight: 1 }}>%</span>
               </div>
               <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)' }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{computedOrgShb}</span>
-                <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+                <span style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{computedOrgShb}</span>
+                <span style={{ fontSize: '1.75rem', fontWeight: 600, color: '#F9FAFB', lineHeight: 1 }}>%</span>
               </div>
             </div>
 
@@ -2500,7 +2901,10 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
 
         <div className="la-accordion">
 <AccordionSection title="LTA — Lead Time Availability" badges={[{ text: `Planned: ${orgTotalLtaPlanned}`, color: 'blue' }, { text: `Actual: ${orgTotalLtaActual}`, color: 'blue' }]}>
-            <LTASection hierarchy={hierarchy} />
+            <LTASection hierarchy={hierarchy} kalpit={data?.kalpit || []} onFunnelClick={(sellers, title) => {
+              setFunnelTitle(title)
+              setFunnelData(aggregateLtaFunnel(sellers))
+            }} />
           </AccordionSection>
 
 <AccordionSection title="Auto vs Manual Allotment" badges={[
@@ -2546,7 +2950,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
         )}
 
         {funnelData && (
-          <FunnelModal title={funnelTitle || ''} funnel={funnelData} onClose={() => { setFunnelData(null); setFunnelTitle(null) }} />
+          <FunnelModal title={funnelTitle || ''} funnel={funnelData} kalpit={data?.kalpit || []} onClose={() => { setFunnelData(null); setFunnelTitle(null) }} />
         )}
 
         {showMheModal && (
@@ -2554,7 +2958,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
         )}
 
         {showNoLeadsModal && <NoLeadsModal sellers={noLeadsSellers} onClose={() => setShowNoLeadsModal(false)} />}
-        {showOverallocatedModal && <OverallocatedModal sellers={overallocatedSellers} onClose={() => setShowOverallocatedModal(false)} />}
+        {showOverallocationModal && <OverallocationModal sellers={overallocatedSellers} onClose={() => setShowOverallocationModal(false)} />}
         {showGoalShbModal && (
           <GoalShbTrendModal hierarchy={hierarchy} dateFrom={dateFrom} onClose={() => setShowGoalShbModal(false)} />
         )}

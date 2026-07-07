@@ -18,6 +18,7 @@ import AdminMHLPage from '@/components/pages/AdminMHLPage'
 import AdminPipelinePage from '@/components/pages/AdminPipelinePage'
 import AdminHygienePage from '@/components/pages/AdminHygienePage'
 import SelectPersonaPage from '@/components/pages/SelectPersonaPage'
+import CMSelectPersonaPage from '@/components/pages/CMSelectPersonaPage'
 import PipelinePage from '@/components/pages/PipelinePage'
 import MHLPage from '@/components/pages/MHLPage'
 import LeaderboardPage from '@/components/pages/LeaderboardPage'
@@ -146,6 +147,9 @@ export default function Home() {
 
           {activePage === 'selectPersona' && isAdmin && (
             <SelectPersonaPage session={session} />
+          )}
+          {activePage === 'selectPersona' && session.role === 'L1' && (
+            <CMSelectPersonaPage session={session} />
           )}
 
           {activePage === 'mhl' && isAdmin && (

@@ -6,7 +6,7 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 
 export async function GET() {
   try {
-    const { data: allL1Emails } = await supabase.from('srs_raw').select('l1_email, l1_name').limit(5000)
+    const { data: allL1Emails } = await supabase.from('srs_raw').select('l1_email, l1_name')
     if (!allL1Emails) return NextResponse.json({ l1_data: [], _srsSellers: [] })
     const l1Map = new Map<string, string>()
     allL1Emails.forEach((row: any) => { const email = cleanEmail(row.l1_email || ''); if (email && !l1Map.has(email)) l1Map.set(email, row.l1_name || email.split('@')[0]) })
@@ -14,7 +14,7 @@ export async function GET() {
     const daysInRange = Math.floor((today.getTime() - firstOfMonth.getTime()) / (1000 * 60 * 60 * 24)) + 1
     const dateList: string[] = []; for (let i = 0; i < daysInRange; i++) { const d = new Date(firstOfMonth); d.setDate(d.getDate() + i); dateList.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`) }
     const dateFrom = dateList[0]; const dateTo = dateList[dateList.length - 1]; const daysPassed = today.getDate()
-    const { data: allSellers } = await supabase.from('srs_raw').select('seller_email, seller_name, l1_email, l1_name, l2_email, l2_name').limit(5000)
+    const { data: allSellers } = await supabase.from('srs_raw').select('seller_email, seller_name, l1_email, l1_name, l2_email, l2_name')
     if (!allSellers || allSellers.length === 0) return NextResponse.json({ l1_data: [], _srsSellers: [] })
     let allEfficiency: any[] = []; let lastId = 0; const pageSize = 1000; let hasMore = true
     while (hasMore) { let query = supabase.from('efficiency').select('id, seller_email, date, call_dials, call_duration').gte('date', dateFrom).lte('date', dateTo).order('id', { ascending: true }).limit(pageSize); if (lastId > 0) query = query.gt('id', lastId); const { data: chunk, error } = await query; if (error) return NextResponse.json({ error: error.message }, { status: 500 }); if (!chunk || chunk.length === 0) hasMore = false; else { allEfficiency = allEfficiency.concat(chunk); lastId = chunk[chunk.length - 1].id; if (chunk.length < pageSize) hasMore = false } }

@@ -57,8 +57,8 @@ export async function GET(req: Request) {
     supabase.schema('seller_day_to_day').from('daily_allotment_summary').select('*').gte('allotment_date', monthStart).lte('allotment_date', monthEnd).in('seller_email', emails),
     supabase.from('daily_lta_log').select('*').gte('log_date', monthStart).lte('log_date', monthEnd).in('seller_email', emails),
     supabase.from('goal_vs_shb').select('*').gte('date', monthStart).lte('date', monthEnd).or(emailFilters).order('date', { ascending: true }),
-    supabase.from('kalpit').select('*'),
-    supabase.from('planned_lta').select('*').eq('log_date', queryDate).in('seller_email', emails)
+    supabase.from('kalpit_2').select('*').eq('date', queryDate),
+    supabase.from('planned_lta').select('*').gte('log_date', monthStart).lte('log_date', monthEnd).in('seller_email', emails)
   ])
 
   // Map day-to-day data to sellers
@@ -73,13 +73,12 @@ export async function GET(req: Request) {
       },
       cti: ctiRes.data?.find(c => c.seller_email === seller.seller_email) || null,
       allotment: allotmentRes.data?.find(al => al.seller_email === seller.seller_email) || null,
-      daily_lta: ltaRes.data?.find(l => l.seller_email === seller.seller_email) || null,
+      daily_lta: ltaRes.data?.find(l => l.seller_email === seller.seller_email) ? { ...ltaRes.data.find(l => l.seller_email === seller.seller_email), planned_lta_override: plannedLtaRes.data?.find((p: any) => p.seller_email === seller.seller_email && p.log_date === queryDate)?.lta } : null,
       hourly: hourlyRes.data?.filter(h => h.seller_email === seller.seller_email) || [],
       dot_rows: dotRes.data?.filter(d => d.seller_email === seller.seller_email) || [],
       monthly_rows: (monthlyAllotmentRes.data || []).filter((r: any) => r.seller_email === seller.seller_email),
-      monthly_lta_rows: (monthlyLtaRes.data || []).filter((r: any) => r.seller_email === seller.seller_email),
+      monthly_lta_rows: (monthlyLtaRes.data || []).filter((r: any) => r.seller_email === seller.seller_email).map((r: any) => ({ ...r, planned_lta_override: plannedLtaRes.data?.find((p: any) => p.seller_email === r.seller_email && p.log_date === r.log_date)?.lta })),
       monthly_goal_shb: (goalShbRes.data || []).filter((r: any) => r.seller_email.startsWith(seller.seller_email.split('@')[0].substring(0, 5))),
-      planned_lta_override: plannedLtaRes.data?.find((p: any) => p.seller_email === seller.seller_email)?.lta,
     }
   })
 

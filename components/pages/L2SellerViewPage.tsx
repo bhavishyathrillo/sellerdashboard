@@ -172,7 +172,7 @@ function GoalShbTrendChart({ labels, goalValues, shbValues }: { labels: string[]
       const yMax = Math.max(20, Math.ceil((maxDataVal + 5) / 10) * 10)
 
       instance = new Chart(ctx, {
-        type: 'bar',
+        type: 'bar' as const,
         data: {
           labels,
           datasets: [
@@ -190,7 +190,7 @@ function GoalShbTrendChart({ labels, goalValues, shbValues }: { labels: string[]
               yAxisID: 'y'
             },
             {
-              type: 'bar',
+              type: 'bar' as const,
               label: 'Goal %',
               data: goalValues,
               backgroundColor: '#3B82F6',
@@ -259,6 +259,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   
   // MHE Trend Modal
   const [showMheTrendModal, setShowMheTrendModal] = useState(false)
+  const [showHourlyView, setShowHourlyView] = useState(false)
   const [showGoalShbTrendModal, setShowGoalShbTrendModal] = useState(false)
   const [mheDrillSeller, setMheDrillSeller] = useState<any>(null)
   const [goalShbDrillSeller, setGoalShbDrillSeller] = useState<any>(null)
@@ -266,7 +267,6 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   // Drill-down states
   const [drillSellerS1, setDrillSellerS1] = useState<any>(null)
   const [drillSellerS2, setDrillSellerS2] = useState<any>(null)
-  const [drillSellerS3, setDrillSellerS3] = useState<any>(null)
   const [drillSellerS7, setDrillSellerS7] = useState<any>(null)
   const [drillSellerS8, setDrillSellerS8] = useState<any>(null)
   const [showTeamFunnel, setShowTeamFunnel] = useState(false)
@@ -289,17 +289,9 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
 
   const members = teamData?.members || []
 
-  if (viewMode === 'personal') {
-    const toggleNode = members.length > 1 ? (
-      <div className={styles.toggleContainer}>
-        <button className={`${styles.toggleBtn} ${(viewMode as string) === 'personal' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('personal')}>Personal</button>
-        <button className={`${styles.toggleBtn} ${(viewMode as string) === 'team' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('team')}>My Team ({members.length})</button>
-      </div>
-    ) : undefined;
-    return <SellerViewPage session={session} headerCenterContent={toggleNode} />
-  }
 
-  if (loading) return <Loader text="Loading TL dashboard..." />
+
+
 
   
   // Make sure the TL is in the members list if not already (backend usually does, but just in case)
@@ -308,11 +300,11 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
     const ltaLeadGoal = dailyLta.lead_goal || 0
     const ltaWd = dailyLta.wd || 0
     
-    let planned = ltaWd > 0 ? Math.floor(ltaLeadGoal / ltaWd) : 0
-    const isAfterJuly5 = date >= '2026-07-06'
-    if (isAfterJuly5) {
-      planned = m.planned_lta_override || 0
-    }
+    const targetDay = date || todayStr()
+    const isAfterJuly5 = new Date(targetDay) > new Date('2026-07-05')
+    const overrideLta = dailyLta.planned_lta_override
+    const planned = isAfterJuly5 ? (overrideLta || 0) : (ltaWd > 0 ? Math.floor(ltaLeadGoal / ltaWd) : 0)
+
     const dynLta = dailyLta.real_dynamic_lta || 0
     const hygLta = dailyLta.hygiene_lta || 0
     const rev1Lta = dailyLta.goal_completion_logic_lta || 0
@@ -361,6 +353,36 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   const onlineCount = enrichedMembers.length - absentCount
   const noLeadsSellers = enrichedMembers.filter((m: any) => ((m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)) === 0)
   const noLeadsCount = noLeadsSellers.length
+
+  const hourlyMap = (() => {
+    const map: Record<string, number> = {}
+    enrichedMembers.forEach((m: any) => {
+      (m.hourly || []).forEach((h: any) => {
+        let bucket = h.hour_bucket?.toString()?.toUpperCase() || ''
+        if (bucket.includes(':')) {
+          const parts = extractTimeParts(bucket)
+          if (parts) {
+            const ampm = parts.h >= 12 ? 'PM' : 'AM'
+            let h12 = parts.h % 12
+            if (h12 === 0) h12 = 12
+            bucket = `${h12}${ampm}`
+          }
+        } else {
+          const match = bucket.match(/^(\d+)/)
+          if (match) {
+            const hr = parseInt(match[1], 10)
+            const ampm = hr >= 12 ? 'PM' : 'AM'
+            let h12 = hr % 12
+            if (h12 === 0) h12 = 12
+            bucket = `${h12}${ampm}`
+          }
+        }
+        const numLeads = Number(h.leads_allotted_in_bucket) || 0
+        map[bucket] = (map[bucket] || 0) + numLeads
+      })
+    })
+    return map
+  })()
   const teamRtgPct = totalLeads > 0 ? Math.round((totalRtg / totalLeads) * 100) : 0
   const atRiskCount = enrichedMembers.filter((m: any) => !m.isAbsent && (m.goal_achieved_percent || 0) < 70).length
   const onTrackCount = enrichedMembers.filter((m: any) => !m.isAbsent && (m.goal_achieved_percent || 0) >= 85).length
@@ -408,16 +430,14 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   const teamAllotmentRows = [
     { label: 'Auto Allotted', value: teamMonthlyAutoAllotted, color: '#E5E7EB' },
     { label: 'Manual Allotted', value: teamMonthlyManualAllotted, color: '#9CA3AF' },
-    { label: 'RTG Leads', value: teamMonthlyRtgLeads, color: '#F4631E' },
-    { label: 'Non-RTG', value: teamMonthlyNonRtgLeads, color: '#4B5563' },
   ]
 
   const teamPaxRows = [
-    { label: '1-pax', value: teamMonthlyPax1, color: '#F3F4F6' },
-    { label: '2-pax', value: teamMonthlyPax2, color: '#E5E7EB' },
-    { label: '3-pax', value: teamMonthlyPax3, color: '#D1D5DB' },
-    { label: '4-pax', value: teamMonthlyPax4, color: '#9CA3AF' },
-    { label: '4+ pax', value: teamMonthlyPax4Plus, color: '#6B7280' },
+    { label: '1-pax', value: teamMonthlyPax1, color: '#DBEAFE' },
+    { label: '2-pax', value: teamMonthlyPax2, color: '#93C5FD' },
+    { label: '3-pax', value: teamMonthlyPax3, color: '#3B82F6' },
+    { label: '4-pax', value: teamMonthlyPax4, color: '#1D4ED8' },
+    { label: '4+ pax', value: teamMonthlyPax4Plus, color: '#172554' },
   ]
 
   // DOT aggregation
@@ -433,11 +453,12 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   })
 
   const teamDotChartData: { label: string; value: number; color: string }[] = []
+  const dotColors = ['#FB923C', '#F59E0B', '#EAB308', '#CA8A04', '#D97706', '#EA580C']
   for (let i = 0; i < 6; i++) {
     let monthIdx = (currentMonthIndex + i) % 12
     let year = dotCy + Math.floor((currentMonthIndex + i) / 12)
     const monthKey = `${year}-${String(monthIdx + 1).padStart(2, '0')}`
-    teamDotChartData.push({ label: monthNames[monthIdx], value: teamDotMap[monthKey] || 0, color: '#F4631E' })
+    teamDotChartData.push({ label: monthNames[monthIdx], value: teamDotMap[monthKey] || 0, color: dotColors[i] || '#F4631E' })
   }
   let futureSum = 0
   Object.entries(teamDotMap).forEach(([key, val]) => {
@@ -452,6 +473,153 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
 
   // Per-member monthly helpers
   const memberMonthlySum = (m: any, key: string) => (m.monthly_rows || []).reduce((s: number, r: any) => s + (r[key] || 0), 0)
+
+
+  // Canvas Refs for Monthly Breakdown
+  const dotChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const allotmentChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const paxChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const dotChartInstance = useRef<any>(null);
+  const allotmentChartInstance = useRef<any>(null);
+  const paxChartInstance = useRef<any>(null);
+
+  // DOT Chart
+  useEffect(() => {
+    if (!dotChartCanvasRef.current) return;
+    let active = true;
+    import('chart.js/auto').then(mod => {
+      if (!active) return;
+      const Chart = mod.default || mod;
+      if (dotChartInstance.current) dotChartInstance.current.destroy();
+      const ctx = dotChartCanvasRef.current?.getContext('2d');
+      if (!ctx) return;
+      dotChartInstance.current = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: teamDotChartData.map((d: any) => d.label.split(' ')[0]), datasets: [{ data: teamDotChartData.map((d: any) => d.value), backgroundColor: teamDotChartData.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111',
+              titleColor: '#FFFFFF',
+              bodyColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              borderWidth: 1,
+              cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const sum = teamDotChartData.reduce((s, b) => s + b.value, 0)
+                  const pctVal = sum > 0 ? ((val / sum) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
+            }
+          },
+          cutout: '65%'
+        }
+      });
+    });
+    return () => { active = false; if (dotChartInstance.current) dotChartInstance.current.destroy(); }
+  }, [teamDotChartData, activeSectionModal, viewMode]);
+
+  
+  // Allotment Bar Chart
+  useEffect(() => {
+    if (!allotmentChartCanvasRef.current) return;
+    let active = true;
+    import('chart.js/auto').then(mod => {
+      if (!active) return;
+      const Chart = mod.default || mod;
+      if (allotmentChartInstance.current) allotmentChartInstance.current.destroy();
+      
+      if (allotmentChartInstance.current) allotmentChartInstance.current.destroy();
+      const config = {
+        type: 'bar' as const,
+        data: {
+          labels: teamAllotmentRows.map((d: any) => d.label),
+          datasets: [{
+            data: teamAllotmentRows.map((d: any) => d.value),
+            backgroundColor: teamAllotmentRows.map((d: any) => d.color),
+            borderRadius: 4,
+            barThickness: 40
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111', titleColor: '#FFFFFF', bodyColor: '#E5E7EB', borderColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, cornerRadius: 6
+            }
+          },
+          scales: {
+            x: { ticks: { display: false }, grid: { display: false } },
+            y: { ticks: { color: '#8A8278', font: { size: 9 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.03)' } }
+          }
+        }
+      };
+      
+      const ctx = allotmentChartCanvasRef.current?.getContext('2d');
+      if (!ctx) return;
+      allotmentChartInstance.current = new Chart(ctx, config);
+    });
+    return () => { active = false; if (allotmentChartInstance.current) allotmentChartInstance.current.destroy(); }
+  }, [JSON.stringify(teamAllotmentRows), date, activeSectionModal, viewMode])
+  // PAX Chart
+  useEffect(() => {
+    if (!paxChartCanvasRef.current) return;
+    let active = true;
+    import('chart.js/auto').then(mod => {
+      if (!active) return;
+      const Chart = mod.default || mod;
+      if (paxChartInstance.current) paxChartInstance.current.destroy();
+      const ctx = paxChartCanvasRef.current?.getContext('2d');
+      if (!ctx) return;
+      paxChartInstance.current = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: teamPaxRows.map((d: any) => d.label), datasets: [{ data: teamPaxRows.map((d: any) => d.value), backgroundColor: teamPaxRows.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111',
+              titleColor: '#FFFFFF',
+              bodyColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              borderWidth: 1,
+              cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const total = teamPaxRows.reduce((s, v) => s + v.value, 0)
+                  const pctVal = total > 0 ? ((val / total) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
+            }
+          },
+          cutout: '65%'
+        }
+      });
+    });
+    return () => { active = false; if (paxChartInstance.current) paxChartInstance.current.destroy(); }
+  }, [JSON.stringify(teamPaxRows), activeSectionModal, viewMode]);
+
+  if (loading) return <Loader text="Loading TL dashboard..." />
+
+  if (viewMode === 'personal') {
+    const toggleNode = members.length > 1 ? (
+      <div className={styles.toggleContainer}>
+        <button className={`${styles.toggleBtn} ${(viewMode as string) === 'personal' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('personal')}>Personal</button>
+        <button className={`${styles.toggleBtn} ${(viewMode as string) === 'team' ? styles.toggleBtnActive : ''}`} onClick={() => setViewMode('team')}>My Team ({members.length})</button>
+      </div>
+    ) : undefined;
+    return <SellerViewPage session={session} headerCenterContent={toggleNode} />
+  }
 
   return (
     <div className={styles.page}>
@@ -492,196 +660,175 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
       </div>
 
-            <div className={styles.summaryStrip} style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-        
-        {/* LEADS ALLOTTED */}
-        <div className={styles.summaryCard} style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1.5, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #F4631E, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #F4631E' }} />
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F4631E', boxShadow: '0 0 10px #F4631E' }} />
-            <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Leads Allotted</div>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '16px' }}>
-            <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{totalLeads}</span>
-            <span style={{ fontSize: '1rem', color: '#71717A', fontWeight: 400 }}>/ {teamActual}</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Auto</span>
-              <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#E5E7EB' }}>{totalAuto}</span>
+            
+      {/* KPI Grid */}
+      <div className={styles.sectionHeader}><span className={styles.sectionTitle}>Team Metrics</span></div>
+      <div className={styles.kpiGrid}>
+        {/* Leads Allotted */}
+        <div className={styles.kpiTile} style={{ gridColumn: showHourlyView ? '1 / -1' : undefined, transition: 'all 0.3s ease' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div>
+              <div className={styles.kpiLabel}>Leads Allotted</div>
+              <div className={`${styles.kpiValue} ${totalLeads > 0 ? styles.kpiValueOrange : styles.kpiValueMuted}`}>
+                {totalLeads} <span style={{ fontSize: '1rem', color: '#6B7280', fontWeight: 500 }}>/ {teamActual}</span>
+              </div>
+              <div className={styles.kpiSub}>Auto: {totalAuto} · Manual: {totalManual}</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Manual</span>
-              <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#9CA3AF' }}>{totalManual}</span>
-            </div>
+            {totalLeads > 0 && (
+              <button
+                onClick={() => setShowHourlyView(!showHourlyView)}
+                style={{
+                  background: showHourlyView ? 'rgba(244,99,30,0.15)' : 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${showHourlyView ? 'rgba(244,99,30,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                  color: showHourlyView ? '#F4631E' : '#6B7280',
+                  borderRadius: '6px', padding: '3px 8px', fontSize: '0.6rem', fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit', marginTop: '2px', whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {showHourlyView ? '↑ hide' : '↓ hourly'}
+              </button>
+            )}
           </div>
+          {showHourlyView && (() => {
+            let cumLeads = 0;
+            const hourRows = HOUR_SLOTS.map(hour => {
+              const count = hourlyMap[hour] || 0;
+              cumLeads += count;
+              const cumPct = teamActual > 0 ? Math.min(100, Math.round((cumLeads / teamActual) * 100)) : 0;
+              return { hour, count, cumLeads, cumPct };
+            });
+            const maxCount = Math.max(...hourRows.map(r => r.count), 1);
+            return (
+              <div style={{ marginTop: '14px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
+                <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Hourly breakdown · {teamActual > 0 ? `Target = ${teamActual} leads` : 'Target not set'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '60px', marginBottom: '4px' }}>
+                  {hourRows.map(({ hour, count, cumLeads: cum, cumPct }) => {
+                    const barColor = count > 0 ? '#F4631E' : 'rgba(255,255,255,0.06)';
+                    const barH = count > 0 ? Math.max(6, Math.round((count / maxCount) * 52)) : 3;
+                    return (
+                      <div key={hour} className={styles.tooltipContainer} style={{ flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', display: 'flex', height: '60px', position: 'relative' }}>
+                        <div style={{ width: '100%', background: barColor, height: `${barH}px`, borderRadius: '3px 3px 0 0', transition: 'height 0.4s ease', position: 'relative' }}>
+                          {count > 0 && barH >= 12 && (
+                            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: '0.5rem', fontWeight: 800, color: '#fff' }}>{count}</div>
+                          )}
+                        </div>
+                        <div className={styles.tooltip}>
+                          <div className={styles.tooltipTime}>{hour}</div>
+                          <div className={styles.tooltipText}>{count} lead{count !== 1 ? 's' : ''}</div>
+                          <div style={{ fontSize: '0.6rem', color: '#9CA3AF', marginTop: '2px' }}>Running: {cum} ({cumPct}%{teamActual > 0 ? ` of ${teamActual}` : ''})</div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {HOUR_SLOTS.map(h => {
+                    const num = parseInt(h.replace(/[AP]M/, ''), 10);
+                    const nextNum = num === 12 ? 1 : num + 1;
+                    return (
+                      <div key={h} style={{ flex: 1, fontSize: '0.42rem', color: '#4A4642', textAlign: 'center', overflow: 'hidden', lineHeight: 1.3 }}>
+                        {num}–{nextNum}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })()}
         </div>
 
-        {/* RTG BREAKDOWN */}
-        <div className={styles.summaryCard} style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #378ADD, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #378ADD' }} />
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#378ADD', boxShadow: '0 0 10px #378ADD' }} />
-            <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>RTG Breakdown</div>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-            <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{teamRtgPct}</span>
-            <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
-          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
-            <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Count</span>
-            <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#378ADD' }}>{totalRtg}</span>
-          </div>
+
+        {/* Sellers No Leads */}
+        <div className={styles.kpiTile} style={{ cursor: noLeadsCount > 0 ? 'pointer' : 'default' }} onClick={() => { if (noLeadsCount > 0) setShowNoLeadsModal(true); }}>
+          <div className={styles.kpiLabel}>Sellers No Leads {noLeadsCount > 0 && <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span>}</div>
+          <div className={`${styles.kpiValue} ${noLeadsCount > 0 ? styles.kpiValueRed : styles.kpiValueMuted}`}>{noLeadsCount}</div>
         </div>
 
-        {/* SELLERS WITH NO LEADS */}
-        <div
-          className={styles.summaryCard}
-          style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: noLeadsCount > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
-          onClick={() => {
-            if (noLeadsCount > 0) setShowNoLeadsModal(true);
-          }}
-          onMouseEnter={e => { if(noLeadsCount > 0) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
-        >
-          <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #EF4444, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #EF4444' }} />
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444' }} />
-            <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Sellers No Leads</div>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{noLeadsCount}</span>
-          </div>
-        </div>
-
-        {/* Monthly MHE Trend KPI Card */}
-        {(() => {
-          const dayMap: Record<string, { sum: number; count: number }> = {}
-          enrichedMembers.forEach((m: any) => {
-            ;(m.monthly_lta_logs || []).forEach((r: any) => {
-              const d = r.log_date
-              if (!d) return
-              const pct = typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
-              if (!dayMap[d]) dayMap[d] = { sum: 0, count: 0 }
-              dayMap[d].sum += pct
-              dayMap[d].count += 1
+        {/* MHE Trend */}
+        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setShowMheTrendModal(true)}>
+          <div className={styles.kpiLabel}>MHE Trend</div>
+          {(() => {
+            const dayMap: Record<string, any> = {}
+            enrichedMembers.forEach((m: any) => {
+              (m.monthly_lta_logs || []).forEach((r: any) => {
+                const d = r.log_date
+                if (!d) return
+                const pct = typeof r.mishandled_pct === 'number' ? parseFloat((r.mishandled_pct * 100).toFixed(1)) : 0
+                if (!dayMap[d]) dayMap[d] = { sum: 0, count: 0 }
+                dayMap[d].sum += pct
+                dayMap[d].count += 1
+              })
             })
-          })
-          const sortedDays = Object.keys(dayMap).sort()
-          const teamAvgMhePct = sortedDays.length > 0
-            ? parseFloat((sortedDays.reduce((s, d) => s + dayMap[d].sum / dayMap[d].count, 0) / sortedDays.length).toFixed(1))
-            : 0
-          const targetDay = date || todayStr();
-          const latestAvg = dayMap[targetDay] ? parseFloat((dayMap[targetDay].sum / dayMap[targetDay].count).toFixed(1)) : 0;
-          const isGood = teamAvgMhePct <= 20
-
-          return (
-            <div
-              className={styles.summaryCard}
-              style={{
-                background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1.2,
-                border: `1px solid ${isGood ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}`, boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
-                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease'
-              }}
-              onClick={() => { setMheDrillSeller(null); setShowMheTrendModal(true); }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = isGood ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = isGood ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'; }}
-            >
-              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: `linear-gradient(90deg, transparent, ${isGood ? '#22C55E' : '#EF4444'}, transparent)`, opacity: 0.6, boxShadow: `0 0 20px 2px ${isGood ? '#22C55E' : '#EF4444'}` }} />
-              
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isGood ? '#22C55E' : '#EF4444', boxShadow: `0 0 10px ${isGood ? '#22C55E' : '#EF4444'}` }} />
-                  <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>MHE Trend</div>
+            const targetDay = date || todayStr();
+            const latestAvg = dayMap[targetDay] ? parseFloat((dayMap[targetDay].sum / dayMap[targetDay].count).toFixed(1)) : 0;
+            const isGood = latestAvg <= 20
+            return (
+              <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
+                <div className={styles.kpiSplitSide}>
+                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Current</div>
+                  <div className={styles.kpiValue} style={{ color: isGood ? '#22C55E' : '#EF4444' }}>
+                    {latestAvg}%
+                  </div>
                 </div>
-                <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', marginLeft: '8px' }}>Tap to View ▶</span>
+                <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
+                <div className={styles.kpiSplitSide}>
+                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Target</div>
+                  <div className={styles.kpiValue} style={{ color: '#22C55E' }}>
+                    20%
+                  </div>
+                </div>
               </div>
-              
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{latestAvg}</span>
-                <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
-                <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Target</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#22C55E' }}>20%</span>
-              </div>
-            </div>
-          )
-        })()}
+            )
+          })()}
+        </div>
 
-        {/* Goal vs SHB KPI Card */}
-        {(() => {
-          const dayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
-          enrichedMembers.forEach((m: any) => {
-            ;(m.monthly_goal_shb || []).forEach((r: any) => {
-              const d = r.date
-              if (!d) return
-              const goalPct = typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
-              const shbPct = typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
-              if (!dayMap[d]) dayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
-              dayMap[d].goalSum += goalPct
-              dayMap[d].shbSum += shbPct
-              dayMap[d].count += 1
+        {/* Goal vs SHB */}
+        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setShowGoalShbTrendModal(true)}>
+          <div className={styles.kpiLabel}>Goal vs SHB</div>
+          {(() => {
+            const targetDay = date || todayStr();
+            const dayMap: Record<string, any> = {}
+            enrichedMembers.forEach((m: any) => {
+              (m.monthly_goal_shb || []).forEach((r: any) => {
+                const d = r.date
+                if (!d) return
+                const goalPct = typeof r.goal_completion === 'number' ? r.goal_completion * 100 : 0
+                const shbPct = typeof r.shb_percent === 'number' ? r.shb_percent * 100 : 0
+                if (!dayMap[d]) dayMap[d] = { goalSum: 0, shbSum: 0, count: 0 }
+                dayMap[d].goalSum += goalPct
+                dayMap[d].shbSum += shbPct
+                dayMap[d].count += 1
+              })
             })
-          })
-          const sortedDays = Object.keys(dayMap).sort()
-          const targetDay = date || todayStr();
-          const latestAvgGoal = dayMap[targetDay] ? parseFloat((dayMap[targetDay].goalSum / dayMap[targetDay].count).toFixed(0)) : 0
-          const latestAvgShb = dayMap[targetDay] ? parseFloat((dayMap[targetDay].shbSum / dayMap[targetDay].count).toFixed(0)) : 0
-          
-          return (
-            <div
-              className={styles.summaryCard}
-              style={{
-                background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '16px 20px', borderRadius: '16px', flex: 1.2,
-                border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
-                cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease'
-              }}
-              onClick={() => { setGoalShbDrillSeller(null); setShowGoalShbTrendModal(true); }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
-            >
-              <div style={{ position: 'absolute', top: 0, left: '15%', right: '15%', height: '1px', background: 'linear-gradient(90deg, transparent, #3B82F6, transparent)', opacity: 0.6, boxShadow: '0 0 20px 2px #3B82F6' }} />
-              
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 10px #3B82F6' }} />
-                  <div style={{ fontSize: '0.75rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, whiteSpace: 'nowrap' }}>Goal vs SHB</div>
+            const latestAvgGoal = dayMap[targetDay] && dayMap[targetDay].count > 0 ? parseFloat((dayMap[targetDay].goalSum / dayMap[targetDay].count).toFixed(0)) : 0
+            const latestAvgShb = dayMap[targetDay] && dayMap[targetDay].count > 0 ? parseFloat((dayMap[targetDay].shbSum / dayMap[targetDay].count).toFixed(0)) : 0
+            const goalColor = latestAvgGoal >= latestAvgShb ? '#22C55E' : (latestAvgShb - latestAvgGoal <= 10) ? '#EAB308' : '#EF4444';
+            return (
+              <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
+                <div className={styles.kpiSplitSide}>
+                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Goal</div>
+                  <div className={styles.kpiValue} style={{ color: goalColor }}>
+                    {latestAvgGoal}%
+                  </div>
                 </div>
-                <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', marginLeft: '8px' }}>Tap to View ▶</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '20px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{latestAvgGoal}</span>
-                  <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
-                </div>
-                <div style={{ width: '1px', alignSelf: 'stretch', background: 'rgba(255,255,255,0.1)' }} />
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  <span style={{ fontSize: '1.8rem', fontWeight: 300, color: '#FFFFFF', lineHeight: 1 }}>{latestAvgShb}</span>
-                  <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 300 }}>%</span>
+                <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
+                <div className={styles.kpiSplitSide}>
+                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>SHB</div>
+                  <div className={styles.kpiValue} style={{ color: '#F0EDE8' }}>
+                    {latestAvgShb}%
+                  </div>
                 </div>
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
-                <span style={{ fontSize: '0.65rem', color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Goal</span>
-                <span style={{ fontSize: '0.65rem', color: '#EAB308', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SHB</span>
-              </div>
-            </div>
-          )
-        })()}
+            )
+          })()}
+        </div>
       </div>
 
-      {/* S1: Login & Availability */}
+{/* S1: Login & Availability */}
       <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's1' ? null : 's1')}>
         <div className={styles.headerLeft}>
           <span className={styles.chevron} style={{ transform: activeSectionModal === 's1' ? 'rotate(90deg)' : 'none' }}>▶</span>
@@ -711,7 +858,8 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                     }).map((m: any) => {
                       const late = isLate(m)
                       const b = parseBreaks(m.attendance?.break_timestamps)
-                      const delta = minutesBetween(m.attendance?.first_login, m.cti?.logged_in_at)
+                      const fixWrap = (val: number | null) => (val !== null && val > 720) ? val - 1440 : val
+                      const delta = fixWrap(minutesBetween(m.attendance?.first_login, m.cti?.logged_in_at))
                       return (
                         <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} style={{ ...(late ? { backgroundColor: 'rgba(239,68,68,0.05)' } : {}), cursor: 'pointer' }} onClick={() => setDrillSellerS1(m)}>
                           <td>
@@ -721,7 +869,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                           </td>
                           <td>{formatTime(m.attendance?.first_login)}</td>
                           <td>{formatTime(m.cti?.logged_in_at)}</td>
-                          <td>{delta !== null ? `${delta}m` : '—'}</td>
+                          <td style={delta !== null && delta < 0 ? { color: '#EF4444' } : undefined}>{delta !== null ? `${delta}m` : '—'}</td>
                           <td>{formatTime(m.allotment?.first_lead_allotted_at_ist)}</td>
                           <td>{b.totalMinutes > 0 ? `${b.totalMinutes}m` : '—'}</td>
                           <td>{b.totalMinutes > 0 ? `${Math.round((b.totalMinutes / (9*60))*100)}%` : '—'}</td>
@@ -808,144 +956,6 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
       )}
 
-      {/* S3: RTG vs Non-RTG */}
-      <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's3' ? null : 's3')}>
-        <div className={styles.headerLeft}>
-          <span className={styles.chevron} style={{ transform: activeSectionModal === 's3' ? 'rotate(90deg)' : 'none' }}>▶</span>
-          <h2 className={styles.sectionTitle}>RTG vs Non-RTG</h2>
-        </div>
-        {activeSectionModal !== 's3' && (
-          <div className={styles.headerRight}>
-            <div className={styles.headerStat}>
-              <span className={styles.headerStatLabel}>Total Leads</span>
-              <span className={styles.headerStatValue}>{totalLeads}</span>
-            </div>
-            <div className={styles.headerStat}>
-              <span className={styles.headerStatLabel}>RTG</span>
-              <span className={styles.headerStatValue}>{totalRtg}</span>
-            </div>
-            <div className={styles.headerStat}>
-              <span className={styles.headerStatLabel}>Non-RTG</span>
-              <span className={styles.headerStatValue}>{totalNonRtg}</span>
-            </div>
-            <div className={styles.headerStat}>
-              <span className={styles.headerStatLabel}>Team RTG %</span>
-              <span className={styles.headerStatValue}>{teamRtgPct}%</span>
-            </div>
-          </div>
-        )}
-      </div>
-      {activeSectionModal === 's3' && (
-        <div className={sellerStyles.sectionContent}>
-              {drillSellerS3 ? (
-                <div className={styles.drillDownContainer}>
-                  <div className={styles.drillHeader}>
-                    <h3 className={styles.drillTitle}>{drillSellerS3.seller_name} — RTG Split</h3>
-                    <button className={styles.backBtn} onClick={() => setDrillSellerS3(null)}>← Back to team</button>
-                  </div>
-                  <div className={styles.kpiRow}>
-                    <div className={styles.kpiItem}>
-                      <span className={styles.kpiLabel}>Total Leads</span>
-                      <span className={styles.kpiValue}>{(drillSellerS3.allotment?.rtg_leads || 0) + (drillSellerS3.allotment?.non_rtg_leads || 0)}</span>
-                    </div>
-                    <div className={styles.kpiItem}>
-                      <span className={styles.kpiLabel}>RTG</span>
-                      <span className={styles.kpiValue}>{drillSellerS3.allotment?.rtg_leads || 0}</span>
-                    </div>
-                    <div className={styles.kpiItem}>
-                      <span className={styles.kpiLabel}>Non-RTG</span>
-                      <span className={styles.kpiValue}>{drillSellerS3.allotment?.non_rtg_leads || 0}</span>
-                    </div>
-                    <div className={styles.kpiItem}>
-                      <span className={styles.kpiLabel}>RTG %</span>
-                      <span className={styles.kpiValue}>
-                        {Math.round(((drillSellerS3.allotment?.rtg_leads || 0) / ((drillSellerS3.allotment?.rtg_leads || 0) + (drillSellerS3.allotment?.non_rtg_leads || 0) || 1)) * 100)}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className={styles.chartContainer}>
-                    <div className={styles.stackedBarRow}>
-                      <div className={styles.barLabel}>RTG Split</div>
-                      <div className={styles.barTrack}>
-                        <div className={styles.barSegment} style={{width: `${Math.round(((drillSellerS3.allotment?.rtg_leads || 0) / ((drillSellerS3.allotment?.rtg_leads || 0) + (drillSellerS3.allotment?.non_rtg_leads || 0) || 1)) * 100)}%`, background: '#378ADD'}} />
-                        <div className={styles.barSegment} style={{width: `${Math.round(((drillSellerS3.allotment?.non_rtg_leads || 0) / ((drillSellerS3.allotment?.rtg_leads || 0) + (drillSellerS3.allotment?.non_rtg_leads || 0) || 1)) * 100)}%`, background: '#1D9E75'}} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className={styles.kpiRow}>
-                    {(() => {
-                      const tRtg = enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.rtg_leads || 0), 0)
-                      const tNonRtg = enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.non_rtg_leads || 0), 0)
-                      const tTotal = tRtg + tNonRtg
-                      return (
-                        <>
-                          <div className={styles.kpiItem}>
-                            <span className={styles.kpiLabel}>Total Leads</span>
-                            <span className={styles.kpiValue}>{tTotal}</span>
-                          </div>
-                          <div className={styles.kpiItem}>
-                            <span className={styles.kpiLabel}>RTG Count</span>
-                            <span className={styles.kpiValue}>{tRtg}</span>
-                          </div>
-                          <div className={styles.kpiItem}>
-                            <span className={styles.kpiLabel}>Non-RTG Count</span>
-                            <span className={styles.kpiValue}>{tNonRtg}</span>
-                          </div>
-                          <div className={styles.kpiItem}>
-                            <span className={styles.kpiLabel}>Team RTG %</span>
-                            <span className={styles.kpiValue}>{tTotal > 0 ? Math.round((tRtg / tTotal) * 100) : 0}%</span>
-                          </div>
-                        </>
-                      )
-                    })()}
-                  </div>
-
-                  <div className={styles.tableWrap}>
-                    <table className={styles.table}>
-                      <thead>
-                        <tr>
-                          <th>Seller</th>
-                          <th>Total Leads</th>
-                          <th>RTG</th>
-                          <th>Non-RTG</th>
-                          <th>RTG %</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {enrichedMembers.slice().sort((a: any, b: any) => {
-                          if (a.seller_email === session.email) return -1;
-                          if (b.seller_email === session.email) return 1;
-                          return 0;
-                        }).map((m: any) => {
-                          const rtg = m.allotment?.rtg_leads || 0
-                          const non = m.allotment?.non_rtg_leads || 0
-                          if (rtg + non === 0 && m.isAbsent) return null
-                          const tot = rtg + non
-                          if (tot === 0) return null
-                          return (
-                            <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerS3(m)} style={{cursor: 'pointer'}}>
-                              <td>
-                                {m.seller_name}
-                                {m.seller_email === session.email && <span className={styles.youBadge}>(You)</span>}
-                                {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
-                              </td>
-                              <td>{tot}</td>
-                              <td>{rtg}</td>
-                              <td>{non}</td>
-                              <td>{Math.round((rtg / tot) * 100)}%</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
-        </div>
-      )}
 
       {/* S7: Lead Time Availability */}
       <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's7' ? null : 's7')}>
@@ -981,82 +991,186 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       </div>
       {activeSectionModal === 's7' && (
         <div className={sellerStyles.sectionContent}>
-              <div className={styles.kpiRow}>
-                <div className={styles.kpiItem}>
-                  <span className={styles.kpiLabel}>Team Planned LTA</span>
-                  <span className={styles.kpiValue}>{teamPlanned}</span>
-                </div>
-                <div className={styles.kpiItem}>
-                  <span className={styles.kpiLabel}>Team Final LTA</span>
-                  <span className={styles.kpiValue}>{teamActual}</span>
-                </div>
-                <div className={styles.kpiItem}>
-                  <span className={styles.kpiLabel}>Leads Allotted</span>
-                  <span className={styles.kpiValue}>{(() => {
-                    return enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0), 0)
-                  })()}</span>
-                </div>
-                <div className={styles.kpiItem} style={{ borderRight: 'none', paddingRight: 0 }}>
-                  <span className={styles.kpiLabel}>Fulfillment %</span>
-                  <span className={styles.kpiValue}>{(() => {
-                    const leads = enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0), 0)
-                    return teamActual > 0 ? Math.round((leads / teamActual) * 100) : 0
-                  })()}%</span>
-                </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: '24px' }}>
-                  <button onClick={() => setShowTeamFunnel(true)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #333', color: '#E5E7EB', padding: '8px 16px', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                    Team Funnel
-                  </button>
-                </div>
-              </div>
 
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Seller</th>
-                      <th>Planned LTA</th>
-                      <th>Final LTA</th>
-                      <th>Leads Allotted</th>
-                      <th>Appetite Fulfillment</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {enrichedMembers.slice().sort((a: any, b: any) => {
-                      if (a.seller_email === session.email) return -1;
-                      if (b.seller_email === session.email) return 1;
-                      return 0;
-                    }).map((m: any) => {
-                      const isYou = m.seller_email === session.email
-                      const lostPct = m.lta.planned > 0 ? (m.lta.totalLost / m.lta.planned) * 100 : 0
-                      const actualColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#F59E0B' : '#EF4444'
-                      const lostColor = m.lta.totalLost < 3 ? '#22C55E' : m.lta.totalLost <= 6 ? '#F59E0B' : '#EF4444'
-                      
-                      const leads = (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0)
-                      const fulfPct = m.lta.actual > 0 ? Math.round((leads / m.lta.actual) * 100) : 0
-                      
-                      return (
-                        <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerS7(m)}>
-                          <td>
-                            {m.seller_name}
-                            {isYou && <span className={styles.youBadge}>(You)</span>}
-                            {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
-                          </td>
-                          <td>{m.lta.planned}</td>
-                          <td style={{color: actualColor, fontWeight: 600}}>
-                            {m.lta.actual}
-                          </td>
-                          <td>{leads}</td>
-                          <td style={{ color: fulfPct >= 90 ? '#22C55E' : fulfPct >= 70 ? '#F59E0B' : '#EF4444' }}>
-                            {`${fulfPct}%`}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+          {/* ── Big Team Target + Horizontal Step Flow ── */}
+          <div style={{ background: '#111', border: '1px solid #1E1E1E', borderRadius: '16px', padding: '24px 20px', marginBottom: '14px' }}>
+
+            {/* Top: Team Final LTA + progress */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: '0.65rem', color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '6px' }}>Team target for today</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                  <span style={{ fontSize: '3.2rem', fontWeight: 800, color: teamActual > 0 ? '#F4631E' : '#4A4642', lineHeight: 1 }}>{teamActual}</span>
+                  <span style={{ fontSize: '1rem', color: '#6B7280', fontWeight: 500 }}>leads</span>
+                </div>
               </div>
+              <div style={{ flex: 1, minWidth: '180px', paddingBottom: '6px' }}>
+                <div style={{ fontSize: '0.7rem', color: '#6B7280', marginBottom: '6px' }}>Leads allotted vs appetite</div>
+                <div style={{ height: '8px', background: '#1E1E1E', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: teamActual > 0 ? `${Math.min(100, Math.round((totalLeads / teamActual) * 100))}%` : '0%',
+                    background: totalLeads >= teamActual ? '#22C55E' : totalLeads >= teamActual * 0.5 ? '#EAB308' : '#F4631E',
+                    borderRadius: '8px',
+                    transition: 'width 0.6s ease'
+                  }} />
+                </div>
+                <div style={{ fontSize: '0.65rem', color: '#6B7280', marginTop: '4px' }}>
+                  {totalLeads} allotted · {teamActual > 0 ? Math.min(100, Math.round((totalLeads / teamActual) * 100)) : 0}% fulfilled
+                </div>
+              </div>
+              <button onClick={() => setShowTeamFunnel(true)} style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', color: '#3B82F6', padding: '8px 16px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'background 0.2s', whiteSpace: 'nowrap' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.15)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(59,130,246,0.08)'}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                View Team Funnel
+              </button>
+            </div>
+
+            {/* Step-by-step breakdown */}
+            <div style={{ fontSize: '0.62rem', color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '12px' }}>
+              How the team target was calculated
+            </div>
+            <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', paddingBottom: '4px' }}>
+              {(() => {
+                const steps = [
+                  { id: 'planned', label: 'Base target', sublabel: 'Monthly goal ÷ working days', value: teamPlanned, color: '#3B82F6', drop: teamDynLost, dropLabel: teamDynLost > 0 ? 'Late login / inactive' : teamDynLost < 0 ? 'Bonus added' : null },
+                  { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: teamDynLta, color: '#EAB308', drop: teamHygLost, dropLabel: teamHygLost > 0 ? 'Hygiene penalty' : teamHygLost < 0 ? 'Bonus added' : null },
+                  { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: teamHygLta, color: '#F97316', drop: teamRev1Lost, dropLabel: teamRev1Lost > 0 ? 'Goal correction' : teamRev1Lost < 0 ? 'Bonus added' : null },
+                  { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: teamRev1Lta, color: '#8B5CF6', drop: teamRev2Lost, dropLabel: teamRev2Lost > 0 ? 'Final adjustment' : teamRev2Lost < 0 ? 'Bonus added' : null },
+                  { id: 'final', label: "Team's final target", sublabel: 'Total team lead appetite', value: teamActual, color: '#22C55E', drop: null, dropLabel: null },
+                ]
+                const usedSteps = steps.filter((step) => {
+              const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+                (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+              return !isNotUsed;
+            });
+
+            const actualSteps = usedSteps.map((step, idx, arr) => {
+              if (idx === arr.length - 1) return step;
+              const nextStep = arr[idx + 1];
+              const dropValue = step.value - nextStep.value;
+              let dropLabel = null;
+              if (dropValue > 0) {
+                if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
+                else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
+                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
+              } else if (dropValue < 0) {
+                dropLabel = 'Bonus added';
+              }
+              return { ...step, drop: dropValue, dropLabel };
+            });
+
+            return actualSteps.map((step, idx) => {
+
+                  return (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0,  }}>
+                      {/* Step card */}
+                      <div style={{
+                        background: '#0D0D0D', border: `1px solid ${`${step.color}40`}`,
+                        borderRadius: '10px', padding: '10px 14px', minWidth: '120px', flexShrink: 0,
+                        position: 'relative'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <div style={{ fontSize: '0.58rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                          
+                        </div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                        <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
+                      </div>
+
+                      {/* Arrow + drop indicator */}
+                      {idx < actualSteps.length - 1 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 8px', minWidth: '64px' }}>
+                          {step.drop !== null && step.drop !== 0 && (
+                            <div style={{
+                              fontSize: '0.58rem', fontWeight: 700,
+                              color: step.drop > 0 ? '#EF4444' : '#22C55E',
+                              background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                              padding: '2px 6px', borderRadius: '6px', marginBottom: '4px',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.55rem', color: '#4A4642', textAlign: 'center', lineHeight: 1.2, marginBottom: '4px' }}>
+                            {step.dropLabel}
+                          </div>
+                          <span style={{ color: '#3A3A3A', fontSize: '1rem' }}>→</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+          </div>
+
+          {/* ── Seller Cards Grid ── */}
+          <div style={{ fontSize: '0.62rem', color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '12px' }}>
+            Individual Sellers
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+            {enrichedMembers.slice().sort((a: any, b: any) => {
+              if (a.seller_email === session.email) return -1;
+              if (b.seller_email === session.email) return 1;
+              return 0;
+            }).map((m: any) => {
+              const isYou = m.seller_email === session.email;
+              const leads = (m.allotment?.rtg_leads || 0) + (m.allotment?.non_rtg_leads || 0);
+              const fulfPct = m.lta.actual > 0 ? Math.round((leads / m.lta.actual) * 100) : 0;
+              const lostPct = m.lta.planned > 0 ? (m.lta.totalLost / m.lta.planned) * 100 : 0;
+              const ltaColor = lostPct < 5 ? '#22C55E' : lostPct <= 15 ? '#EAB308' : '#EF4444';
+              const fulfColor = fulfPct >= 90 ? '#22C55E' : fulfPct >= 70 ? '#EAB308' : '#EF4444';
+
+              return (
+                <div
+                  key={m.seller_email}
+                  onClick={() => setDrillSellerS7(m)}
+                  style={{
+                    background: '#0D0D0D',
+                    border: `1px solid ${isYou ? 'rgba(244,99,30,0.3)' : m.isAbsent ? 'rgba(239,68,68,0.15)' : '#1A1A1A'}`,
+                    borderRadius: '12px', padding: '14px', cursor: 'pointer',
+                    transition: 'border-color 0.2s, background 0.2s',
+                    opacity: m.isAbsent ? 0.6 : 1,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#141414'; e.currentTarget.style.borderColor = isYou ? 'rgba(244,99,30,0.5)' : '#2A2A2A'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#0D0D0D'; e.currentTarget.style.borderColor = isYou ? 'rgba(244,99,30,0.3)' : m.isAbsent ? 'rgba(239,68,68,0.15)' : '#1A1A1A'; }}
+                >
+                  {/* Name + badges */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isYou ? '#F4631E' : '#F0EDE8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.seller_name}</div>
+                    {isYou && <span style={{ fontSize: '0.5rem', color: '#F4631E', background: 'rgba(244,99,30,0.1)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>YOU</span>}
+                    {m.isAbsent && <span style={{ fontSize: '0.5rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>ABSENT</span>}
+                  </div>
+
+                  {/* LTA numbers row */}
+                  <div style={{ display: 'flex', gap: '12px', marginBottom: '10px' }}>
+                    <div>
+                      <div style={{ fontSize: '0.5rem', color: '#5A5650', marginBottom: '2px', textTransform: 'uppercase' }}>Planned</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#8A8278', lineHeight: 1 }}>{m.lta.planned}</div>
+                    </div>
+                    <div style={{ color: '#2A2A2A', alignSelf: 'center', fontSize: '0.8rem' }}>→</div>
+                    <div>
+                      <div style={{ fontSize: '0.5rem', color: '#5A5650', marginBottom: '2px', textTransform: 'uppercase' }}>Final</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: ltaColor, lineHeight: 1 }}>{m.lta.actual}</div>
+                    </div>
+                    <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.5rem', color: '#5A5650', marginBottom: '2px', textTransform: 'uppercase' }}>Allotted</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{leads}</div>
+                    </div>
+                  </div>
+
+                  {/* Fulfillment progress bar */}
+                  <div>
+                    <div style={{ height: '4px', background: '#1A1A1A', borderRadius: '4px', overflow: 'hidden', marginBottom: '4px' }}>
+                      <div style={{ height: '100%', width: `${Math.min(100, fulfPct)}%`, background: fulfColor, borderRadius: '4px', transition: 'width 0.5s ease' }} />
+                    </div>
+                    <div style={{ fontSize: '0.52rem', color: '#5A5650' }}>{fulfPct}% fulfilled</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -1066,41 +1180,28 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         <span style={{ fontSize: '1rem', fontWeight: 600, color: '#F4631E', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monthly Breakdown · {monthStr}</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px', marginBottom: '24px' }}>
 
         {/* ── DOT Bar Chart (Horizontal) ── */}
-        <div 
-          style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', cursor: 'pointer', transition: 'border-color 0.2s' }}
-          onClick={() => setActiveBreakdownCard(activeBreakdownCard === 'dot' ? null : 'dot')}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = '#333')}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = '#1e1e1e')}
-        >
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DOT Distribution</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px', cursor: 'pointer' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'dot' ? null : 'dot'); setBreakdownDrillSeller(null); }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DOT Distribution</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Date-of-travel spread</div>
+          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={dotChartCanvasRef} /></div>
+
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
             {teamDotChartData.map((bar, i) => {
               const totalDOT = teamDotChartData.reduce((s, b) => s + b.value, 0)
-              const barPct = pct(bar.value, totalDOT)
+              const barPct = totalDOT > 0 ? Math.round((bar.value / totalDOT) * 100) : 0
               return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '52px', fontSize: '0.6rem', color: '#8A8278', textAlign: 'right', fontWeight: 500 }}>{bar.label}</div>
-                  <div style={{ flex: 1, height: '22px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
-                    <div style={{
-                      width: `${(bar.value / maxTeamDotValue) * 100}%`,
-                      height: '100%',
-                      background: `linear-gradient(90deg, ${bar.color}40, ${bar.color}90)`,
-                      borderRadius: '6px',
-                      transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                      minWidth: bar.value > 0 ? '4px' : '0',
-                    }} />
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: bar.color }} />
+                    <span style={{ color: '#8A8278' }}>{bar.label}</span>
                   </div>
-                  <div style={{ width: '30px', fontSize: '0.6rem', fontWeight: 700, color: bar.value > 0 ? bar.color : '#5A5650', textAlign: 'right' }}>{bar.value}</div>
-                  <span style={{
-                    fontSize: '0.55rem', fontWeight: 600, color: bar.value > 0 ? bar.color : '#5A5650',
-                    background: bar.value > 0 ? `${bar.color}15` : 'rgba(255,255,255,0.03)',
-                    padding: '2px 8px', borderRadius: '100px', minWidth: '38px', textAlign: 'center',
-                  }}>
-                    {barPct}%
-                  </span>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <span style={{ fontWeight: 700, color: bar.value > 0 ? '#F0EDE8' : '#3A3A3A' }}>{bar.value}</span>
+                    <span style={{ color: bar.value > 0 ? bar.color : '#3A3A3A', width: '32px', textAlign: 'right' }}>{barPct}%</span>
+                  </div>
                 </div>
               )
             })}
@@ -1108,15 +1209,13 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
 
         {/* ── Allotment Breakdown ── */}
-        <div 
-          style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', cursor: 'pointer', transition: 'border-color 0.2s' }}
-          onClick={() => setActiveBreakdownCard(activeBreakdownCard === 'allotment' ? null : 'allotment')}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = '#333')}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = '#1e1e1e')}
-        >
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {teamAllotmentRows.map((item, i) => (
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'allotment' ? null : 'allotment'); setBreakdownDrillSeller(null); }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>How leads were assigned</div>
+          <div style={{ height: '160px', position: 'relative', marginBottom: '16px' }}><canvas ref={allotmentChartCanvasRef} /></div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, justifyContent: 'center' }}>
+            {teamAllotmentRows.map((item: any, i: number) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: item.color, flexShrink: 0 }} />
                 <span style={{ fontSize: '0.64rem', color: '#8A8278', flex: 1 }}>{item.label}</span>
@@ -1125,7 +1224,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                   fontSize: '0.55rem', fontWeight: 600, color: item.color,
                   background: `${item.color}15`, padding: '2px 8px', borderRadius: '100px',
                 }}>
-                  {pct(item.value, teamMonthlyTotalLeads)}%
+                  {teamMonthlyTotalLeads > 0 ? Math.round((item.value / teamMonthlyTotalLeads) * 100) : 0}%
                 </span>
               </div>
             ))}
@@ -1133,25 +1232,24 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
 
         {/* ── PAX Distribution ── */}
-        <div 
-          style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', cursor: 'pointer', transition: 'border-color 0.2s' }}
-          onClick={() => setActiveBreakdownCard(activeBreakdownCard === 'pax' ? null : 'pax')}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = '#333')}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = '#1e1e1e')}
-        >
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leads by Group Size</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px', cursor: 'pointer' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'pax' ? null : 'pax'); setBreakdownDrillSeller(null); }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leads by Group Size</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Pax mix across leads</div>
+          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={paxChartCanvasRef} /></div>
+
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
             {teamPaxRows.map((p, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: p.color, flexShrink: 0 }} />
-                <span style={{ fontSize: '0.64rem', color: '#8A8278', flex: 1 }}>{p.label}</span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: p.value > 0 ? p.color : '#5A5650' }}>{p.value}</span>
-                <span style={{
-                  fontSize: '0.55rem', fontWeight: 600, color: p.color,
-                  background: `${p.color}15`, padding: '2px 8px', borderRadius: '100px',
-                }}>
-                  {pct(p.value, teamMonthlyTotalPax)}%
-                </span>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: p.color }} />
+                  <span style={{ color: '#8A8278' }}>{p.label}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <span style={{ fontWeight: 700, color: p.value > 0 ? '#F0EDE8' : '#3A3A3A' }}>{p.value}</span>
+                  <span style={{ color: p.value > 0 ? p.color : '#3A3A3A', width: '32px', textAlign: 'right' }}>
+                    {teamMonthlyTotalPax > 0 ? Math.round((p.value / teamMonthlyTotalPax) * 100) : 0}%
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -1208,8 +1306,6 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                   const sAllotRows = [
                     { label: 'Auto Allotted', value: memberMonthlySum(sm, 'auto_allotted'), color: '#E5E7EB' },
                     { label: 'Manual Allotted', value: memberMonthlySum(sm, 'manual_allotted'), color: '#9CA3AF' },
-                    { label: 'RTG Leads', value: memberMonthlySum(sm, 'rtg_leads'), color: '#F4631E' },
-                    { label: 'Non-RTG', value: memberMonthlySum(sm, 'non_rtg_leads'), color: '#4B5563' },
                   ]
 
                   // Per-seller PAX
@@ -1310,8 +1406,6 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                         {activeBreakdownCard === 'allotment' && <>
                           <th style={{ padding: '12px 10px', textAlign: 'center', color: '#8A8278', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', borderBottom: '1px solid #2a2a2a' }}>Auto</th>
                           <th style={{ padding: '12px 10px', textAlign: 'center', color: '#8A8278', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', borderBottom: '1px solid #2a2a2a' }}>Manual</th>
-                          <th style={{ padding: '12px 10px', textAlign: 'center', color: '#8A8278', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', borderBottom: '1px solid #2a2a2a' }}>RTG</th>
-                          <th style={{ padding: '12px 10px', textAlign: 'center', color: '#8A8278', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', borderBottom: '1px solid #2a2a2a' }}>Non-RTG</th>
                           <th style={{ padding: '12px 10px', textAlign: 'center', color: '#8A8278', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', borderBottom: '1px solid #2a2a2a' }}>Total</th>
                         </>}
                         {activeBreakdownCard === 'pax' && <>
@@ -1370,15 +1464,11 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                             {activeBreakdownCard === 'allotment' && (() => {
                               const auto = memberMonthlySum(m, 'auto_allotted')
                               const manual = memberMonthlySum(m, 'manual_allotted')
-                              const rtg = memberMonthlySum(m, 'rtg_leads')
-                              const nonRtg = memberMonthlySum(m, 'non_rtg_leads')
                               const total = memberMonthlySum(m, 'total_leads_allotted')
                               const cellStyle = (v: any, highlight?: boolean) => ({ padding: '14px 10px', textAlign: 'center' as const, borderBottom: '1px solid #1e1e1e', color: v === 0 ? '#555' : highlight ? '#F4631E' : '#E5E7EB', fontWeight: highlight ? 700 : 600, fontVariantNumeric: 'tabular-nums' as const })
                               return <>
                                 <td style={cellStyle(auto)}>{auto}</td>
                                 <td style={cellStyle(manual)}>{manual}</td>
-                                <td style={cellStyle(rtg, true)}>{rtg}</td>
-                                <td style={cellStyle(nonRtg)}>{nonRtg}</td>
                                 <td style={{ ...cellStyle(total), fontWeight: 700, color: total === 0 ? '#555' : '#fff' }}>{total}</td>
                               </>
                             })()}
@@ -1741,10 +1831,11 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         const lastLogout = drillSellerS1.attendance?.last_logout;
         const totalLoginToLogout = kekaTime && lastLogout ? minutesBetween(kekaTime, lastLogout) : null;
         const ozontellReady = drillSellerS1.cti?.logged_in_at;
-        const deltaOzontellFromKeka = minutesBetween(kekaTime, ozontellReady);
+        const fixWrap = (val: number | null) => (val !== null && val > 720) ? val - 1440 : val;
+        const deltaOzontellFromKeka = fixWrap(minutesBetween(kekaTime, ozontellReady));
         const firstLead = drillSellerS1.allotment?.first_lead_allotted_at_ist;
-        const deltaKekaToFirst = minutesBetween(kekaTime, firstLead);
-        const deltaOzontellToFirst = minutesBetween(ozontellReady, firstLead);
+        const deltaKekaToFirst = fixWrap(minutesBetween(kekaTime, firstLead));
+        const deltaOzontellToFirst = fixWrap(minutesBetween(ozontellReady, firstLead));
         
         return (
           <div className={sellerStyles.modalOverlay} onClick={() => setActiveTileS1(null)}>
@@ -1826,59 +1917,88 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       {/* Funnel Modal */}
       {drillSellerS7 && (
         <div className={sellerStyles.modalOverlay} onClick={() => setDrillSellerS7(null)}>
-          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '550px', width: '600px' }}>
+          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '940px', width: '940px' }}>
             <button className={sellerStyles.modalClose} onClick={() => setDrillSellerS7(null)}>✕</button>
-            <div className={sellerStyles.modalHeader}>
+            <div className={sellerStyles.modalHeader} style={{ marginBottom: '24px' }}>
               <span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} />
               <span className={sellerStyles.modalTitle}>{drillSellerS7.seller_name} — LTA Funnel</span>
             </div>
             
-            <div className={sellerStyles.ltaFunnel3DContainer} style={{ marginTop: '20px', width: '100%', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>
-              <svg className={sellerStyles.ltaFunnelBg} preserveAspectRatio="none" viewBox="0 0 100 100">
-                <polygon points="0,0 100,0 75,100 25,100" fill="url(#funnelGrad2)" opacity="0.08" />
-                <defs>
-                  <linearGradient id="funnelGrad2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3B82F6" />
-                    <stop offset="100%" stopColor="#22C55E" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className={sellerStyles.ltaFunnelStack}>
-                {(() => {
-                  const lta = drillSellerS7.lta;
-                  const getFunnelDropText = (diff: number, stage: string) => diff < 0 ? `↑ Gained ${Math.abs(diff)} in ${stage}` : `↓ Lost ${diff} in ${stage}`
-                  const stages = [
-                    { id: 'planned', label: 'PLANNED LTA', value: lta.planned, color: '#3B82F6', dropText: getFunnelDropText(lta.dynLost, 'Dynamic'), width: '100%' },
-                    { id: 'dynamic', label: 'DYNAMIC LTA', value: lta.dynLta, color: '#EAB308', dropText: getFunnelDropText(lta.hygLost, 'Hygiene'), width: '88%' },
-                    { id: 'hygiene', label: 'HYGIENE LTA', value: lta.hygLta, color: '#F97316', dropText: getFunnelDropText(lta.rev1Lost, 'Goal Complete'), width: '74%' },
-                    { id: 'goalComplete', label: 'GOAL COMPLETE LTA', value: lta.rev1Lta, color: '#8B5CF6', dropText: getFunnelDropText(lta.rev2Lost, 'Final'), width: '60%' },
-                    { id: 'final', label: 'FINAL LTA', value: lta.actual, color: '#22C55E', dropText: null, width: '48%' },
-                  ]
-                  return stages.map((step, idx) => (
-                    <div key={step.id} className={sellerStyles.ltaFunnelStepWrap} style={{ animationDelay: `${idx * 0.15}s` } as any}>
-                      <div className={sellerStyles.ltaFunnelCard} style={{ '--card-color': step.color, borderColor: step.color, width: step.width } as any}>
-                        {((step.id === 'dynamic' && teamData?.kalpit?.find((k: any) => k.name === 'dynamic')?.value === 0) ||
-                       (step.id === 'hygiene' && teamData?.kalpit?.find((k: any) => k.name === 'hygiene')?.value === 0) ||
-                       (step.id === 'goalComplete' && teamData?.kalpit?.find((k: any) => k.name === 'goal')?.value === 0)) && (
-                      <div className={sellerStyles.strikethroughLine} />
-                    )}
-                        <div className={sellerStyles.ltaFunnelCardHeader}>
-                          <span className={sellerStyles.ltaFunnelCardTitle} style={{ color: step.color }}>{step.label}</span>
-                          {step.id === 'planned' && <span className={sellerStyles.ltaFunnelBadge} style={{ background: `${step.color}20`, color: step.color }}>Planned</span>}
+            <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', padding: '10px 4px 20px' }}>
+              {(() => {
+                const lta = drillSellerS7.lta;
+                const steps = [
+                  { id: 'planned', label: 'Base target', sublabel: 'Base planned target goal', value: lta.planned, color: '#3B82F6', drop: lta.dynLost, dropLabel: lta.dynLost > 0 ? 'Late login / inactive' : null },
+                  { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: lta.dynLta, color: '#EAB308', drop: lta.hygLost, dropLabel: lta.hygLost > 0 ? 'Hygiene penalty' : null },
+                  { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: lta.hygLta, color: '#F97316', drop: lta.rev1Lost, dropLabel: lta.rev1Lost > 0 ? 'Goal correction' : null },
+                  { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: lta.rev1Lta, color: '#8B5CF6', drop: lta.rev2Lost, dropLabel: lta.rev2Lost > 0 ? 'Final adjustment' : null },
+                  { id: 'final', label: "Today's final target", sublabel: 'Final lead appetite target', value: lta.actual, color: '#22C55E', drop: null, dropLabel: null },
+                ]
+
+                const usedSteps = steps.filter((step) => {
+              const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+                (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+              return !isNotUsed;
+            });
+
+            const actualSteps = usedSteps.map((step, idx, arr) => {
+              if (idx === arr.length - 1) return step;
+              const nextStep = arr[idx + 1];
+              const dropValue = step.value - nextStep.value;
+              let dropLabel = null;
+              if (dropValue > 0) {
+                if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
+                else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
+                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
+              } else if (dropValue < 0) {
+                dropLabel = 'Bonus added';
+              }
+              return { ...step, drop: dropValue, dropLabel };
+            });
+
+            return actualSteps.map((step, idx) => {
+
+                  return (
+                    <div key={step.id} style={{ display: 'flex', alignItems: 'stretch',  }}>
+                      {/* Card */}
+                      <div style={{
+                        background: '#0D0D0D', border: `1px solid ${`${step.color}40`}`,
+                        borderRadius: '10px', padding: '12px 16px', minWidth: '130px', flexShrink: 0,
+                        position: 'relative'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <div style={{ fontSize: '0.58rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                          
                         </div>
-                      <div className={sellerStyles.ltaFunnelCardBody}>
-                        <span className={sellerStyles.ltaFunnelCardValue}>{step.value}</span>
-                        <span className={sellerStyles.ltaFunnelCardUnit}>leads</span>
+                        <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                        <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px', lineHeight: 1.3 }}>{step.sublabel}</div>
                       </div>
+
+                      {/* Arrow */}
+                      {idx < actualSteps.length - 1 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 8px', minWidth: '60px' }}>
+                          {step.drop !== null && step.drop !== 0 && (
+                            <div style={{
+                              fontSize: '0.58rem', fontWeight: 700,
+                              color: step.drop > 0 ? '#EF4444' : '#22C55E',
+                              background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                              padding: '2px 6px', borderRadius: '6px', marginBottom: '4px',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.52rem', color: '#5A5650', textAlign: 'center', lineHeight: 1.2, marginBottom: '4px' }}>
+                            {step.dropLabel}
+                          </div>
+                          <span style={{ color: '#3A3A3A', fontSize: '1rem' }}>→</span>
+                        </div>
+                      )}
                     </div>
-                    {step.dropText && (
-                      <div className={sellerStyles.ltaFunnelDropText}>
-                        {step.dropText}
-                      </div>
-                    )}
-                  </div>
-                ))})()}
-              </div>
+                  )
+                })
+              })()}
             </div>
           </div>
         </div>
@@ -1887,60 +2007,87 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       {/* Team Funnel Modal */}
       {showTeamFunnel && (
         <div className={sellerStyles.modalOverlay} onClick={() => setShowTeamFunnel(false)}>
-          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ minWidth: '550px', width: '600px' }}>
+          <div className={sellerStyles.modalCard} onClick={e => e.stopPropagation()} style={{ width: 'max-content', maxWidth: '95vw', minWidth: '880px' }}>
             <button className={sellerStyles.modalClose} onClick={() => setShowTeamFunnel(false)}>✕</button>
-            <div className={sellerStyles.modalHeader}>
+            <div className={sellerStyles.modalHeader} style={{ marginBottom: '24px' }}>
               <span className={sellerStyles.modalDot} style={{ background: '#3B82F6' }} />
-              <span className={sellerStyles.modalTitle}>My Team — LTA Funnel</span>
+              <span className={sellerStyles.modalTitle}>My Team — Team LTA Funnel</span>
             </div>
-            
-            <div className={sellerStyles.ltaFunnel3DContainer} style={{ marginTop: '20px', width: '100%', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>
-              <svg className={sellerStyles.ltaFunnelBg} preserveAspectRatio="none" viewBox="0 0 100 100">
-                <polygon points="0,0 100,0 75,100 25,100" fill="url(#funnelGradTeam)" opacity="0.08" />
-                <defs>
-                  <linearGradient id="funnelGradTeam" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3B82F6" />
-                    <stop offset="100%" stopColor="#22C55E" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className={sellerStyles.ltaFunnelStack}>
-                {(() => {
-                  const getFunnelDropText = (diff: number, stage: string) => diff < 0 ? `↑ Gained ${Math.abs(diff)} in ${stage}` : `↓ Lost ${diff} in ${stage}`
-                  const stages = [
-                    { id: 'planned', label: 'TEAM PLANNED', value: teamPlanned, color: '#3B82F6', dropText: getFunnelDropText(teamDynLost, 'Dynamic'), width: '100%' },
-                    { id: 'dynamic', label: 'TEAM DYNAMIC', value: teamDynLta, color: '#EAB308', dropText: getFunnelDropText(teamHygLost, 'Hygiene'), width: '85%' },
-                    { id: 'hygiene', label: 'TEAM HYGIENE', value: teamHygLta, color: '#F97316', dropText: getFunnelDropText(teamRev1Lost, 'Goal Complete'), width: '70%' },
-                    { id: 'goalComplete', label: 'TEAM GOAL COMPLETE', value: teamRev1Lta, color: '#8B5CF6', dropText: getFunnelDropText(teamRev2Lost, 'Final'), width: '60%' },
-                    { id: 'final', label: 'TEAM FINAL', value: teamActual, color: '#22C55E', dropText: null, width: '50%' },
-                  ]
-                  return stages.map((step, idx) => (
-                    <div key={step.id} className={sellerStyles.ltaFunnelStepWrap} style={{ animationDelay: `${idx * 0.15}s` } as any}>
-                      <div className={sellerStyles.ltaFunnelCard} style={{ '--card-color': step.color, borderColor: step.color, width: step.width } as any}>
-                        {((step.id === 'dynamic' && teamData?.kalpit?.find((k: any) => k.name === 'dynamic')?.value === 0) ||
-                       (step.id === 'hygiene' && teamData?.kalpit?.find((k: any) => k.name === 'hygiene')?.value === 0) ||
-                       (step.id === 'goalComplete' && teamData?.kalpit?.find((k: any) => k.name === 'goal')?.value === 0)) && (
-                      <div className={sellerStyles.strikethroughLine} />
-                    )}
-                        <div className={sellerStyles.ltaFunnelCardHeader}>
-                          <span className={sellerStyles.ltaFunnelCardTitle} style={{ color: step.color }}>{step.label}</span>
-                          {step.id === 'planned' && <span className={sellerStyles.ltaFunnelBadge} style={{ background: `${step.color}20`, color: step.color }}>Planned</span>}
+
+            <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', padding: '10px 4px 20px' }}>
+              {(() => {
+                const steps = [
+                  { id: 'planned', label: 'Base target', sublabel: 'Team cumulative base goal', value: teamPlanned, color: '#3B82F6', drop: teamDynLost, dropLabel: teamDynLost > 0 ? 'Late login / inactive' : null },
+                  { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: teamDynLta, color: '#EAB308', drop: teamHygLost, dropLabel: teamHygLost > 0 ? 'Hygiene penalty' : null },
+                  { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: teamHygLta, color: '#F97316', drop: teamRev1Lost, dropLabel: teamRev1Lost > 0 ? 'Goal correction' : null },
+                  { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: teamRev1Lta, color: '#8B5CF6', drop: teamRev2Lost, dropLabel: teamRev2Lost > 0 ? 'Final adjustment' : null },
+                  { id: 'final', label: "Team final target", sublabel: 'Total team lead appetite', value: teamActual, color: '#22C55E', drop: null, dropLabel: null },
+                ]
+
+                const usedSteps = steps.filter((step) => {
+              const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+                (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+              return !isNotUsed;
+            });
+
+            const actualSteps = usedSteps.map((step, idx, arr) => {
+              if (idx === arr.length - 1) return step;
+              const nextStep = arr[idx + 1];
+              const dropValue = step.value - nextStep.value;
+              let dropLabel = null;
+              if (dropValue > 0) {
+                if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
+                else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
+                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
+              } else if (dropValue < 0) {
+                dropLabel = 'Bonus added';
+              }
+              return { ...step, drop: dropValue, dropLabel };
+            });
+
+            return actualSteps.map((step, idx) => {
+
+                  return (
+                    <div key={step.id} style={{ display: 'flex', alignItems: 'stretch',  }}>
+                      {/* Card */}
+                      <div style={{
+                        background: '#0D0D0D', border: `1px solid ${`${step.color}40`}`,
+                        borderRadius: '10px', padding: '12px 16px', minWidth: '130px', flexShrink: 0,
+                        position: 'relative'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <div style={{ fontSize: '0.58rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                          
                         </div>
-                        <div className={sellerStyles.ltaFunnelCardBody}>
-                          <span className={sellerStyles.ltaFunnelCardValue}>{step.value}</span>
-                          <span className={sellerStyles.ltaFunnelCardLabel}>Leads</span>
-                        </div>
+                        <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                        <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '4px', lineHeight: 1.3 }}>{step.sublabel}</div>
                       </div>
-                      {step.dropText && (
-                        <div className={sellerStyles.ltaFunnelDrop}>
-                          <div className={sellerStyles.ltaFunnelLine} />
-                          <div className={sellerStyles.ltaFunnelDropText}>{step.dropText}</div>
+
+                      {/* Arrow */}
+                      {idx < actualSteps.length - 1 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 8px', minWidth: '60px' }}>
+                          {step.drop !== null && step.drop !== 0 && (
+                            <div style={{
+                              fontSize: '0.58rem', fontWeight: 700,
+                              color: step.drop > 0 ? '#EF4444' : '#22C55E',
+                              background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                              padding: '2px 6px', borderRadius: '6px', marginBottom: '4px',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.52rem', color: '#5A5650', textAlign: 'center', lineHeight: 1.2, marginBottom: '4px' }}>
+                            {step.dropLabel}
+                          </div>
+                          <span style={{ color: '#3A3A3A', fontSize: '1rem' }}>→</span>
                         </div>
                       )}
                     </div>
-                  ))
-                })()}
-              </div>
+                  )
+                })
+              })()}
             </div>
           </div>
         </div>
