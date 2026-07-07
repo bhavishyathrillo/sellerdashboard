@@ -241,7 +241,10 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         if (!ctx) return
 
         const labels = trendData.map((d: any) => new Date(d.log_date).getDate().toString())
-        const plannedVals = trendData.map((d: any) => d.wd > 0 ? Math.floor(d.lead_goal / d.wd) : 0)
+        const plannedVals = trendData.map((d: any) => {
+          const isAfterJuly5 = new Date(d.log_date) > new Date('2026-07-05')
+          return isAfterJuly5 ? (d.planned_lta_override || 0) : (d.wd > 0 ? Math.floor(d.lead_goal / d.wd) : 0)
+        })
         const finalVals = trendData.map((d: any) => d.final_lta || 0)
         const allVals = [...plannedVals, ...finalVals].filter(Boolean)
         const yMax = allVals.length > 0 ? Math.max(...allVals) + 2 : 10
@@ -579,7 +582,9 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
   const ltaLeadGoal = dailyLta.lead_goal || 0
   const ltaWd = dailyLta.wd || 0
 
-  const plannedLtaVal = ltaWd > 0 ? Math.floor(ltaLeadGoal / ltaWd) : 0
+  const isAfterJuly5 = new Date(selectedDate || todayStr()) > new Date('2026-07-05')
+  const overrideLta = dailyLta?.planned_lta_override
+  const plannedLtaVal = isAfterJuly5 ? (overrideLta || 0) : (ltaWd > 0 ? Math.floor(ltaLeadGoal / ltaWd) : 0)
   const dynamicLtaVal = dailyLta.real_dynamic_lta || 0
   const hygieneLtaVal = dailyLta.hygiene_lta || 0
   const goalCompleteLtaVal = dailyLta.goal_completion_logic_lta || 0
@@ -671,7 +676,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
       active = false
       if (dotChartInstance.current) dotChartInstance.current.destroy()
     }
-  }, [dotChartData])
+  }, [dotChartData, selectedDate])
 
   // Allotment Bar Chart
   const autoVal = monthly?.auto_allotted || 0
@@ -719,7 +724,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
           },
           scales: {
             x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { display: false } },
-            y: { ticks: { color: '#8A8278', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.03)' } }
+            y: { ticks: { color: '#8A8278', font: { size: 9 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.03)' } }
           }
         }
       })
@@ -728,7 +733,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
       active = false
       if (allotmentChartInstance.current) allotmentChartInstance.current.destroy()
     }
-  }, [autoVal, manualVal, rtgVal, nonRtgVal])
+  }, [autoVal, manualVal, rtgVal, nonRtgVal, selectedDate, monthTotalLeads, monthly])
 
   // PAX Doughnut Chart
   const paxColors = ['#DBEAFE', '#93C5FD', '#3B82F6', '#1D4ED8', '#172554']
@@ -787,7 +792,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
       active = false
       if (paxChartInstance.current) paxChartInstance.current.destroy()
     }
-  }, [paxVals])
+  }, [paxVals, selectedDate])
 
   if (loading) return <Loader text="Loading..." />
   if (error) return <div className={styles.errorWrap}><span className={styles.errorIcon}>⚠</span><p>{error}</p></div>

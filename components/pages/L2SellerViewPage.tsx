@@ -301,7 +301,11 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
     const ltaLeadGoal = dailyLta.lead_goal || 0
     const ltaWd = dailyLta.wd || 0
     
-    const planned = ltaWd > 0 ? Math.floor(ltaLeadGoal / ltaWd) : 0
+    const targetDay = date || todayStr()
+    const isAfterJuly5 = new Date(targetDay) > new Date('2026-07-05')
+    const overrideLta = dailyLta.planned_lta_override
+    const planned = isAfterJuly5 ? (overrideLta || 0) : (ltaWd > 0 ? Math.floor(ltaLeadGoal / ltaWd) : 0)
+
     const dynLta = dailyLta.real_dynamic_lta || 0
     const hygLta = dailyLta.hygiene_lta || 0
     const rev1Lta = dailyLta.goal_completion_logic_lta || 0

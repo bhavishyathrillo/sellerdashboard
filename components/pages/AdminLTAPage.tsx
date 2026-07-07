@@ -1324,7 +1324,7 @@ function FirstLeadSection({ hierarchy }: { hierarchy: any[] }) {
 }
 
 /* ─── LTA Section — Premium Card Design ─── */
-function LTASection({ hierarchy, onFunnelClick }: { hierarchy: any[]; onFunnelClick: (sellers: any[], title: string) => void }) {
+function LTASection({ hierarchy, kalpit, onFunnelClick }: { hierarchy: any[]; kalpit: any[]; onFunnelClick: (sellers: any[], title: string) => void }) {
   const [expandedCat, setExpandedCat] = useState<string | null>(null)
   const [expandedTl, setExpandedTl] = useState<string | null>(null)
 
@@ -1428,11 +1428,11 @@ function LTASection({ hierarchy, onFunnelClick }: { hierarchy: any[]; onFunnelCl
                   const tlRev2Lost = tlRev1Lta - tlActual
 
                   const tlSteps = [
-                    { label: 'Base target', sublabel: 'Monthly goal ÷ working days', value: tlPlanned, color: '#3B82F6', drop: tlDynLost, dropLabel: tlDynLost > 0 ? 'Late login / inactive' : tlDynLost < 0 ? 'Bonus' : null },
-                    { label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: tlDynLta, color: '#EAB308', drop: tlHygLost, dropLabel: tlHygLost > 0 ? 'Hygiene penalty' : tlHygLost < 0 ? 'Bonus' : null },
-                    { label: 'After hygiene', sublabel: 'Based on mishandled leads', value: tlHygLta, color: '#F97316', drop: tlRev1Lost, dropLabel: tlRev1Lost > 0 ? 'Goal correction' : tlRev1Lost < 0 ? 'Bonus' : null },
-                    { label: 'After goal check', sublabel: 'Adjusted for goal completion', value: tlRev1Lta, color: '#8B5CF6', drop: tlRev2Lost, dropLabel: tlRev2Lost > 0 ? 'Final adjustment' : tlRev2Lost < 0 ? 'Bonus' : null },
-                    { label: "Team's final LTA", sublabel: 'Total team lead appetite', value: tlActual, color: '#22C55E', drop: null, dropLabel: null },
+                    { id: 'planned', label: 'Base target', sublabel: 'Monthly goal ÷ working days', value: tlPlanned, color: '#3B82F6', drop: tlDynLost, dropLabel: tlDynLost > 0 ? 'Late login / inactive' : tlDynLost < 0 ? 'Bonus' : null },
+                    { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: tlDynLta, color: '#EAB308', drop: tlHygLost, dropLabel: tlHygLost > 0 ? 'Hygiene penalty' : tlHygLost < 0 ? 'Bonus' : null },
+                    { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: tlHygLta, color: '#F97316', drop: tlRev1Lost, dropLabel: tlRev1Lost > 0 ? 'Goal correction' : tlRev1Lost < 0 ? 'Bonus' : null },
+                    { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: tlRev1Lta, color: '#8B5CF6', drop: tlRev2Lost, dropLabel: tlRev2Lost > 0 ? 'Final adjustment' : tlRev2Lost < 0 ? 'Bonus' : null },
+                    { id: 'final', label: "Team's final LTA", sublabel: 'Total team lead appetite', value: tlActual, color: '#22C55E', drop: null, dropLabel: null },
                   ]
 
                   return (
@@ -1479,13 +1479,22 @@ function LTASection({ hierarchy, onFunnelClick }: { hierarchy: any[]; onFunnelCl
                           {/* Step flow */}
                           <div style={{ fontSize: '0.55rem', color: '#5A5650', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>How this team's target was calculated</div>
                           <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', paddingBottom: '12px', marginBottom: '14px' }}>
-                            {tlSteps.map((step, idx) => (
-                              <div key={step.label} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0 }}>
-                                <div style={{ background: '#111', border: `1px solid ${step.color}40`, borderRadius: '10px', padding: '10px 14px', minWidth: '110px', flexShrink: 0 }}>
-                                  <div style={{ fontSize: '0.52rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>{step.label}</div>
-                                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
-                                  <div style={{ fontSize: '0.48rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
-                                </div>
+                            {tlSteps.map((step, idx) => {
+                              const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+                                kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+
+                              return (
+                                <div key={step.label} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0, opacity: isNotUsed ? 0.6 : 1 }}>
+                                  <div style={{ background: '#111', border: `1px solid ${isNotUsed ? '#333' : `${step.color}40`}`, borderRadius: '10px', padding: '10px 14px', minWidth: '110px', flexShrink: 0, position: 'relative' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                      <div style={{ fontSize: '0.52rem', color: isNotUsed ? '#555' : step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                                      {isNotUsed && (
+                                        <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '4px', fontWeight: 600 }}>NOT USED</span>
+                                      )}
+                                    </div>
+                                    <div style={{ fontSize: '1.3rem', fontWeight: 800, color: isNotUsed ? '#555' : '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                                    <div style={{ fontSize: '0.48rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
+                                  </div>
                                 {idx < tlSteps.length - 1 && (
                                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 6px', minWidth: '52px' }}>
                                     {step.drop !== null && step.drop !== 0 && (
@@ -1497,8 +1506,9 @@ function LTASection({ hierarchy, onFunnelClick }: { hierarchy: any[]; onFunnelCl
                                     <span style={{ color: '#3A3A3A', fontSize: '0.9rem' }}>→</span>
                                   </div>
                                 )}
-                              </div>
-                            ))}
+                                </div>
+                              )
+                            })}
                           </div>
 
                           {/* Seller cards */}
@@ -1713,7 +1723,7 @@ function aggregateLtaFunnel(sellers: any[]) {
   }
 }
 
-function FunnelModal({ title, funnel, onClose }: { title: string, funnel: ReturnType<typeof aggregateLtaFunnel>, onClose: () => void }) {
+function FunnelModal({ title, funnel, kalpit, onClose }: { title: string, funnel: ReturnType<typeof aggregateLtaFunnel>, kalpit: any[], onClose: () => void }) {
   const stages = [
     { 
       id: 'planned', label: 'Base target', sublabel: 'Planned LTA', value: funnel.planned, color: '#3B82F6', 
@@ -1745,21 +1755,26 @@ function FunnelModal({ title, funnel, onClose }: { title: string, funnel: Return
           <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#F0EDE8' }}>{title} — LTA Funnel</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', paddingBottom: '4px' }}>
-          {stages.map((step, idx) => (
-            <div key={idx} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0 }}>
-              <div style={{
-                background: '#0D0D0D', border: `1px solid ${step.color}40`,
-                borderRadius: '10px', padding: '10px 14px', minWidth: '140px', flexShrink: 0,
-                position: 'relative'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <div style={{ fontSize: '0.58rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
-                <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
-              </div>
+          {stages.map((step, idx) => {
+            const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+              kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
 
-              {idx < stages.length - 1 && (
+            return (
+              <div key={idx} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0, opacity: isNotUsed ? 0.6 : 1 }}>
+                <div style={{
+                  background: '#0D0D0D', border: `1px solid ${isNotUsed ? '#333' : `${step.color}40`}`,
+                  borderRadius: '10px', padding: '10px 14px', minWidth: '140px', flexShrink: 0,
+                  position: 'relative'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.58rem', color: isNotUsed ? '#555' : step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                    {isNotUsed && <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '4px', fontWeight: 600 }}>NOT USED</span>}
+                  </div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: isNotUsed ? '#555' : '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                  <div style={{ fontSize: '0.55rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
+                </div>
+
+                {idx < stages.length - 1 && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 8px', minWidth: '64px' }}>
                   {step.drop !== null && step.drop !== 0 && (
                     <div style={{
@@ -1779,7 +1794,7 @@ function FunnelModal({ title, funnel, onClose }: { title: string, funnel: Return
                 </div>
               )}
             </div>
-          ))}
+          )})}
         </div>
       </div>
     </div>
@@ -2861,7 +2876,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
 
         <div className="la-accordion">
 <AccordionSection title="LTA — Lead Time Availability" badges={[{ text: `Planned: ${orgTotalLtaPlanned}`, color: 'blue' }, { text: `Actual: ${orgTotalLtaActual}`, color: 'blue' }]}>
-            <LTASection hierarchy={hierarchy} onFunnelClick={(sellers, title) => {
+            <LTASection hierarchy={hierarchy} kalpit={data?.kalpit || []} onFunnelClick={(sellers, title) => {
               setFunnelTitle(title)
               setFunnelData(aggregateLtaFunnel(sellers))
             }} />
@@ -2910,7 +2925,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
         )}
 
         {funnelData && (
-          <FunnelModal title={funnelTitle || ''} funnel={funnelData} onClose={() => { setFunnelData(null); setFunnelTitle(null) }} />
+          <FunnelModal title={funnelTitle || ''} funnel={funnelData} kalpit={data?.kalpit || []} onClose={() => { setFunnelData(null); setFunnelTitle(null) }} />
         )}
 
         {showMheModal && (

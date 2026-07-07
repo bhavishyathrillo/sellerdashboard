@@ -309,7 +309,12 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
       const dailyLta = m.daily_lta || {}
       const ltaLeadGoal = dailyLta.lead_goal || 0
       const ltaWd = dailyLta.wd || 0
-      const planned = ltaWd > 0 ? Math.floor(ltaLeadGoal / ltaWd) : 0
+      
+      const targetDay = date || todayStr()
+      const isAfterJuly5 = new Date(targetDay) > new Date('2026-07-05')
+      const overrideLta = dailyLta.planned_lta_override
+      const planned = isAfterJuly5 ? (overrideLta || 0) : (ltaWd > 0 ? Math.floor(ltaLeadGoal / ltaWd) : 0)
+
       const dynLta = dailyLta.real_dynamic_lta || 0
       const hygLta = dailyLta.hygiene_lta || 0
       const rev1Lta = dailyLta.goal_completion_logic_lta || 0
@@ -1136,36 +1141,47 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                   How this team's target was calculated
                 </div>
                 <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', paddingBottom: '14px', marginBottom: '16px' }}>
-                  {ltaSteps.map((step, idx) => (
-                    <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0 }}>
-                      <div style={{
-                        background: '#0D0D0D', border: `1px solid ${step.color}40`,
-                        borderRadius: '10px', padding: '10px 14px', minWidth: '112px', flexShrink: 0
-                      }}>
-                        <div style={{ fontSize: '0.55rem', color: step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>{step.label}</div>
-                        <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
-                        <div style={{ fontSize: '0.52rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
-                      </div>
-                      {idx < ltaSteps.length - 1 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 6px', minWidth: '56px' }}>
-                          {step.drop !== null && step.drop !== 0 && (
-                            <div style={{
-                              fontSize: '0.55rem', fontWeight: 700,
-                              color: step.drop > 0 ? '#EF4444' : '#22C55E',
-                              background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
-                              padding: '2px 5px', borderRadius: '5px', marginBottom: '3px', whiteSpace: 'nowrap',
-                            }}>
-                              {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
-                            </div>
-                          )}
-                          <div style={{ fontSize: '0.5rem', color: '#4A4642', textAlign: 'center', lineHeight: 1.2, marginBottom: '3px' }}>
-                            {step.dropLabel}
+                  {ltaSteps.map((step, idx) => {
+                    const isNotUsed = step.id !== 'planned' && step.id !== 'final' &&
+                      (teamData as any)?.kalpit?.find((k: any) => k.name === (step.id === 'goalComplete' ? 'goal' : step.id))?.value === 0;
+
+                    return (
+                      <div key={step.id} style={{ display: 'flex', alignItems: 'stretch', minWidth: 0, opacity: isNotUsed ? 0.6 : 1 }}>
+                        <div style={{
+                          background: '#0D0D0D', border: `1px solid ${isNotUsed ? '#333' : `${step.color}40`}`,
+                          borderRadius: '10px', padding: '10px 14px', minWidth: '112px', flexShrink: 0,
+                          position: 'relative'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <div style={{ fontSize: '0.55rem', color: isNotUsed ? '#555' : step.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.label}</div>
+                            {isNotUsed && (
+                              <span style={{ fontSize: '0.45rem', color: '#EF4444', background: 'rgba(239,68,68,0.1)', padding: '1px 4px', borderRadius: '4px', fontWeight: 600 }}>NOT USED</span>
+                            )}
                           </div>
-                          <span style={{ color: '#3A3A3A', fontSize: '0.9rem' }}>→</span>
+                          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: isNotUsed ? '#555' : '#F0EDE8', lineHeight: 1 }}>{step.value}</div>
+                          <div style={{ fontSize: '0.52rem', color: '#5A5650', marginTop: '3px', lineHeight: 1.3 }}>{step.sublabel}</div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        {idx < ltaSteps.length - 1 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 6px', minWidth: '56px' }}>
+                            {step.drop !== null && step.drop !== 0 && (
+                              <div style={{
+                                fontSize: '0.55rem', fontWeight: 700,
+                                color: step.drop > 0 ? '#EF4444' : '#22C55E',
+                                background: step.drop > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                                padding: '2px 5px', borderRadius: '5px', marginBottom: '3px', whiteSpace: 'nowrap',
+                              }}>
+                                {step.drop > 0 ? `−${step.drop}` : `+${Math.abs(step.drop)}`}
+                              </div>
+                            )}
+                            <div style={{ fontSize: '0.5rem', color: '#4A4642', textAlign: 'center', lineHeight: 1.2, marginBottom: '3px' }}>
+                              {step.dropLabel}
+                            </div>
+                            <span style={{ color: '#3A3A3A', fontSize: '0.9rem' }}>→</span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
 
                 {/* Seller mini-cards */}

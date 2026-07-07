@@ -17,15 +17,16 @@ export async function GET(req: Request) {
     let allData: any[] = []
     let from = 0
     const step = 1000
+    let lastError: any = null
     while (true) {
       const { data, error } = await builder.range(from, from + step - 1)
-      if (error) { console.error(error); break }
+      if (error) { console.error(error); lastError = error; break }
       if (!data || data.length === 0) break
       allData = allData.concat(data)
       if (data.length < step) break
       from += step
     }
-    return { data: allData, error: null }
+    return { data: allData, error: lastError }
   }
 
   try {
@@ -80,6 +81,9 @@ export async function GET(req: Request) {
       hourlyRes,
       monthlyAllotmentRes,
       ctiRes,
+      plannedLtaRes,
+      timelineRes,
+      kalpitRes,
     ] = await Promise.all([
       // Attendance (login, breaks)
       fetchAll(supabase.schema('seller_day_to_day')
@@ -153,6 +157,21 @@ export async function GET(req: Request) {
         .from('seller_cti_availability')
         .select('seller_email, logged_in_at, ready_timestamps')
         .eq('work_date', queryDate)),
+
+      // Planned LTA Override
+      fetchAll(supabase
+        .from('planned_lta')
+        .select('seller_email, lta')
+        .eq('log_date', queryDate)),
+
+      // Hourly Leads for Timeline
+      fetchAll(supabase
+        .from('hourly_leads_assigned')
+        .select('*')
+        .eq('assigned_date', queryDate)),
+
+      // Kalpit for toggles
+      supabase.from('kalpit').select('*')
     ])
 
     // ── 3. Build lookup maps ────────────────────────────────────────────
@@ -179,6 +198,11 @@ export async function GET(req: Request) {
     const goalMap = new Map<string, any>()
     ;(goalRes.data || []).forEach((g: any) => {
       goalMap.set(cleanEmail(g.seller_email), g)
+    })
+
+    const plannedLtaMap = new Map<string, any>()
+    ;(plannedLtaRes.data || []).forEach((p: any) => {
+      plannedLtaMap.set(cleanEmail(p.seller_email), p)
     })
 
     const srsJulyMap = new Map<string, any>()
@@ -274,7 +298,13 @@ export async function GET(req: Request) {
       // LTA computations
       const leadGoal = lta?.lead_goal || 0
       const wd = lta?.wd || 0
-      const planned = wd > 0 ? Math.floor(leadGoal / wd) : 0
+      let planned = wd > 0 ? Math.floor(leadGoal / wd) : 0
+      
+      const isAfterJuly5 = new Date(queryDate) > new Date('2026-07-05')
+      if (isAfterJuly5) {
+        const overrideLta = plannedLtaMap.get(email)?.lta
+        planned = overrideLta || 0
+      }
       const finalLta = Math.floor(lta?.final_lta || 0)
       const mhePct = (lta?.mishandled_pct || 0) * 100
 
@@ -412,6 +442,7 @@ export async function GET(req: Request) {
     const hierarchy = Array.from(catMap.entries()).map(([catName, tlMap]) => {
       const tls = Array.from(tlMap.entries()).map(([tlName, sellers]) => ({
         tl_name: tlName,
+        totalSellers: filteredSellers.length,
         seller_count: sellers.length,
         sellers
       }))
@@ -467,9 +498,11 @@ export async function GET(req: Request) {
         orgLtaPlanned,
         orgLtaActual,
         categoriesAtRisk: catsAtRisk.size,
+        totalSellers: filteredSellers.length,
       },
       hierarchy,
       dotDistribution,
+      kalpit: kalpitRes?.data || []
     })
 
   } catch (err: any) {
