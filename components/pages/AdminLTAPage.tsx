@@ -998,6 +998,7 @@ function AppetiteSection({ hierarchy }: { hierarchy: any[] }) {
             <th>Name</th>
             <th>Leads Allotted</th>
             <th>Appetite (LTA)</th>
+            <th>Overallocation</th>
             <th>Fulfillment %</th>
             <th>Avg C→A Time</th>
           </tr>
@@ -1007,6 +1008,7 @@ function AppetiteSection({ hierarchy }: { hierarchy: any[] }) {
             const allSellers = cat.tls.flatMap((t: any) => t.sellers).filter((s: any) => !s.isAbsent)
             const allotted = allSellers.reduce((s: number, e: any) => s + e.totalLeads, 0)
             const appetite = allSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+            const overallocation = Math.max(0, allotted - appetite)
             const pct = appetite > 0 ? Math.round((allotted / appetite) * 100) : 0
             
             const caSellers = allSellers.filter((s: any) => s.totalLeads > 0 && s.medianCA != null)
@@ -1022,6 +1024,7 @@ function AppetiteSection({ hierarchy }: { hierarchy: any[] }) {
                   <td>{catKey}</td>
                   <td>{allotted}</td>
                   <td>{appetite}</td>
+                  <td style={{ color: overallocation > 0 ? '#EF4444' : '#8A8278' }}>{overallocation}</td>
                   <td style={{ color: pct >= 90 ? '#22C55E' : pct >= 70 ? '#F59E0B' : '#EF4444' }}>{pct}%</td>
                   <td>{avgCa != null ? `${avgCa}m` : '—'}</td>
                 </tr>
@@ -1029,6 +1032,7 @@ function AppetiteSection({ hierarchy }: { hierarchy: any[] }) {
                   const tlSellers = tl.sellers.filter((s: any) => !s.isAbsent)
                   const tlAllotted = tlSellers.reduce((s: number, e: any) => s + e.totalLeads, 0)
                   const tlAppetite = tlSellers.reduce((s: number, e: any) => s + (e.ltaActual || 0), 0)
+                  const tlOverallocation = Math.max(0, tlAllotted - tlAppetite)
                   const tlPct = tlAppetite > 0 ? Math.round((tlAllotted / tlAppetite) * 100) : 0
                   
                   const tlCaSellers = tlSellers.filter((s: any) => s.totalLeads > 0 && s.medianCA != null)
@@ -1047,16 +1051,19 @@ function AppetiteSection({ hierarchy }: { hierarchy: any[] }) {
                         </td>
                         <td>{tlAllotted}</td>
                         <td>{tlAppetite}</td>
+                        <td style={{ color: tlOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{tlOverallocation}</td>
                         <td style={{ color: tlPct >= 90 ? '#22C55E' : tlPct >= 70 ? '#F59E0B' : '#EF4444' }}>{tlPct}%</td>
                         <td>{tlAvgCa != null ? `${tlAvgCa}m` : '—'}</td>
                       </tr>
                       {expandedTl === tlKey && tl.sellers.filter((s: any) => !s.isAbsent).map((s: any) => {
                         const sPct = s.ltaActual > 0 ? Math.round((s.totalLeads / s.ltaActual) * 100) : 0
+                        const sOverallocation = Math.max(0, s.totalLeads - (s.ltaActual || 0))
                         return (
                           <tr key={s.seller_email} className="la-seller-row">
                             <td style={{ paddingLeft: '48px' }}>{s.seller_name}</td>
                             <td>{s.totalLeads}</td>
                             <td>{s.ltaActual || 0}</td>
+                            <td style={{ color: sOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{sOverallocation}</td>
                             <td style={{ color: sPct >= 90 ? '#22C55E' : sPct >= 70 ? '#F59E0B' : '#EF4444' }}>{sPct}%</td>
                             <td>{s.medianCA != null ? `${s.medianCA}m` : '—'}</td>
                           </tr>
@@ -2341,7 +2348,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                     <th>Team</th>
                     {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => <th key={mo.key}>{mo.label}</th>)}<th>6+ Months</th></>)
                       : activeCard === 'allotment' ? (<><th>Auto</th><th>Manual</th><th>RTG</th><th>Non-RTG</th></>)
-                      : activeCard === 'ca' ? (<><th>Leads Allotted</th><th>Appetite</th><th>Fulfillment %</th><th>Avg C→A</th></>)
+                      : activeCard === 'ca' ? (<><th>Leads Allotted</th><th>Appetite</th><th>Overallocation</th><th>Fulfillment %</th><th>Avg C→A</th></>)
                       : (<><th>1-pax</th><th>2-pax</th><th>3-pax</th><th>4-pax</th><th>4+ pax</th></>)}
                   </tr>
                 </thead>
@@ -2367,7 +2374,8 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                 const cSumCta = cCaRows.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0)
                                 const cSumLeads = cCaRows.reduce((s: number, r: any) => s + r.total_leads_allotted, 0)
                                 const cAvgCa = cSumLeads > 0 ? Math.round(cSumCta / cSumLeads) : null
-                                return (<><td>{cAllotted}</td><td>{cAppetite}</td><td style={{ color: cFulf >= 90 ? '#22C55E' : cFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{cFulf}%</td><td>{cAvgCa != null ? `${cAvgCa}m` : '—'}</td></>)
+                                const cOverallocation = Math.max(0, cAllotted - cAppetite)
+                                return (<><td>{cAllotted}</td><td>{cAppetite}</td><td style={{ color: cOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{cOverallocation}</td><td style={{ color: cFulf >= 90 ? '#22C55E' : cFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{cFulf}%</td><td>{cAvgCa != null ? `${cAvgCa}m` : '—'}</td></>)
                               })()
                             : (<><td>{sumField(catSellers, 'pax_1')}</td><td>{sumField(catSellers, 'pax_2')}</td><td>{sumField(catSellers, 'pax_3')}</td><td>{sumField(catSellers, 'pax_4')}</td><td>{sumField(catSellers, 'pax_4_plus')}</td></>)}
                         </tr>
@@ -2390,7 +2398,8 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                       const tSumCta = tCaRows.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0)
                                       const tSumLeads = tCaRows.reduce((s: number, r: any) => s + r.total_leads_allotted, 0)
                                       const tAvgCa = tSumLeads > 0 ? Math.round(tSumCta / tSumLeads) : null
-                                      return (<><td>{tAllotted}</td><td>{tAppetite}</td><td style={{ color: tFulf >= 90 ? '#22C55E' : tFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{tFulf}%</td><td>{tAvgCa != null ? `${tAvgCa}m` : '—'}</td></>)
+                                      const tOverallocation = Math.max(0, tAllotted - tAppetite)
+                                      return (<><td>{tAllotted}</td><td>{tAppetite}</td><td style={{ color: tOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{tOverallocation}</td><td style={{ color: tFulf >= 90 ? '#22C55E' : tFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{tFulf}%</td><td>{tAvgCa != null ? `${tAvgCa}m` : '—'}</td></>)
                                     })()
                                   : (<><td>{sumField(tl.sellers, 'pax_1')}</td><td>{sumField(tl.sellers, 'pax_2')}</td><td>{sumField(tl.sellers, 'pax_3')}</td><td>{sumField(tl.sellers, 'pax_4')}</td><td>{sumField(tl.sellers, 'pax_4_plus')}</td></>)}
                               </tr>
@@ -2409,7 +2418,8 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                           const sSumCta = sCaRows.reduce((s2: number, r: any) => s2 + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0)
                                           const sSumLeads = sCaRows.reduce((s2: number, r: any) => s2 + r.total_leads_allotted, 0)
                                           const sAvgCa = sSumLeads > 0 ? Math.round(sSumCta / sSumLeads) : null
-                                          return (<><td>{sAllotted}</td><td>{sAppetite}</td><td>{`${sFulf}%`}</td><td>{(sAvgCa != null ? `${sAvgCa}m` : '—')}</td></>)
+                                          const sOverallocation = Math.max(0, sAllotted - sAppetite)
+                                          return (<><td>{sAllotted}</td><td>{sAppetite}</td><td style={{ color: sOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{sOverallocation}</td><td style={{ color: sFulf >= 90 ? '#22C55E' : sFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{`${sFulf}%`}</td><td>{(sAvgCa != null ? `${sAvgCa}m` : '—')}</td></>)
                                         })()
                                       : (<><td>{sumField([s], 'pax_1')}</td><td>{sumField([s], 'pax_2')}</td><td>{sumField([s], 'pax_3')}</td><td>{sumField([s], 'pax_4')}</td><td>{sumField([s], 'pax_4_plus')}</td></>)}
                                   </tr>
@@ -2475,6 +2485,48 @@ function NoLeadsModal({ sellers, onClose }: { sellers: any[], onClose: () => voi
   )
 }
 
+function OverallocationModal({ sellers, onClose }: { sellers: any[], onClose: () => void }) {
+  return (
+    <div className="la-modal-overlay" onClick={onClose}>
+      <div className="la-modal-card" onClick={e => e.stopPropagation()} style={{ width: '850px' }}>
+        <button className="la-modal-close" onClick={onClose}>✕</button>
+        <div className="la-modal-header">
+          <span className="la-modal-title">Overallocated Sellers</span>
+        </div>
+        <div style={{ marginTop: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr 2fr', gap: '16px', padding: '0 16px', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 600, color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span>SELLER NAME</span>
+            <span>FULFILLMENT %</span>
+            <span>ALLOTTED / LTA</span>
+            <span>TEAM LEAD</span>
+            <span>CATEGORY MANAGER</span>
+          </div>
+          <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+            {sellers.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#8A8278', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                No overallocated sellers!
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {sellers.map((s, idx) => (
+                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr 2fr', gap: '16px', padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', fontSize: '0.85rem' }}>
+                    <span style={{ color: '#F0EDE8', fontWeight: 500 }}>{s.seller_name}</span>
+                    <span style={{ color: '#EF4444', fontWeight: 500 }}>{s.pct}%</span>
+                    <span style={{ color: '#8A8278' }}>{s.totalLeads} / {s.ltaActual || 0}</span>
+                    <span style={{ color: '#F59E0B' }}>{s.tlName}</span>
+                    <span style={{ color: '#3B82F6' }}>{s.catName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
 export default function AdminLTAPage({ session }: AdminLTAPageProps) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -2490,6 +2542,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
   const [showMheModal, setShowMheModal] = useState(false)
   const [showGoalShbModal, setShowGoalShbModal] = useState(false)
   const [showNoLeadsModal, setShowNoLeadsModal] = useState(false)
+  const [showOverallocationModal, setShowOverallocationModal] = useState(false)
 
   const fetchData = (date: string, cat: string) => {
     setLoading(true)
@@ -2551,6 +2604,20 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
           tlName: tl.tl_name,
           catName: cat.category_name,
           status: statusStr
+        };
+      })
+    )
+  )
+
+  const overallocatedSellers = hierarchy.flatMap((cat: any) =>
+    (cat.tls || []).flatMap((tl: any) =>
+      (tl.sellers || []).filter((s: any) => s.totalLeads > (s.ltaActual || 0)).map((s: any) => {
+        return {
+          ...s,
+          tlName: tl.tl_name,
+          catName: cat.category_name,
+          overallocation: s.totalLeads - (s.ltaActual || 0),
+          pct: s.ltaActual > 0 ? Math.round((s.totalLeads / s.ltaActual) * 100) : 0
         };
       })
     )
@@ -2686,25 +2753,37 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
             </div>
           </div>
 
-          {/* SELLERS NO LEADS */}
+          {/* SELLERS NO LEADS & OVERALLOCATION */}
           <div
-            className="la-kpi-card clickable"
-            style={{ background: 'var(--card, #121212)', border: '1px solid var(--border, #1E1E1E)', borderRadius: '12px', padding: '16px 20px', display: 'flex', flexDirection: 'column', position: 'relative', flex: 1, cursor: noLeadsSellers.length > 0 ? 'pointer' : 'default' }}
-            onClick={() => {
-              if (noLeadsSellers.length > 0) setShowNoLeadsModal(true);
-            }}
-            onMouseEnter={e => { if(noLeadsSellers.length > 0) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}
+            className="la-kpi-card"
+            style={{ background: 'var(--card, #121212)', border: '1px solid var(--border, #1E1E1E)', borderRadius: '12px', display: 'flex', flexDirection: 'column', position: 'relative', flex: 1, overflow: 'hidden', padding: 0 }}
           >
-            
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444' }} />
-              <div style={{ fontSize: '0.65rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Sellers No Leads</div>
+            {/* UPPER HALF: No Leads */}
+            <div 
+              style={{ flex: 1, padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: noLeadsSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+              onClick={() => { if (noLeadsSellers.length > 0) setShowNoLeadsModal(true); }}
+              onMouseEnter={e => { if(noLeadsSellers.length > 0) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444', flexShrink: 0 }} />
+                <div style={{ fontSize: '0.6rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', lineHeight: 1.2 }}>NO LEADS</div>
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{noLeadsSellers.length}</div>
             </div>
-            
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{noLeadsSellers.length}</span>
+
+            {/* LOWER HALF: Overallocation */}
+            <div 
+              style={{ flex: 1, padding: '12px 16px', cursor: overallocatedSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+              onClick={() => { if (overallocatedSellers.length > 0) setShowOverallocationModal(true); }}
+              onMouseEnter={e => { if(overallocatedSellers.length > 0) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B', boxShadow: '0 0 10px #F59E0B', flexShrink: 0 }} />
+                <div style={{ fontSize: '0.6rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', lineHeight: 1.2 }}>OVERALLOCATED</div>
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{overallocatedSellers.length}</div>
             </div>
           </div>
 
@@ -2839,6 +2918,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
         )}
 
         {showNoLeadsModal && <NoLeadsModal sellers={noLeadsSellers} onClose={() => setShowNoLeadsModal(false)} />}
+        {showOverallocationModal && <OverallocationModal sellers={overallocatedSellers} onClose={() => setShowOverallocationModal(false)} />}
         {showGoalShbModal && (
           <GoalShbTrendModal hierarchy={hierarchy} dateFrom={dateFrom} onClose={() => setShowGoalShbModal(false)} />
         )}

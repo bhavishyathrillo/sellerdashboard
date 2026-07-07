@@ -26,7 +26,7 @@ export async function GET(req: Request) {
       .gte('date', dateFrom)
       .lte('date', dateTo)
       .order('date', { ascending: true })
-      .limit(50000)
+      
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data || [])

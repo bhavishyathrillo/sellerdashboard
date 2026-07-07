@@ -9,7 +9,7 @@ const supabase = createClient(
 export async function GET() {
   try {
     const { data: srsData } = await supabase.from('srs_raw').select('*')
-    const { data: submissions } = await supabase.from('pipeline_submissions').select('*').order('date', { ascending: false }).limit(5000)
+    const { data: submissions } = await supabase.from('pipeline_submissions').select('*').order('date', { ascending: false })
 
     if (!srsData) return NextResponse.json({ l1_data: [] })
 

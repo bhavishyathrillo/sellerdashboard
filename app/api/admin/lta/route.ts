@@ -13,6 +13,21 @@ function cleanEmail(e: string): string {
 }
 
 export async function GET(req: Request) {
+  const fetchAll = async (builder: any) => {
+    let allData: any[] = []
+    let from = 0
+    const step = 1000
+    while (true) {
+      const { data, error } = await builder.range(from, from + step - 1)
+      if (error) { console.error(error); break }
+      if (!data || data.length === 0) break
+      allData = allData.concat(data)
+      if (data.length < step) break
+      from += step
+    }
+    return { data: allData, error: null }
+  }
+
   try {
     const { searchParams } = new URL(req.url)
     const dateParam = searchParams.get('date')
@@ -22,10 +37,9 @@ export async function GET(req: Request) {
     const queryDate = dateParam || new Date(Date.now() + 19800000).toISOString().split('T')[0]
 
     // ── 1. Fetch org hierarchy ──────────────────────────────────────────
-    const { data: allSellers, error: sellersError } = await supabase
+    const { data: allSellers, error: sellersError } = await fetchAll(supabase
       .from('srs_raw')
-      .select('seller_email, seller_name, l1_email, l1_name, l2_email, l2_name')
-      .limit(5000)
+      .select('seller_email, seller_name, l1_email, l1_name, l2_email, l2_name'))
 
     if (sellersError) {
       return NextResponse.json({ error: sellersError.message }, { status: 500 })
@@ -68,82 +82,77 @@ export async function GET(req: Request) {
       ctiRes,
     ] = await Promise.all([
       // Attendance (login, breaks)
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('seller_attendance')
         .select('email, first_login, last_logout, break_timestamps')
-        .eq('work_date', queryDate),
+        .eq('work_date', queryDate)),
 
       // Orbit availability
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('seller_availability')
         .select('seller_email, available_timestamps_ist')
-        .eq('work_date', queryDate),
+        .eq('work_date', queryDate)),
 
       // Allotment summary (auto/manual, RTG, pax, first lead time)
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('daily_allotment_summary')
         .select('seller_email, total_leads_allotted, auto_allotted, manual_allotted, rtg_leads, non_rtg_leads, pax_1, pax_2, pax_3, pax_4, pax_4_plus, first_lead_allotted_at_ist, median_creation_to_allotment_mins')
-        .eq('allotment_date', queryDate),
+        .eq('allotment_date', queryDate)),
 
       // LTA log (LTA funnel + MHE)
-      supabase
+      fetchAll(supabase
         .from('daily_lta_log')
         .select('seller_email, lead_goal, wd, final_lta, real_dynamic_lta, hygiene_lta, goal_completion_logic_lta, mishandled_pct, mishandled_enquiries, open_enquiries')
-        .eq('log_date', queryDate),
+        .eq('log_date', queryDate)),
 
       // DOT distribution
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('seller_dot_distribution')
-        .select('seller_email, dot_month, total_leads_allotted'),
+        .select('seller_email, dot_month, total_leads_allotted')),
 
       // Goal vs SHB
-      supabase
+      fetchAll(supabase
         .from('goal_vs_shb')
         .select('seller_email, goal_pct, achievement_pct')
-        .eq('date', queryDate),
+        .eq('date', queryDate)),
 
       // SRS July for monthly goals
-      supabase
+      fetchAll(supabase
         .from('srs_july')
-        .select('seller_email, bottomline_goal, bl_actual_splits, bottomline_should_have_been, seller_flag')
-        .limit(5000),
+        .select('seller_email, bottomline_goal, bl_actual_splits, bottomline_should_have_been, seller_flag')),
 
       // Monthly LTA log for MHE trend and Appetite
-      supabase
+      fetchAll(supabase
         .from('daily_lta_log')
         .select('seller_email, log_date, mishandled_pct, mishandled_enquiries, final_lta')
         .gte('log_date', monthStart)
-        .lte('log_date', monthEnd)
-        .limit(25000),
+        .lte('log_date', monthEnd)),
 
       // Monthly Goal vs SHB for Goal trend
-      supabase
+      fetchAll(supabase
         .from('goal_vs_shb')
         .select('seller_email, date, goal_completion, shb_percent')
         .gte('date', monthStart)
-        .lte('date', monthEnd)
-        .limit(25000),
+        .lte('date', monthEnd)),
 
       // Hourly Leads for Timeline
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('seller_hourly_leads')
         .select('seller_email, time_bucket, leads_allotted_in_bucket')
-        .eq('work_date', queryDate)
-        .limit(25000),
+        .eq('work_date', queryDate)),
 
       // Monthly Allotment for Breakdown KPIs
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('daily_allotment_summary')
         .select('seller_email, allotment_date, total_leads_allotted, auto_allotted, manual_allotted, rtg_leads, non_rtg_leads, pax_1, pax_2, pax_3, pax_4, pax_4_plus, median_creation_to_allotment_mins')
         .gte('allotment_date', monthStart)
-        .lte('allotment_date', monthEnd)
-        .limit(25000),
+        .lte('allotment_date', monthEnd)),
 
       // CTI / Ozontell readiness
-      supabase.schema('seller_day_to_day')
+      fetchAll(supabase.schema('seller_day_to_day')
         .from('seller_cti_availability')
         .select('seller_email, logged_in_at, ready_timestamps')
-        .eq('work_date', queryDate),
+        .eq('work_date', queryDate)),
     ])
 
     // ── 3. Build lookup maps ────────────────────────────────────────────

@@ -34,7 +34,7 @@ export async function GET() {
     const { data: srsData } = await supabase
       .from('srs_raw')
       .select('seller_email, seller_name, l1_email, l1_name, l2_email, l2_name')
-      .limit(5000)
+      
     if (!srsData) return NextResponse.json({ l1_data: [] })
 
     // ── 1) Paginate mishandled leads (mhl_mho = 'Mishandled') ──────────
