@@ -1,44 +1,23 @@
 const fs = require('fs');
+const file = '/Users/thrillophilia/Documents/Seller-dashboard-test/seller-dashboard-test/components/pages/AdminLTAPage.tsx';
+let content = fs.readFileSync(file, 'utf8');
 
-const files = [
-  'components/pages/L1SellerViewPage.tsx',
-  'components/pages/L2SellerViewPage.tsx'
-];
+const hookStart = `  // DOT Chart\n  useEffect(() => {`;
+const hookEnd = `  }, [JSON.stringify(paxRows)])\n`;
 
-files.forEach(path => {
-  let code = fs.readFileSync(path, 'utf8');
+const s1 = content.indexOf(hookStart);
+const e1 = content.indexOf(hookEnd) + hookEnd.length;
 
-  // We inserted the hooks right after:
-  // `const [activeSectionModal, setActiveSectionModal] = useState<string | null>(null)`
-  // We need to extract them and place them further down.
-  // The hooks block starts at `  // Canvas Refs for Monthly Breakdown` and ends at `  }, [teamPaxRows]);` or `  }, [cmPaxRows]);`
-  
-  const isL1 = path.includes('L1');
-  const paxVar = isL1 ? 'cmPaxRows' : 'teamPaxRows';
+const hooksCode = content.substring(s1, e1);
 
-  const startStr = '  // Canvas Refs for Monthly Breakdown';
-  const endStr = `  }, [${paxVar}]);\n`;
-  
-  const startIdx = code.indexOf(startStr);
-  const endIdx = code.indexOf(endStr, startIdx);
-  
-  if (startIdx !== -1 && endIdx !== -1) {
-    const hooksBlock = code.substring(startIdx, endIdx + endStr.length);
-    // Remove it from current location
-    code = code.substring(0, startIdx) + code.substring(endIdx + endStr.length);
-    
-    // Insert it before `return (`
-    // However, there are multiple `return (`. We want the one for the main component.
-    // The main component return is right before `<div className={styles.container}>`
-    const insertTarget = '  return (\n    <div className={styles.container}>';
-    if (code.includes(insertTarget)) {
-      code = code.replace(insertTarget, hooksBlock + '\n' + insertTarget);
-    } else {
-      // Try just `return (` if it's the first one after the top level
-      console.log('Target not found for', path);
-    }
-  }
+// Remove from the top
+content = content.substring(0, s1) + content.substring(e1);
 
-  fs.writeFileSync(path, code);
-  console.log('Moved hooks in', path);
-});
+// Insert before the return
+const targetInsert = `  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']`;
+const insertIdx = content.indexOf(targetInsert);
+
+content = content.substring(0, insertIdx) + hooksCode + "\n" + content.substring(insertIdx);
+
+fs.writeFileSync(file, content);
+console.log("Hooks moved successfully.");
