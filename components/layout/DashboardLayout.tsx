@@ -40,7 +40,7 @@ export default function DashboardLayout({
 
   const allNavItems = [
     ...filteredNavItems,
-    ...(isAdmin ? [{ id: 'selectPersona', label: 'Select Persona', icon: '👤' }] : []),
+    ...(isAdmin || session.role === 'L1' ? [{ id: 'selectPersona', label: 'Select Persona', icon: '👤' }] : []),
   ]
 
   const getRoleLabel = (role: string) => {

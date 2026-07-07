@@ -2,57 +2,49 @@
 
 import { useState, useEffect } from 'react'
 import { UserSession } from '@/lib/session'
-import HomePage from '@/components/pages/HomePage'
-import L1HomePage from '@/components/pages/L1HomePage'
-import PipelinePage from '@/components/pages/PipelinePage'
-import PriorityPage from '@/components/pages/PriorityPage'
-import MHLPage from '@/components/pages/MHLPage'
-import L1SellerViewPage from '@/components/pages/L1SellerViewPage'
-import L2SellerViewPage from '@/components/pages/L2SellerViewPage'
-import SellerViewPage from '@/components/pages/SellerViewPage'
-import LeaderboardPage from '@/components/pages/LeaderboardPage'
-import RoadmapPage from '@/components/pages/RoadmapPage'
-import HygienePage from '@/components/pages/HygienePage'
-import RewardsPage from '@/components/pages/RewardsPage'
-import PerformancePage from '@/components/pages/PerformancePage'
+import HomePage from './HomePage'
+import L1HomePage from './L1HomePage'
+import L1SellerViewPage from './L1SellerViewPage'
+import L2SellerViewPage from './L2SellerViewPage'
+import SellerViewPage from './SellerViewPage'
+import PipelinePage from './PipelinePage'
+import PriorityPage from './PriorityPage'
+import LeaderboardPage from './LeaderboardPage'
+import PerformancePage from './PerformancePage'
+import RewardsPage from './RewardsPage'
+import MHLPage from './MHLPage'
+import RoadmapPage from './RoadmapPage'
+import HygienePage from './HygienePage'
 
-interface Props { session: UserSession }
-
-function getCosmeticRole(role: string): string {
-  switch (role) {
-    case 'L1': return 'Category Manager'
-    case 'L2': return 'L1 Manager'
-    case 'ADMIN': return 'Admin'
-    case 'SUPERADMIN': return 'Super Admin'
-    default: return role
-  }
+interface Props {
+  session: UserSession
 }
 
 const personaTabs = [
   { id: 'home', label: 'Overview' },
-  { id: 'pipeline', label: 'Pipeline' },
+  { id: 'seller-view', label: 'LTA' },
   { id: 'priority', label: 'Priority/QB' },
   { id: 'leaderboard', label: 'Leaderboard' },
-  { id: 'seller-view', label: 'LTA' },
   { id: 'performance', label: 'Performance' },
   { id: 'rewards', label: 'Rewards' },
-  { id: 'mhl', label: 'Mishandled' },
+  { id: 'mhl', label: 'MHL' },
+  { id: 'pipeline', label: 'Pipeline' },
   { id: 'roadmap', label: 'Roadmap' },
   { id: 'hygiene', label: 'Hygiene' },
 ]
 
-export default function SelectPersonaPage({ session }: Props) {
+export default function CMSelectPersonaPage({ session }: Props) {
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<any | null>(null)
   const [showModal, setShowModal] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<any>(null)
   const [activePersonaTab, setActivePersonaTab] = useState('home')
 
   // Restore popup after page refresh
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('persona_popup')
+      const saved = localStorage.getItem('cm_persona_popup')
       if (saved) {
         const parsed = JSON.parse(saved)
         setSelectedUser(parsed.user)
@@ -61,6 +53,23 @@ export default function SelectPersonaPage({ session }: Props) {
       }
     } catch { }
   }, [])
+
+  // Auto-load all members on mount
+  useEffect(() => {
+    handleSearch()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const getCosmeticRole = (role: string) => {
+    switch (role) {
+      case 'L1': return 'Category Manager'
+      case 'L2': return 'L1 Manager'
+      case 'ADMIN': return 'Admin'
+      case 'SUPERADMIN': return 'Super Admin'
+      case 'MODERATOR': return 'Moderator'
+      default: return 'Seller'
+    }
+  }
 
   const personaSession: UserSession | null = selectedUser ? {
     email: selectedUser.email,
@@ -71,10 +80,9 @@ export default function SelectPersonaPage({ session }: Props) {
   } : null
 
   const handleSearch = async () => {
-    if (!search.trim()) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/search?q=${encodeURIComponent(search)}`)
+      const res = await fetch(`/api/seller/cm-search?l1Email=${encodeURIComponent(session.email)}&q=${encodeURIComponent(search)}`)
       const data = await res.json()
       setResults(data.users || [])
     } catch { }
@@ -85,23 +93,23 @@ export default function SelectPersonaPage({ session }: Props) {
     setSelectedUser(user)
     setShowModal(true)
     setActivePersonaTab('home')
-    localStorage.setItem('persona_popup', JSON.stringify({ user, tab: 'home' }))
+    localStorage.setItem('cm_persona_popup', JSON.stringify({ user, tab: 'home' }))
   }
 
   const handleCloseModal = () => {
     setShowModal(false)
     setSelectedUser(null)
-    localStorage.removeItem('persona_popup')
+    localStorage.removeItem('cm_persona_popup')
   }
 
   const handleTabChange = (tabId: string) => {
     setActivePersonaTab(tabId)
     try {
-      const saved = localStorage.getItem('persona_popup')
+      const saved = localStorage.getItem('cm_persona_popup')
       if (saved) {
         const parsed = JSON.parse(saved)
         parsed.tab = tabId
-        localStorage.setItem('persona_popup', JSON.stringify(parsed))
+        localStorage.setItem('cm_persona_popup', JSON.stringify(parsed))
       }
     } catch { }
   }
@@ -158,7 +166,7 @@ export default function SelectPersonaPage({ session }: Props) {
             }}>
               <div>
                 <span style={{ fontWeight: 600, fontSize: '0.85rem', display: 'block' }}>{user.name}</span>
-                <span style={{ fontSize: '0.65rem', color: '#8A8278' }}>{user.email} · {getCosmeticRole(user.role)}</span>
+                <span style={{ fontSize: '0.65rem', color: '#8A8278' }}>{user.email} · {user.role === 'L2' ? 'Team Lead' : user.role === 'L1' ? 'Category Manager' : 'Seller'}</span>
               </div>
               <button onClick={() => handleViewPersona(user)} style={{
                 padding: '8px 18px',
@@ -177,7 +185,7 @@ export default function SelectPersonaPage({ session }: Props) {
         </div>
       )}
 
-      {results.length === 0 && search && !loading && (
+      {results.length === 0 && !loading && (
         <div style={{ textAlign: 'center', padding: '60px', color: '#8A8278' }}>
           <p style={{ fontSize: '0.9rem' }}>No users found</p>
         </div>
