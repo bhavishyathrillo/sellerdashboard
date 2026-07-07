@@ -503,8 +503,10 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   ];
 
   const cmAllotmentRows = [
-    { label: 'Auto Allotted', value: cmMonthlyAutoAllotted, color: '#E5E7EB' },
-    { label: 'Manual Allotted', value: cmMonthlyManualAllotted, color: '#9CA3AF' },
+    { label: 'Auto Allotted', value: cmMonthlyAutoAllotted, color: '#6366F1' },
+    { label: 'Manual Allotted', value: cmMonthlyManualAllotted, color: '#A855F7' },
+    { label: 'RTG Leads', value: cmMonthlyRtgLeads, color: '#F97316' },
+    { label: 'Non-RTG Leads', value: cmMonthlyNonRtgLeads, color: '#10B981' },
   ]
 
   const cmPaxRows = [
@@ -627,7 +629,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
             data: cmAllotmentRows.map((d: any) => d.value),
             backgroundColor: cmAllotmentRows.map((d: any) => d.color),
             borderRadius: 4,
-            barThickness: 40
+            barThickness: 30
           }]
         },
         options: {
@@ -641,7 +643,12 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
           },
           scales: {
             x: { display: false },
-            y: { display: false }
+            y: { 
+              display: true, 
+              grid: { color: '#1e1e1e' },
+              ticks: { color: '#8A8278', font: { size: 10 }, maxTicksLimit: 6 },
+              border: { display: false }
+            }
           }
         }
       };
@@ -920,7 +927,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px', marginBottom: '24px' }}>
 
         {/* ── DOT Bar Chart (Horizontal) ── */}
-        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px', cursor: 'pointer' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'dot' ? null : 'dot'); setBreakdownDrillSeller(null); setBreakdownExpandedTl(null); }}>
           <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DOT Distribution</div>
           <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Date-of-travel spread</div>
           <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={dotChartCanvasRef} /></div>
@@ -946,30 +953,40 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         </div>
 
         {/* ── Allotment Breakdown ── */}
-        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'allotment' ? null : 'allotment'); setBreakdownDrillSeller(null); setBreakdownExpandedTl(null); }}>
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px', cursor: 'pointer' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'allotment' ? null : 'allotment'); setBreakdownDrillSeller(null); setBreakdownExpandedTl(null); }}>
           <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allotment Breakdown</div>
           <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>How leads were assigned</div>
-          <div style={{ height: '160px', position: 'relative', marginBottom: '16px' }}><canvas ref={allotmentChartCanvasRef} /></div>
+          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={allotmentChartCanvasRef} /></div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, justifyContent: 'center' }}>
-            {cmAllotmentRows.map((item: any, i: number) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: item.color, flexShrink: 0 }} />
-                <span style={{ fontSize: '0.64rem', color: '#8A8278', flex: 1 }}>{item.label}</span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: item.value > 0 ? item.color : '#5A5650' }}>{item.value}</span>
-                <span style={{
-                  fontSize: '0.55rem', fontWeight: 600, color: item.color,
-                  background: `${item.color}15`, padding: '2px 8px', borderRadius: '100px',
-                }}>
-                  {cmMonthlyTotalLeads > 0 ? Math.round((item.value / cmMonthlyTotalLeads) * 100) : 0}%
-                </span>
-              </div>
-            ))}
+            {cmAllotmentRows.map((item: any, i: number) => {
+              let pct = 0;
+              if (item.label.includes('Allotted')) {
+                const totalAllotted = cmMonthlyAutoAllotted + cmMonthlyManualAllotted;
+                pct = totalAllotted > 0 ? Math.round((item.value / totalAllotted) * 100) : 0;
+              } else {
+                const totalRtg = cmMonthlyRtgLeads + cmMonthlyNonRtgLeads;
+                pct = totalRtg > 0 ? Math.round((item.value / totalRtg) * 100) : 0;
+              }
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '7px', height: '7px', borderRadius: '2px', background: item.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.64rem', color: '#8A8278', flex: 1 }}>{item.label}</span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: item.value > 0 ? item.color : '#5A5650' }}>{item.value}</span>
+                  <span style={{
+                    fontSize: '0.55rem', fontWeight: 600, color: item.color,
+                    background: `${item.color}15`, padding: '2px 8px', borderRadius: '100px',
+                  }}>
+                    {pct}%
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
 
         {/* ── PAX Distribution ── */}
-        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px', cursor: 'pointer' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'pax' ? null : 'pax'); setBreakdownDrillSeller(null); setBreakdownExpandedTl(null); }}>
           <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leads by Group Size</div>
           <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Pax mix across leads</div>
           <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={paxChartCanvasRef} /></div>
@@ -994,7 +1011,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 
 
         {/* ✨ Appetite & C->A Time (Monthly) ✨ */}
-        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px' }}>
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px', cursor: 'pointer' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'ca' ? null : 'ca'); setBreakdownDrillSeller(null); setBreakdownExpandedTl(null); }}>
           <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Appetite & C→A Time</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
