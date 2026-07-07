@@ -2705,7 +2705,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
 
         <div className="la-header">
           <h1 className="la-title">
-            Lead <span className="la-title-accent">Allocation</span> — Admin view
+            Lead <span className="la-title-accent">Allocation</span>
           </h1>
           <p className="la-subtitle">
             Operations Head · {selectedCategory} · Today, {displayDate}
