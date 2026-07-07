@@ -563,10 +563,11 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
 
   const hasDailyPresence = !!kekaTime || !!orbitTime || !!ozontellReady
 
-  const deltaOrbitFromKeka = minutesBetween(kekaTime, orbitTime)
-  const deltaOzontellFromKeka = minutesBetween(kekaTime, ozontellReady)
-  const deltaOzontellToFirst = minutesBetween(ozontellReady, firstLead)
-  const deltaKekaToFirst = minutesBetween(kekaTime, firstLead)
+  const fixWrap = (val: number | null) => (val !== null && val > 720) ? val - 1440 : val
+  const deltaOrbitFromKeka = fixWrap(minutesBetween(kekaTime, orbitTime))
+  const deltaOzontellFromKeka = fixWrap(minutesBetween(kekaTime, ozontellReady))
+  const deltaOzontellToFirst = fixWrap(minutesBetween(ozontellReady, firstLead))
+  const deltaKekaToFirst = fixWrap(minutesBetween(kekaTime, firstLead))
   const totalLoginToLogout = minutesBetween(kekaTime, lastLogout)
   const breakAmber = breaks.windows.length > 3 || breaks.totalMinutes > 45
 
@@ -821,14 +822,14 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
       <div className={styles.loginStrip}>
         {[
           { key: 'keka', cls: styles.loginTileKeka, label: 'Keka Login', value: formatTime(kekaTime), sub: ' ' },
-          { key: 'orbit', cls: styles.loginTileOrbit, label: 'Orbit Login', value: formatTime(orbitTime), sub: deltaOrbitFromKeka !== null ? `+${deltaOrbitFromKeka} min from Keka` : '—' },
-          { key: 'ozontell', cls: styles.loginTileOzontell, label: 'Ozontell Ready', value: formatTime(ozontellReady), sub: deltaOzontellFromKeka !== null ? (deltaOzontellFromKeka > 0 ? `+${deltaOzontellFromKeka} min from Keka` : `${deltaOzontellFromKeka} min from Keka`) : '—' },
-          { key: 'first', cls: styles.loginTileFirst, label: 'First Lead', value: formatTime(firstLead), sub: deltaOzontellToFirst !== null ? `+${deltaOzontellToFirst} min from Ozontell` : '—' },
-        ].map((t: { key: string; cls: string; label: string; value: string; sub: string; muted?: boolean }) => (
+          { key: 'orbit', cls: styles.loginTileOrbit, label: 'Orbit Login', value: formatTime(orbitTime), sub: deltaOrbitFromKeka !== null ? (deltaOrbitFromKeka > 0 ? `+${deltaOrbitFromKeka} min from Keka` : `${deltaOrbitFromKeka} min from Keka`) : '—', isNeg: deltaOrbitFromKeka !== null && deltaOrbitFromKeka < 0 },
+          { key: 'ozontell', cls: styles.loginTileOzontell, label: 'Ozontell Ready', value: formatTime(ozontellReady), sub: deltaOzontellFromKeka !== null ? (deltaOzontellFromKeka > 0 ? `+${deltaOzontellFromKeka} min from Keka` : `${deltaOzontellFromKeka} min from Keka`) : '—', isNeg: deltaOzontellFromKeka !== null && deltaOzontellFromKeka < 0 },
+          { key: 'first', cls: styles.loginTileFirst, label: 'First Lead', value: formatTime(firstLead), sub: deltaOzontellToFirst !== null ? (deltaOzontellToFirst > 0 ? `+${deltaOzontellToFirst} min from Ozontell` : `${deltaOzontellToFirst} min from Ozontell`) : '—', isNeg: deltaOzontellToFirst !== null && deltaOzontellToFirst < 0 },
+        ].map((t: { key: string; cls: string; label: string; value: string; sub: string; muted?: boolean; isNeg?: boolean }) => (
           <div key={t.key} className={`${styles.loginTile} ${t.cls}`} style={{ cursor: 'default' }}>
             <div className={styles.loginTileLabel}>{t.label}</div>
             <div className={styles.loginTileValue} style={t.muted ? { color: '#6B7280' } : undefined}>{t.value}</div>
-            <div className={styles.loginTileDelta}>{t.sub}</div>
+            <div className={styles.loginTileDelta} style={t.isNeg ? { color: '#EF4444' } : undefined}>{t.sub}</div>
           </div>
         ))}
       </div>

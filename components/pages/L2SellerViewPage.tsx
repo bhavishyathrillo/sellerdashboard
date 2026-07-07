@@ -879,7 +879,8 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                     }).map((m: any) => {
                       const late = isLate(m)
                       const b = parseBreaks(m.attendance?.break_timestamps)
-                      const delta = minutesBetween(m.attendance?.first_login, m.cti?.logged_in_at)
+                      const fixWrap = (val: number | null) => (val !== null && val > 720) ? val - 1440 : val
+                      const delta = fixWrap(minutesBetween(m.attendance?.first_login, m.cti?.logged_in_at))
                       return (
                         <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} style={{ ...(late ? { backgroundColor: 'rgba(239,68,68,0.05)' } : {}), cursor: 'pointer' }} onClick={() => setDrillSellerS1(m)}>
                           <td>
@@ -889,7 +890,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                           </td>
                           <td>{formatTime(m.attendance?.first_login)}</td>
                           <td>{formatTime(m.cti?.logged_in_at)}</td>
-                          <td>{delta !== null ? `${delta}m` : '—'}</td>
+                          <td style={delta !== null && delta < 0 ? { color: '#EF4444' } : undefined}>{delta !== null ? `${delta}m` : '—'}</td>
                           <td>{formatTime(m.allotment?.first_lead_allotted_at_ist)}</td>
                           <td>{b.totalMinutes > 0 ? `${b.totalMinutes}m` : '—'}</td>
                           <td>{b.totalMinutes > 0 ? `${Math.round((b.totalMinutes / (9*60))*100)}%` : '—'}</td>
@@ -1979,10 +1980,11 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         const lastLogout = drillSellerS1.attendance?.last_logout;
         const totalLoginToLogout = kekaTime && lastLogout ? minutesBetween(kekaTime, lastLogout) : null;
         const ozontellReady = drillSellerS1.cti?.logged_in_at;
-        const deltaOzontellFromKeka = minutesBetween(kekaTime, ozontellReady);
+        const fixWrap = (val: number | null) => (val !== null && val > 720) ? val - 1440 : val;
+        const deltaOzontellFromKeka = fixWrap(minutesBetween(kekaTime, ozontellReady));
         const firstLead = drillSellerS1.allotment?.first_lead_allotted_at_ist;
-        const deltaKekaToFirst = minutesBetween(kekaTime, firstLead);
-        const deltaOzontellToFirst = minutesBetween(ozontellReady, firstLead);
+        const deltaKekaToFirst = fixWrap(minutesBetween(kekaTime, firstLead));
+        const deltaOzontellToFirst = fixWrap(minutesBetween(ozontellReady, firstLead));
         
         return (
           <div className={sellerStyles.modalOverlay} onClick={() => setActiveTileS1(null)}>
