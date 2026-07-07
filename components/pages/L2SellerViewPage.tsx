@@ -267,7 +267,6 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
   // Drill-down states
   const [drillSellerS1, setDrillSellerS1] = useState<any>(null)
   const [drillSellerS2, setDrillSellerS2] = useState<any>(null)
-  const [drillSellerS3, setDrillSellerS3] = useState<any>(null)
   const [drillSellerS7, setDrillSellerS7] = useState<any>(null)
   const [drillSellerS8, setDrillSellerS8] = useState<any>(null)
   const [showTeamFunnel, setShowTeamFunnel] = useState(false)
@@ -743,25 +742,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
           })()}
         </div>
 
-        {/* RTG Breakdown */}
-        <div className={styles.kpiTile}>
-          <div className={styles.kpiLabel}>RTG Breakdown</div>
-          <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
-            <div className={styles.kpiSplitSide}>
-              <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Count</div>
-              <div className={styles.kpiValue} style={{ color: '#33C2C9' }}>
-                {totalRtg}
-              </div>
-            </div>
-            <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
-            <div className={styles.kpiSplitSide}>
-              <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Percent</div>
-              <div className={styles.kpiValue} style={{ color: '#F0EDE8' }}>
-                {teamRtgPct}%
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         {/* Sellers No Leads */}
         <div className={styles.kpiTile} style={{ cursor: noLeadsCount > 0 ? 'pointer' : 'default' }} onClick={() => { if (noLeadsCount > 0) setShowNoLeadsModal(true); }}>
@@ -977,144 +958,6 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         </div>
       )}
 
-      {/* S3: RTG vs Non-RTG */}
-      <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's3' ? null : 's3')}>
-        <div className={styles.headerLeft}>
-          <span className={styles.chevron} style={{ transform: activeSectionModal === 's3' ? 'rotate(90deg)' : 'none' }}>▶</span>
-          <h2 className={styles.sectionTitle}>RTG vs Non-RTG</h2>
-        </div>
-        {activeSectionModal !== 's3' && (
-          <div className={styles.headerRight}>
-            <div className={styles.headerStat}>
-              <span className={styles.headerStatLabel}>Total Leads</span>
-              <span className={styles.headerStatValue}>{totalLeads}</span>
-            </div>
-            <div className={styles.headerStat}>
-              <span className={styles.headerStatLabel}>RTG</span>
-              <span className={styles.headerStatValue}>{totalRtg}</span>
-            </div>
-            <div className={styles.headerStat}>
-              <span className={styles.headerStatLabel}>Non-RTG</span>
-              <span className={styles.headerStatValue}>{totalNonRtg}</span>
-            </div>
-            <div className={styles.headerStat}>
-              <span className={styles.headerStatLabel}>Team RTG %</span>
-              <span className={styles.headerStatValue}>{teamRtgPct}%</span>
-            </div>
-          </div>
-        )}
-      </div>
-      {activeSectionModal === 's3' && (
-        <div className={sellerStyles.sectionContent}>
-              {drillSellerS3 ? (
-                <div className={styles.drillDownContainer}>
-                  <div className={styles.drillHeader}>
-                    <h3 className={styles.drillTitle}>{drillSellerS3.seller_name} — RTG Split</h3>
-                    <button className={styles.backBtn} onClick={() => setDrillSellerS3(null)}>← Back to team</button>
-                  </div>
-                  <div className={styles.kpiRow}>
-                    <div className={styles.kpiItem}>
-                      <span className={styles.kpiLabel}>Total Leads</span>
-                      <span className={styles.kpiValue}>{(drillSellerS3.allotment?.rtg_leads || 0) + (drillSellerS3.allotment?.non_rtg_leads || 0)}</span>
-                    </div>
-                    <div className={styles.kpiItem}>
-                      <span className={styles.kpiLabel}>RTG</span>
-                      <span className={styles.kpiValue}>{drillSellerS3.allotment?.rtg_leads || 0}</span>
-                    </div>
-                    <div className={styles.kpiItem}>
-                      <span className={styles.kpiLabel}>Non-RTG</span>
-                      <span className={styles.kpiValue}>{drillSellerS3.allotment?.non_rtg_leads || 0}</span>
-                    </div>
-                    <div className={styles.kpiItem}>
-                      <span className={styles.kpiLabel}>RTG %</span>
-                      <span className={styles.kpiValue}>
-                        {Math.round(((drillSellerS3.allotment?.rtg_leads || 0) / ((drillSellerS3.allotment?.rtg_leads || 0) + (drillSellerS3.allotment?.non_rtg_leads || 0) || 1)) * 100)}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className={styles.chartContainer}>
-                    <div className={styles.stackedBarRow}>
-                      <div className={styles.barLabel}>RTG Split</div>
-                      <div className={styles.barTrack}>
-                        <div className={styles.barSegment} style={{width: `${Math.round(((drillSellerS3.allotment?.rtg_leads || 0) / ((drillSellerS3.allotment?.rtg_leads || 0) + (drillSellerS3.allotment?.non_rtg_leads || 0) || 1)) * 100)}%`, background: '#378ADD'}} />
-                        <div className={styles.barSegment} style={{width: `${Math.round(((drillSellerS3.allotment?.non_rtg_leads || 0) / ((drillSellerS3.allotment?.rtg_leads || 0) + (drillSellerS3.allotment?.non_rtg_leads || 0) || 1)) * 100)}%`, background: '#1D9E75'}} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className={styles.kpiRow}>
-                    {(() => {
-                      const tRtg = enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.rtg_leads || 0), 0)
-                      const tNonRtg = enrichedMembers.reduce((sum: number, m: any) => sum + (m.allotment?.non_rtg_leads || 0), 0)
-                      const tTotal = tRtg + tNonRtg
-                      return (
-                        <>
-                          <div className={styles.kpiItem}>
-                            <span className={styles.kpiLabel}>Total Leads</span>
-                            <span className={styles.kpiValue}>{tTotal}</span>
-                          </div>
-                          <div className={styles.kpiItem}>
-                            <span className={styles.kpiLabel}>RTG Count</span>
-                            <span className={styles.kpiValue}>{tRtg}</span>
-                          </div>
-                          <div className={styles.kpiItem}>
-                            <span className={styles.kpiLabel}>Non-RTG Count</span>
-                            <span className={styles.kpiValue}>{tNonRtg}</span>
-                          </div>
-                          <div className={styles.kpiItem}>
-                            <span className={styles.kpiLabel}>Team RTG %</span>
-                            <span className={styles.kpiValue}>{tTotal > 0 ? Math.round((tRtg / tTotal) * 100) : 0}%</span>
-                          </div>
-                        </>
-                      )
-                    })()}
-                  </div>
-
-                  <div className={styles.tableWrap}>
-                    <table className={styles.table}>
-                      <thead>
-                        <tr>
-                          <th>Seller</th>
-                          <th>Total Leads</th>
-                          <th>RTG</th>
-                          <th>Non-RTG</th>
-                          <th>RTG %</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {enrichedMembers.slice().sort((a: any, b: any) => {
-                          if (a.seller_email === session.email) return -1;
-                          if (b.seller_email === session.email) return 1;
-                          return 0;
-                        }).map((m: any) => {
-                          const rtg = m.allotment?.rtg_leads || 0
-                          const non = m.allotment?.non_rtg_leads || 0
-                          if (rtg + non === 0 && m.isAbsent) return null
-                          const tot = rtg + non
-                          if (tot === 0) return null
-                          return (
-                            <tr key={m.seller_email} className={`${styles.sellerRow} ${m.isAbsent ? styles.absentRow : ''}`} onClick={() => setDrillSellerS3(m)} style={{cursor: 'pointer'}}>
-                              <td>
-                                {m.seller_name}
-                                {m.seller_email === session.email && <span className={styles.youBadge}>(You)</span>}
-                                {m.isAbsent && <span className={styles.absentPill}>Absent</span>}
-                              </td>
-                              <td>{tot}</td>
-                              <td>{rtg}</td>
-                              <td>{non}</td>
-                              <td>{Math.round((rtg / tot) * 100)}%</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
-        </div>
-      )}
 
       {/* S7: Lead Time Availability */}
       <div className={styles.sectionHeaderCollapsible} onClick={() => setActiveSectionModal(activeSectionModal === 's7' ? null : 's7')}>

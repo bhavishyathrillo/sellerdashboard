@@ -77,7 +77,7 @@ export async function GET(req: Request) {
     // Monthly Goal vs SHB for the team
     supabase.from('goal_vs_shb').select('*').gte('date', monthStart).lte('date', monthEnd).or(emailFilters).order('date', { ascending: true }),
     supabase.from('kalpit').select('*'),
-    supabase.from('planned_lta').select('*').eq('month', queryMonth).in('seller_email', emails),
+    supabase.from('planned_lta').select('*').gte('log_date', monthStart).lte('log_date', monthEnd).in('seller_email', emails),
   ])
 
   // Step 3: Combine
@@ -94,8 +94,15 @@ export async function GET(req: Request) {
       cti: ctiRes.data?.find(c => c.seller_email === seller.seller_email) || null,
       allotment: allotmentRes.data?.find(al => al.seller_email === seller.seller_email) || null,
       daily_lta: ltaRes.data?.find(l => l.seller_email === seller.seller_email) 
-        ? { ...ltaRes.data.find(l => l.seller_email === seller.seller_email), planned_lta_override: plannedLtaRes.data?.find((p: any) => p.seller_email === seller.seller_email && p.month === queryMonth)?.lta } 
-        : { planned_lta_override: plannedLtaRes.data?.find((p: any) => p.seller_email === seller.seller_email && p.month === queryMonth)?.lta, lead_goal: plannedLtaRes.data?.find((p: any) => p.seller_email === seller.seller_email && p.month === queryMonth)?.leads_goal, wd: plannedLtaRes.data?.find((p: any) => p.seller_email === seller.seller_email && p.month === queryMonth)?.wd },
+        ? { 
+            ...ltaRes.data.find(l => l.seller_email === seller.seller_email), 
+            planned_lta_override: plannedLtaRes.data?.find((p: any) => p.seller_email === seller.seller_email && p.log_date === queryDate)?.lta
+          } 
+        : { 
+            planned_lta_override: plannedLtaRes.data?.find((p: any) => p.seller_email === seller.seller_email && p.log_date === queryDate)?.lta, 
+            lead_goal: plannedLtaRes.data?.find((p: any) => p.seller_email === seller.seller_email && p.log_date === queryDate)?.leads_goal, 
+            wd: plannedLtaRes.data?.find((p: any) => p.seller_email === seller.seller_email && p.log_date === queryDate)?.wd 
+          },
       hourly: hourlyRes.data?.filter(h => h.seller_email === seller.seller_email) || [],
       dot_rows: dotRes.data?.filter(d => d.seller_email === seller.seller_email) || [],
       monthly_rows: (monthlyAllotmentRes.data || []).filter((r: any) => r.seller_email === seller.seller_email),
