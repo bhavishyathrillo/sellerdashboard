@@ -33,8 +33,11 @@ export default function DashboardLayout({
   const [collapsed, setCollapsed] = useState(false)
   const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session.role)
 
+  const isSeller = !['L1', 'L2', 'ADMIN', 'SUPERADMIN', 'MODERATOR'].includes(session.role)
+
   const filteredNavItems = navItems.filter(item => {
     if (isAdmin && item.adminOnly === false) return false
+    if (isSeller && (item.id === 'performance' || item.id === 'roadmap')) return false
     return true
   })
 

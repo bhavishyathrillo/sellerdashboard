@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './HomePage.module.css'
 import Loader from '@/components/ui/Loader'
+import RoadmapPage from './RoadmapPage'
 
 interface SellerData {
   seller_email: string
@@ -238,20 +239,28 @@ export default function HomePage({ session }: HomePageProps) {
       <div className={styles.bottomGrid}>
         <div className={styles.infoCard}>
           <h3 className={styles.infoTitle}>Incentives</h3>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Final Incentive</span>
-            <span className={styles.infoValue}>{fmt(data.final_incentives)}</span>
-          </div>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>To be Disbursed</span>
-            <span className={`${styles.infoValue} ${styles.brandColor}`}>
-              {fmt(data.final_amount_to_be_disbursed)}
-            </span>
-          </div>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Last Payment</span>
-            <span className={styles.infoValue}>{data.last_payment_date || '-'}</span>
-          </div>
+          {!['L1', 'L2', 'ADMIN', 'SUPERADMIN', 'MODERATOR'].includes(session.role) ? (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'80px',color:'#8A8278',fontSize:'0.75rem'}}>
+              Data will come soon
+            </div>
+          ) : (
+            <>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Final Incentive</span>
+                <span className={styles.infoValue}>{fmt(data.final_incentives)}</span>
+              </div>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>To be Disbursed</span>
+                <span className={`${styles.infoValue} ${styles.brandColor}`}>
+                  {fmt(data.final_amount_to_be_disbursed)}
+                </span>
+              </div>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Last Payment</span>
+                <span className={styles.infoValue}>{data.last_payment_date || '-'}</span>
+              </div>
+            </>
+          )}
         </div>
         <div className={styles.infoCard}>
           <h3 className={styles.infoTitle}>Flight Adoption</h3>
@@ -279,6 +288,12 @@ export default function HomePage({ session }: HomePageProps) {
           </div>
         </div>
       </div>
+
+      {!['L1', 'L2', 'ADMIN', 'SUPERADMIN', 'MODERATOR'].includes(session.role) && (
+        <div style={{ marginTop: '24px', background: 'rgba(255,255,255,0.01)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <RoadmapPage session={session} />
+        </div>
+      )}
     </div>
   )
 }
