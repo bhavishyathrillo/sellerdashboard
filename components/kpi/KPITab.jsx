@@ -2,7 +2,10 @@
 
 export default function KPITab({ user }) {
   return (
-    <div style={{ width: '100%', height: 'calc(100vh - 60px)' }}>
+    <div style={{ width: '100%', height: '100%' }}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        main[class*="DashboardLayout_main"] { overflow: hidden !important; }
+      `}} />
       <div
         data-kpi-user
         data-email={user?.email || ''}
@@ -12,7 +15,7 @@ export default function KPITab({ user }) {
       />
       <iframe
         src="/kpi-dashboard.html"
-        style={{ width: '100%', height: '100%', border: 'none' }}
+        style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
         title="KPI Command Center"
       />
     </div>

@@ -46,9 +46,6 @@ export async function getSellerRawData(email) {
   };
 }
 
-export async function getSessionData() {
-  return await fetchJSON(`${BASE_URL}?action=sessions`) || { success: true, sessions: [], serverTime: Date.now() };
-}
 
 export async function getReportData(cycle) {
   return await fetchJSON(`${BASE_URL}?action=report-card&cycle=${encodeURIComponent(cycle || '')}`) || {
@@ -60,8 +57,4 @@ export async function getReportData(cycle) {
 export async function getConvIQData() {
   return await fetchJSON(`${BASE_URL}?action=conviq`) || { success: true, updatedAt: '', regions: {}, sellers: {} };
 }
-
-export async function getAllUsers() { return []; }
-export async function addUser() { return { success: true }; }
-export async function updateUser() { return { success: true }; }
-export async function deleteUser() { return { success: true }; }
+
