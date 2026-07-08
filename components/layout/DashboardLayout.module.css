@@ -13,7 +13,7 @@
 .navItem { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: none; background: transparent; color: #8A8278; font-size: 0.72rem; cursor: pointer; border-radius: 7px; width: 100%; text-align: left; transition: all 0.15s; }
 .navItem:hover { background: #1A1A1A; color: #F0EDE8; }
 .navItemActive { background: rgba(244, 99, 30, 0.12); color: #F4631E; }
-.navIcon { font-size: 0.78rem; width: 18px; text-align: center; flex-shrink: 0; }
+.navIcon { display: flex; align-items: center; justify-content: center; width: 18px; flex-shrink: 0; }
 .navLabel { white-space: nowrap; font-size: 0.72rem; }
 
 .sidebarBottom { padding: 10px; border-top: 1px solid #1A1A1A; }
@@ -22,7 +22,7 @@
 .userInfo { min-width: 0; }
 .userName { font-size: 0.65rem; color: #F0EDE8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .userRole { font-size: 0.55rem; color: #F4631E; font-weight: 600; }
-.logoutBtn { width: 100%; padding: 5px; background: transparent; border: 1px solid #2A2A2A; color: #8A8278; border-radius: 5px; cursor: pointer; font-size: 0.65rem; }
+.logoutBtn { width: 100%; padding: 5px 8px; background: transparent; border: 1px solid #2A2A2A; color: #8A8278; border-radius: 5px; cursor: pointer; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; }
 .logoutBtn:hover { border-color: #EF4444; color: #EF4444; }
 
 .collapseBtn {
