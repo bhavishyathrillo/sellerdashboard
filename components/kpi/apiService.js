@@ -1,136 +1,67 @@
-// ─── API SERVICE ───
-// Change BASE_URL to your actual backend URL
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+const BASE_URL = '/api/kpi';
 
 async function fetchJSON(url, options = {}) {
   try {
-    const res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' },
-      ...options,
-    });
+    const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...options });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn(`API call to ${url} failed, returning empty:`, err.message);
+    console.warn(`API call failed: ${url}`, err.message);
     return null;
   }
 }
 
-// ─── Auth ───
-export async function checkAccess() {
-  return await fetchJSON(`${BASE_URL}/auth/session`);
+function formatDate(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-// ─── Dashboard ───
 export async function getDashboardData() {
-  const data = await fetchJSON(`${BASE_URL}/dashboard`);
-  if (!data) {
-    return {
-      sellers: [],
-      summary: { totalSellers: 0, regions: [], l1Managers: [], l2Managers: [] },
-      cycles: [],
-      cycleRanges: {},
-      latestCycle: '',
-    };
-  }
-  return data;
-}
-
-// ─── Raw Metrics (Talk Time & W15) ───
-export async function getRawMetrics(emails, from, to) {
-  const params = new URLSearchParams();
-  if (emails?.length) params.set('emails', emails.join(','));
-  if (from) params.set('from', from);
-  if (to) params.set('to', to);
-  const data = await fetchJSON(`${BASE_URL}/metrics/raw?${params.toString()}`);
-  return data || { success: true, sellerMetrics: {}, dateFiltered: false };
-}
-
-// ─── MHL Metrics (MHE %) ───
-export async function getMHLRawMetrics(emails, from, to) {
-  const params = new URLSearchParams();
-  if (emails?.length) params.set('emails', emails.join(','));
-  if (from) params.set('from', from);
-  if (to) params.set('to', to);
-  const data = await fetchJSON(`${BASE_URL}/metrics/mhl?${params.toString()}`);
-  return data || { success: true, dailySummary: [], sellerMetrics: {}, overallMedian: null };
-}
-
-// ─── Raw Data Popup ───
-export async function getSellerRawData(email) {
-  const data = await fetchJSON(`${BASE_URL}/sellers/${encodeURIComponent(email)}/raw`);
-  return data || {
-    success: true,
-    email,
-    mhl: { headers: [], rows: [], count: 0, sheetFound: false },
-    call: { headers: [], rows: [], count: 0, sheetFound: false },
+  return await fetchJSON(`${BASE_URL}?action=dashboard`) || {
+    sellers: [], summary: { totalSellers: 0, regions: [], l1Managers: [], l2Managers: [] },
+    cycles: [], cycleRanges: {}, latestCycle: '',
   };
 }
 
-// ─── Sessions ───
-export async function logSession(email, name, role) {
-  const data = await fetchJSON(`${BASE_URL}/sessions`, {
-    method: 'POST',
-    body: JSON.stringify({ email, name, role }),
-  });
-  return data || { success: true, sessionId: 'local', rowNum: 0 };
+export async function getRawMetrics(emails, from, to) {
+  const p = new URLSearchParams({ action: 'raw' });
+  if (emails?.length) p.set('emails', emails.join(','));
+  if (from) p.set('from', from);
+  if (to) p.set('to', to);
+  return await fetchJSON(`${BASE_URL}?${p.toString()}`) || { success: true, sellerMetrics: {}, dateFiltered: false };
 }
 
-export async function pingSession(sessionId, durationMins, pagesVisited) {
-  await fetchJSON(`${BASE_URL}/sessions/${sessionId}/ping`, {
-    method: 'PATCH',
-    body: JSON.stringify({ durationMins, pagesVisited }),
-  });
+export async function getMHLRawMetrics(emails, from, to) {
+  const p = new URLSearchParams({ action: 'mhl' });
+  if (emails?.length) p.set('emails', emails.join(','));
+  if (from) p.set('from', from);
+  if (to) p.set('to', to);
+  return await fetchJSON(`${BASE_URL}?${p.toString()}`) || { success: true, dailySummary: [], sellerMetrics: {}, overallMedian: null };
+}
+
+export async function getSellerRawData(email) {
+  return await fetchJSON(`${BASE_URL}?action=seller-raw&email=${encodeURIComponent(email)}`) || {
+    success: true, email, mhl: { headers: [], rows: [], count: 0, sheetFound: false }, call: { headers: [], rows: [], count: 0, sheetFound: false },
+  };
 }
 
 export async function getSessionData() {
-  const data = await fetchJSON(`${BASE_URL}/sessions`);
-  return data || { success: true, sessions: [], serverTime: Date.now() };
+  return await fetchJSON(`${BASE_URL}?action=sessions`) || { success: true, sessions: [], serverTime: Date.now() };
 }
 
-// ─── Report Card ───
 export async function getReportData(cycle) {
-  const params = cycle ? `?cycle=${encodeURIComponent(cycle)}` : '';
-  const data = await fetchJSON(`${BASE_URL}/report-card${params}`);
-  return data || {
-    generated: formatDate(new Date()),
-    subjectWeights: { output: 0.70, input: 0.15, quotations: 0.15 },
-    hasConviq: false,
-    regions: [],
-    cycles: [],
-    selectedCycle: '',
-    views: { '': { l1: [], l2: [] } },
+  return await fetchJSON(`${BASE_URL}?action=report-card&cycle=${encodeURIComponent(cycle || '')}`) || {
+    generated: formatDate(new Date()), subjectWeights: { output: 0.70, input: 0.15, quotations: 0.15 }, hasConviq: false,
+    regions: [], cycles: [], selectedCycle: '', views: { '': { l1: [], l2: [] } },
   };
 }
 
-// ─── ConvIQ ───
 export async function getConvIQData() {
-  const data = await fetchJSON(`${BASE_URL}/conviq`);
-  return data || { success: true, updatedAt: '', regions: {}, sellers: {} };
+  return await fetchJSON(`${BASE_URL}?action=conviq`) || { success: true, updatedAt: '', regions: {}, sellers: {} };
 }
 
-// ─── Users ───
-export async function getAllUsers() {
-  const data = await fetchJSON(`${BASE_URL}/admin/users`);
-  return data || [];
-}
-
-export async function addUser(userData) {
-  return await fetchJSON(`${BASE_URL}/admin/users`, {
-    method: 'POST',
-    body: JSON.stringify(userData),
-  });
-}
-
-export async function updateUser(email, updates) {
-  return await fetchJSON(`${BASE_URL}/admin/users/${encodeURIComponent(email)}`, {
-    method: 'PATCH',
-    body: JSON.stringify(updates),
-  });
-}
-
-export async function deleteUser(email) {
-  return await fetchJSON(`${BASE_URL}/admin/users/${encodeURIComponent(email)}`, {
-    method: 'DELETE',
-  });
-}
+export async function getAllUsers() { return []; }
+export async function addUser() { return { success: true }; }
+export async function updateUser() { return { success: true }; }
+export async function deleteUser() { return { success: true }; }

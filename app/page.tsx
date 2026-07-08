@@ -216,14 +216,14 @@ export default function Home() {
           {activePage === 'ttk' && <TTKPage />}
           {activePage === 'team' && <TeamPage session={session} />}
 
-          {/* KPI VIEW TAB — role mapping: dashboard L2 = KPI L1 Manager, dashboard L1 = KPI L2 Manager */}
+          {/* KPI VIEW TAB */}
           {activePage === 'kpi_view' && (
             <KPITab user={{
               email: session.email,
               name: session.name,
               role: session.role === 'L2' ? 'L1 Manager' :
-                    session.role === 'L1' ? 'L2 Manager' :
-                    session.role === 'ADMIN' || session.role === 'SUPERADMIN' ? 'Admin' :
+                session.role === 'L1' ? 'L2 Manager' :
+                  session.role === 'ADMIN' || session.role === 'SUPERADMIN' ? 'Admin' :
                     'Seller'
             }} />
           )}
