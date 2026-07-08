@@ -92,8 +92,12 @@ export default function HomePage({ session }: HomePageProps) {
   const [error, setError] = useState('')
   const [showTopline, setShowTopline] = useState(true)
   const [showBottomline, setShowBottomline] = useState(true)
+  const [viewMode, setViewMode] = useState<'my' | 'team'>('my')
+  const [teamData, setTeamData] = useState<any[]>([])
+  const [selectedKpi, setSelectedKpi] = useState<{ id: string, label: string, isPct?: boolean } | null>(null)
 
   const isL2 = session.role === 'L2'
+  const isTL = ['L1', 'L2'].includes(session.role)
 
   useEffect(() => {
     const load = async () => {
@@ -102,6 +106,14 @@ export default function HomePage({ session }: HomePageProps) {
         const json = await res.json()
         if (!res.ok) { setError(json.error || 'Failed to load'); return }
         setData(json)
+
+        if (['L1', 'L2'].includes(session.role)) {
+          const tRes = await fetch(`/api/seller/team-performance?email=${session.email}&role=${session.role}`)
+          if (tRes.ok) {
+            const tJson = await tRes.json()
+            setTeamData(tJson.team || [])
+          }
+        }
       } catch {
         setError('Failed to load data')
       } finally {
@@ -109,7 +121,7 @@ export default function HomePage({ session }: HomePageProps) {
       }
     }
     load()
-  }, [session.email])
+  }, [session.email, session.role])
 
   if (loading) return <Loader text="Loading..." />
 
@@ -119,57 +131,111 @@ export default function HomePage({ session }: HomePageProps) {
 
   if (!data) return null
 
-  // For L2 managers, filter seller data if they have team data
-  // For L2 managers, the data from /api/seller/overview is their personal data
-  // The toggle should only affect team view, not personal view
-  // But since L2 managers see personal data in Overview, the toggle is hidden for them here
-  // The toggle will be visible in Performance/Team view
+  const getDisplayData = () => {
+    if (viewMode === 'my' || !teamData.length) return data
+    
+    const aggregated: any = { 
+      ...data, 
+      seller_name: 'My Team', 
+      current_seller_flag: 'Team Avg', 
+      one_liner: 'Team cumulative performance', 
+      duration_in_org: data?.duration_in_org || '-', 
+      region: 'All Regions' 
+    }
+    
+    const sumFields = [
+      'bottomline_goal_monthly', 'actual_achieved_monthly', 'required_daily_monthly', 'should_have_been_monthly',
+      'week_1_goal', 'week_1_achieved', 'week_2_goal', 'week_2_achieved', 'week_3_goal', 'week_3_achieved', 'week_4_goal', 'week_4_achieved',
+      'final_incentives', 'final_amount_to_be_disbursed', 'cancellation_impact', 'escalation_impacts'
+    ]
+    
+    sumFields.forEach(f => aggregated[f] = 0)
+    
+    teamData.forEach(s => {
+      sumFields.forEach(f => {
+        aggregated[f] += (Number(s[f]) || 0)
+      })
+    })
+    
+    aggregated.goal_achieved_percent = aggregated.bottomline_goal_monthly > 0 ? (aggregated.actual_achieved_monthly / aggregated.bottomline_goal_monthly) * 100 : 0
+    
+    return aggregated as SellerData
+  }
 
-  const flag = flagColors[data.current_seller_flag] || flagColors['1 White']
-  const pct = Number(data.goal_achieved_percent) || 0
+  const displayData = getDisplayData()
+
+  const flag = flagColors[displayData.current_seller_flag] || flagColors['1 White']
+  const pct = Number(displayData.goal_achieved_percent) || 0
   const weeks = [
-    { label: 'W1', goal: data.week_1_goal, achieved: data.week_1_achieved },
-    { label: 'W2', goal: data.week_2_goal, achieved: data.week_2_achieved },
-    { label: 'W3', goal: data.week_3_goal, achieved: data.week_3_achieved },
-    { label: 'W4', goal: data.week_4_goal, achieved: data.week_4_achieved },
+    { label: 'W1', goal: displayData.week_1_goal, achieved: displayData.week_1_achieved },
+    { label: 'W2', goal: displayData.week_2_goal, achieved: displayData.week_2_achieved },
+    { label: 'W3', goal: displayData.week_3_goal, achieved: displayData.week_3_achieved },
+    { label: 'W4', goal: displayData.week_4_goal, achieved: displayData.week_4_achieved },
   ]
 
   return (
     <div className={styles.page}>
       <Particles />
 
+      {isTL && (
+        <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',marginBottom:'18px'}}>
+          <div style={{display:'flex',gap:'3px',background:'#141414',border:'1px solid #232323',borderRadius:'8px',padding:'3px'}}>
+            <button onClick={() => setViewMode('my')} style={{
+              padding:'7px 16px',border:'none',borderRadius:'6px',
+              background: viewMode==='my'?'rgba(244,99,30,0.15)':'transparent',
+              color: viewMode==='my'?'#F4631E':'#8A8278',
+              cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
+            }}>My Stats</button>
+            <button onClick={() => setViewMode('team')} style={{
+              padding:'7px 16px',border:'none',borderRadius:'6px',
+              background: viewMode==='team'?'rgba(244,99,30,0.15)':'transparent',
+              color: viewMode==='team'?'#F4631E':'#8A8278',
+              cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
+            }}>My Team ({teamData.length})</button>
+          </div>
+        </div>
+      )}
+
       <div className={styles.hero}>
         <div className={styles.heroLeft}>
           <div className={styles.sellerMeta}>
-            <span className={styles.flag} style={{ background: flag.bg, color: flag.text }}>{data.current_seller_flag}</span>
+            <span className={styles.flag} style={{ background: flag.bg, color: flag.text }}>{displayData.current_seller_flag}</span>
             <span className={styles.metaDot}>·</span>
-            <span className={styles.metaText}>{regionLabel(data.region)}</span>
+            <span className={styles.metaText}>{regionLabel(displayData.region)}</span>
             <span className={styles.metaDot}>·</span>
-            <span className={styles.metaText}>{data.haul}</span>
+            <span className={styles.metaText}>{displayData.haul}</span>
             <span className={styles.metaDot}>·</span>
-            <span className={styles.metaText}>Rank #{data.ranking}</span>
+            <span className={styles.metaText}>Rank #{displayData.ranking}</span>
             <span className={styles.metaDot}>·</span>
-            <span className={styles.metaText}>{data.duration_in_org}M tenure</span>
+            <span className={styles.metaText}>{displayData.duration_in_org}M tenure</span>
           </div>
-          <p className={styles.oneLiner}>{data.one_liner}</p>
+          <p className={styles.oneLiner}>{displayData.one_liner}</p>
         </div>
         <div className={styles.heroRight}>
-          <span className={styles.goalType}>{data.defined_goal} Goal</span>
+          <span className={styles.goalType}>{displayData.defined_goal} Goal</span>
         </div>
       </div>
 
       <div className={styles.statGrid}>
-        <div className={styles.statCard}>
+        <div 
+          className={styles.statCard} 
+          style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
+          onClick={() => viewMode === 'team' && setSelectedKpi({ id: 'bottomline_goal_monthly', label: 'Monthly Goal' })}
+        >
           <p className={styles.statLabel}>Monthly Goal</p>
-          <p className={styles.statValue}>{fmt(data.bottomline_goal_monthly)}</p>
+          <p className={styles.statValue}>{fmt(displayData.bottomline_goal_monthly)}</p>
           <p className={styles.statHint}><span className={styles.hintNeutral}>Target for this month</span></p>
         </div>
-        <div className={styles.statCard}>
+        <div 
+          className={styles.statCard}
+          style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
+          onClick={() => viewMode === 'team' && setSelectedKpi({ id: 'actual_achieved_monthly', label: 'Achieved' })}
+        >
           <p className={styles.statLabel}>Achieved</p>
-          <p className={`${styles.statValue} ${styles.brandColor}`}>{fmt(data.actual_achieved_monthly)}</p>
+          <p className={`${styles.statValue} ${styles.brandColor}`}>{fmt(displayData.actual_achieved_monthly)}</p>
           {(() => {
-            const diff = data.actual_achieved_monthly - data.should_have_been_monthly
-            const pctDiff = data.should_have_been_monthly > 0 ? Math.abs((diff / data.should_have_been_monthly) * 100).toFixed(1) : '0'
+            const diff = displayData.actual_achieved_monthly - displayData.should_have_been_monthly
+            const pctDiff = displayData.should_have_been_monthly > 0 ? Math.abs((diff / displayData.should_have_been_monthly) * 100).toFixed(1) : '0'
             const above = diff >= 0
             return (
               <p className={styles.statHint}>
@@ -181,23 +247,35 @@ export default function HomePage({ session }: HomePageProps) {
             )
           })()}
         </div>
-        <div className={styles.statCard}>
+        <div 
+          className={styles.statCard}
+          style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
+          onClick={() => viewMode === 'team' && setSelectedKpi({ id: 'required_daily_monthly', label: 'Required Daily' })}
+        >
           <p className={styles.statLabel}>Required Daily</p>
-          <p className={styles.statValue}>{fmt(data.required_daily_monthly)}</p>
+          <p className={styles.statValue}>{fmt(displayData.required_daily_monthly)}</p>
         </div>
-        <div className={styles.statCard}>
+        <div 
+          className={styles.statCard}
+          style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
+          onClick={() => viewMode === 'team' && setSelectedKpi({ id: 'should_have_been_monthly', label: 'Should Have Been' })}
+        >
           <p className={styles.statLabel}>Should Have Been</p>
-          <p className={styles.statValue}>{fmt(data.should_have_been_monthly)}</p>
+          <p className={styles.statValue}>{fmt(displayData.should_have_been_monthly)}</p>
         </div>
-        <div className={`${styles.statCard} ${styles.statCardHighlight}`}>
+        <div 
+          className={`${styles.statCard} ${styles.statCardHighlight}`}
+          style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
+          onClick={() => viewMode === 'team' && setSelectedKpi({ id: 'goal_achieved_percent', label: '% Achieved', isPct: true })}
+        >
           <p className={styles.statLabel}>% Achieved</p>
-          <p className={styles.statValue}>{pct.toFixed(1)}%</p>
+          <p className={styles.statValueHighlight}>{displayData.goal_achieved_percent?.toFixed(1)}%</p>
           <div className={styles.progressBar}>
-            <div className={styles.progressFill} style={{ width: `${Math.min(data.goal_achieved_percent, 100)}%` }} />
+            <div className={styles.progressFill} style={{ width: `${Math.min(displayData.goal_achieved_percent, 100)}%` }} />
           </div>
           <p className={styles.statHint}>
-            <span className={data.goal_achieved_percent >= 100 ? styles.hintGreen : styles.hintRed}>
-              {data.goal_achieved_percent >= 100 ? '↑' : '↓'} {Math.abs(data.goal_achieved_percent - 100).toFixed(1)}% {data.goal_achieved_percent >= 100 ? 'ahead of' : 'behind'} goal
+            <span className={displayData.goal_achieved_percent >= 100 ? styles.hintGreen : styles.hintRed}>
+              {displayData.goal_achieved_percent >= 100 ? '↑' : '↓'} {Math.abs(displayData.goal_achieved_percent - 100).toFixed(1)}% {displayData.goal_achieved_percent >= 100 ? 'ahead of' : 'behind'} goal
             </span>
           </p>
         </div>
@@ -209,7 +287,12 @@ export default function HomePage({ session }: HomePageProps) {
           {weeks.map(w => {
             const wpct = w.goal > 0 ? (w.achieved / w.goal) * 100 : 0
             return (
-              <div key={w.label} className={styles.weekCard}>
+              <div 
+                key={w.label} 
+                className={styles.weekCard}
+                style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
+                onClick={() => viewMode === 'team' && setSelectedKpi({ id: `week_${w.label.replace('W', '')}_achieved`, label: `${w.label} Achieved` })}
+              >
                 <div className={styles.weekHeader}>
                   <span className={styles.weekLabel}>{w.label}</span>
                   <span className={styles.weekPct}>{wpct.toFixed(0)}%</span>
@@ -239,28 +322,9 @@ export default function HomePage({ session }: HomePageProps) {
       <div className={styles.bottomGrid}>
         <div className={styles.infoCard}>
           <h3 className={styles.infoTitle}>Incentives</h3>
-          {!['L1', 'L2', 'ADMIN', 'SUPERADMIN', 'MODERATOR'].includes(session.role) ? (
-            <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'80px',color:'#8A8278',fontSize:'0.75rem'}}>
-              Data will come soon
-            </div>
-          ) : (
-            <>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Final Incentive</span>
-                <span className={styles.infoValue}>{fmt(data.final_incentives)}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>To be Disbursed</span>
-                <span className={`${styles.infoValue} ${styles.brandColor}`}>
-                  {fmt(data.final_amount_to_be_disbursed)}
-                </span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Last Payment</span>
-                <span className={styles.infoValue}>{data.last_payment_date || '-'}</span>
-              </div>
-            </>
-          )}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'80px',color:'#8A8278',fontSize:'0.75rem'}}>
+            Data will come soon
+          </div>
         </div>
         <div className={styles.infoCard}>
           <h3 className={styles.infoTitle}>Flight Adoption</h3>
@@ -270,16 +334,24 @@ export default function HomePage({ session }: HomePageProps) {
         </div>
         <div className={styles.infoCard}>
           <h3 className={styles.infoTitle}>Impacts</h3>
-          <div className={styles.infoRow}>
+          <div 
+            className={styles.infoRow}
+            style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
+            onClick={() => viewMode === 'team' && setSelectedKpi({ id: 'cancellation_impact', label: 'Cancellation Impact' })}
+          >
             <span className={styles.infoLabel}>Cancellation</span>
-            <span className={styles.infoValue} style={{ color: data.cancellation_impact < 0 ? '#EF4444' : '#F0EDE8' }}>
-              {fmt(data.cancellation_impact)}
+            <span className={styles.infoValue} style={{ color: displayData.cancellation_impact < 0 ? '#EF4444' : '#F0EDE8' }}>
+              {fmt(displayData.cancellation_impact)}
             </span>
           </div>
-          <div className={styles.infoRow}>
+          <div 
+            className={styles.infoRow}
+            style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
+            onClick={() => viewMode === 'team' && setSelectedKpi({ id: 'escalation_impacts', label: 'Escalation Impact' })}
+          >
             <span className={styles.infoLabel}>Escalation</span>
-            <span className={styles.infoValue} style={{ color: data.escalation_impacts < 0 ? '#EF4444' : '#F0EDE8' }}>
-              {fmt(data.escalation_impacts)}
+            <span className={styles.infoValue} style={{ color: displayData.escalation_impacts < 0 ? '#EF4444' : '#F0EDE8' }}>
+              {fmt(displayData.escalation_impacts)}
             </span>
           </div>
           <div className={styles.infoRow}>
@@ -289,9 +361,47 @@ export default function HomePage({ session }: HomePageProps) {
         </div>
       </div>
 
-      {!['L1', 'L2', 'ADMIN', 'SUPERADMIN', 'MODERATOR'].includes(session.role) && (
+      {!['ADMIN', 'SUPERADMIN', 'MODERATOR'].includes(session.role) && (
         <div style={{ marginTop: '24px', background: 'rgba(255,255,255,0.01)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <RoadmapPage session={session} />
+          <RoadmapPage session={session} viewMode={viewMode} />
+        </div>
+      )}
+
+      {selectedKpi && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }} onClick={() => setSelectedKpi(null)}>
+          <div style={{
+            background: '#1a1a1a', border: '1px solid #333', borderRadius: '12px',
+            width: '90%', maxWidth: '400px', maxHeight: '80vh', display: 'flex', flexDirection: 'column'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{
+              padding: '16px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#F0EDE8' }}>{selectedKpi.label} Breakdown</h3>
+              <button onClick={() => setSelectedKpi(null)} style={{
+                background: 'transparent', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1.2rem'
+              }}>&times;</button>
+            </div>
+            <div style={{ overflowY: 'auto', padding: '16px' }}>
+              {teamData.sort((a,b) => (Number(b[selectedKpi.id]) || 0) - (Number(a[selectedKpi.id]) || 0)).map((s, i) => (
+                <div key={i} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '12px 0', borderBottom: i < teamData.length - 1 ? '1px dashed #333' : 'none'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ color: '#E0DCD5', fontWeight: 500 }}>{s.seller_name || s.seller_email}</span>
+                    <span style={{ color: '#8A8278', fontSize: '0.75rem' }}>{s.l1_name || s.l1_email || 'Direct'}</span>
+                  </div>
+                  <span style={{ color: '#F4631E', fontWeight: 600 }}>
+                    {selectedKpi.isPct ? `${(Number(s[selectedKpi.id]) || 0).toFixed(1)}%` : fmt(Number(s[selectedKpi.id]) || 0)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>
