@@ -233,15 +233,8 @@ export default function HomePage({ session }: HomePageProps) {
       <div className={styles.bottomGrid}>
         <div className={styles.infoCard}>
           <h3 className={styles.infoTitle}>Incentives</h3>
-          <div>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Final Incentives</span>
-              <span className={styles.infoValue}>{fmt(data.final_incentives)}</span>
-            </div>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Disbursed</span>
-              <span className={styles.infoValue}>{fmt(data.final_amount_to_be_disbursed)}</span>
-            </div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'80px',color:'#8A8278',fontSize:'0.75rem'}}>
+            Data will come soon
           </div>
         </div>
         <div className={styles.infoCard}>
