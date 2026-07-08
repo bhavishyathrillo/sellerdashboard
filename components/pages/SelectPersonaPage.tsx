@@ -34,10 +34,8 @@ const personaTabs = [
   { id: 'priority', label: 'Priority/QB' },
   { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'seller-view', label: 'LTA' },
-  { id: 'performance', label: 'Performance' },
   { id: 'rewards', label: 'Rewards' },
   { id: 'mhl', label: 'Mishandled' },
-  { id: 'roadmap', label: 'Roadmap' },
   { id: 'hygiene', label: 'Hygiene' },
 ]
 
@@ -297,10 +295,8 @@ export default function SelectPersonaPage({ session }: Props) {
               {activePersonaTab === 'pipeline' && <PipelinePage session={personaSession} />}
               {activePersonaTab === 'priority' && <PriorityPage session={personaSession} />}
               {activePersonaTab === 'leaderboard' && <LeaderboardPage session={personaSession} />}
-              {activePersonaTab === 'performance' && <PerformancePage session={personaSession} />}
               {activePersonaTab === 'rewards' && <RewardsPage session={personaSession} />}
               {activePersonaTab === 'mhl' && <MHLPage session={personaSession} />}
-              {activePersonaTab === 'roadmap' && <RoadmapPage session={personaSession} />}
               {activePersonaTab === 'hygiene' && <HygienePage session={personaSession} />}
               {activePersonaTab === 'seller-view' && personaSession.role === 'L1' && <L1SellerViewPage session={personaSession} />}
               {activePersonaTab === 'seller-view' && personaSession.role === 'L2' && <L2SellerViewPage session={personaSession} />}
