@@ -228,7 +228,17 @@ function mF(x:number|null){ if(x===null||x===undefined)return'-'; const a=Math.a
 
 function rcAggregate(rows:any[], includeFlag:boolean){
   let mish=0,mishD=0,c15=0,c15D=0,talkN=0,talkD=0,rw=0,sellers=0,prio=0,aa=0,z=0,ac=0,ae=0,ad=0,ag=0,conv2=0,botA=0,botT=0,topA=0,topT=0,convA=0,convT=0,leadsSHB=0;
+  const mheArr:number[] = [];
+  const slaArr:number[] = [];
+  function median(arr:number[]):number|null{
+    if(!arr.length)return null;
+    const s=[...arr].sort((a,b)=>a-b);
+    const mid=Math.floor(s.length/2);
+    return s.length%2!==0 ? s[mid] : (s[mid-1]+s[mid])/2;
+  }
   rows.forEach((r:any)=>{
+    if(nN(r.mhe_actual)!==null) mheArr.push(n0(r.mhe_actual));
+    if(nN(r.sla_actual)!==null) slaArr.push(n0(r.sla_actual));
     mish+=n0(r.mishandled_count); mishD+=n0(r.total_lead_instances);
     c15+=n0(r.called_within_15_count); c15D+=n0(r.total_leads);
     prio+=n0(r.priority_leads_count);
@@ -242,7 +252,10 @@ function rcAggregate(rows:any[], includeFlag:boolean){
     convA+=n0(r.conversion_actual); convT+=n0(r.conversion_shb);
     leadsSHB+=n0(r.leads_shb);
   });
-  const mishAct=mishD>0?mish/mishD:null, c15Act=c15D>0?c15/c15D:null, prioA=c15D>0?prio/c15D:null;
+  const mishAct=mheArr.length>0 ? median(mheArr) : (mishD>0?mish/mishD:null);
+  const c15ActRaw=slaArr.length>0 ? median(slaArr) : null;
+  const c15Act=c15ActRaw!==null ? c15ActRaw/100 : (c15D>0?c15/c15D:null);
+  const prioA=c15D>0?prio/c15D:null;
   const talkAct=talkD>0?talkN/talkD:null, flagAct=includeFlag&&sellers>0?rw/sellers:null;
   const quotedA=z>0?aa/z:null, qFeasA=aa>0?ac/aa:null, passA=ad>0?ae/ad:null, quoteConvA=ae>0?conv2/ae:null, reworkA=ad>0?ag/ad:null;
   const botAch=botT>0?botA/botT:null, topAch=topT>0?topA/topT:null;
