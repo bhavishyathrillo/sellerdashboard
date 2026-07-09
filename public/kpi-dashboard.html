@@ -175,6 +175,10 @@ input[type="text"], input[type="email"], select { background: var(--bg-main) !im
 <div class="rc-controls">
 <div class="rc-seg"><button id="rc-tabL1" class="on" onclick="rcSetLevel('l1')">L1 Managers</button><button id="rc-tabL2" onclick="rcSetLevel('l2')">L2 Seniors</button></div>
 <select id="rc-fCycle" onchange="rcOnCycle(this.value)"></select>
+<select id="rc-fL1" onchange="rcOnFilterChange('l1',this.value)"><option value="all">All L1</option></select>
+<select id="rc-fL2" onchange="rcOnFilterChange('l2',this.value)"><option value="all">All L2</option></select>
+<select id="rc-fGoal" onchange="rcOnFilterChange('goal',this.value)"><option value="all">All Goal Types</option></select>
+<select id="rc-fHaul" onchange="rcOnFilterChange('haul',this.value)"><option value="all">All Haul</option></select>
 <select id="rc-fRegion" onchange="rcOnRegion()"></select>
 <select id="rc-fSort" onchange="rcApplyFilters()"><option value="overall">Sort: Overall</option><option value="output">Sort: Output</option><option value="input">Sort: Input</option><option value="quotations">Sort: Quotations</option></select>
 <div class="rc-spacer"></div><div class="rc-count" id="rc-count"></div>
@@ -344,7 +348,7 @@ function renderSellerView(){var el=document.getElementById('seller-content'),sel
 function _loadSellerAllMetrics(me){fetchRaw([me.email],'seller',function(raw){var sm=raw&&raw.sellerMetrics?raw.sellerMetrics[me.email.toLowerCase()]:null;var ta=sm?sm.talkMedian:null;var tae=document.getElementById('seller-talk-actual'),tbe=document.getElementById('seller-talk-bar'),tfe=document.getElementById('seller-talk-footer'),tpe=document.getElementById('seller-talk-pct');if(tae){if(ta==null){tae.textContent='--';if(tfe)tfe.innerHTML='<span style="color:#8E8E93">No data</span>';}else{var pb2=pBar(ta,me.talkSHB,false);var sc2=pb2.cls==='green'?'#34C759':pb2.cls==='red'?'#FF3B30':'#FF9500';tae.textContent=fmtTime(ta);tae.style.color=sc2;if(tbe){tbe.style.width=pb2.pct+'%';tbe.className='sb-bar '+pb2.cls;}if(tfe)tfe.innerHTML='<span style="color:'+sc2+'">'+(pb2.pct>=90?'✓ On Track':pb2.pct>=70?'⚠ At Risk':'✗ Behind')+'</span>';if(tpe){tpe.textContent=pb2.pct+'%';tpe.style.color=sc2;}}}var wa=sm?sm.w15Pct:null;var wae=document.getElementById('seller-w15-actual'),wbe=document.getElementById('seller-w15-bar'),wfe=document.getElementById('seller-w15-footer'),wpe=document.getElementById('seller-w15-pct');var w15SHB=me.slaSHB!=null?me.slaSHB:90;if(wae){if(wa==null){wae.textContent='--';if(wfe)wfe.innerHTML='<span style="color:#8E8E93">No data</span>';}else{var pb3=pBar(wa,w15SHB,false);var sc3=pb3.cls==='green'?'#34C759':pb3.cls==='red'?'#FF3B30':'#FF9500';wae.textContent=wa.toFixed(1)+'%';wae.style.color=sc3;if(wbe){wbe.style.width=pb3.pct+'%';wbe.className='sb-bar '+pb3.cls;}if(wfe)wfe.innerHTML='<span style="color:'+sc3+'">'+(pb3.pct>=90?'✓ On Track':pb3.pct>=70?'⚠ At Risk':'✗ Behind')+'</span>';if(wpe){wpe.textContent=pb3.pct+'%';wpe.style.color=sc3;}}}});fetchMHL([me.email],'seller',function(mhlRaw){var sm=mhlRaw&&mhlRaw.sellerMetrics?mhlRaw.sellerMetrics[me.email.toLowerCase()]:null;var mheAct=sm?sm.mheMedian:null;var mae=document.getElementById('seller-mhe-actual'),mbe=document.getElementById('seller-mhe-bar'),mfe=document.getElementById('seller-mhe-footer'),mpe=document.getElementById('seller-mhe-pct');if(mae){if(mheAct==null){mae.textContent='--';if(mfe)mfe.innerHTML='<span style="color:#8E8E93">No data</span>';}else{var pb4=pBar(mheAct,15,true);var sc4=pb4.cls==='green'?'#34C759':pb4.cls==='red'?'#FF3B30':'#FF9500';mae.textContent=mheAct.toFixed(2)+'%';mae.style.color=sc4;if(mbe){mbe.style.width=pb4.pct+'%';mbe.className='sb-bar '+pb4.cls;}if(mfe){mfe.innerHTML='<span style="color:'+sc4+'">'+(pb4.pct>=90?'✓ On Track':pb4.pct>=70?'⚠ At Risk':'✗ Behind')+'</span>';var mfeLink=document.createElement('span');mfeLink.style.cssText='font-size:9px;color:#007AFF;cursor:pointer;margin-left:6px';mfeLink.textContent='View logs →';mfeLink.onclick=function(){showSellerMHEPopup(me.email,me.name);};mfe.appendChild(mfeLink);}if(mpe){mpe.textContent=pb4.pct+'%';mpe.style.color=sc4;}}}});}
 
 function _buildViewHTML(allSellers,view){var sellers=getFilteredSellers();var l1s=[...new Set(allSellers.map(function(s){return s.l1Manager;}).filter(Boolean))].sort();var l2s=[...new Set(allSellers.map(function(s){return s.l2Manager;}).filter(Boolean))].sort();var regs=[...new Set(allSellers.map(function(s){return s.region;}).filter(Boolean))].sort();var hauls=[...new Set(allSellers.map(function(s){return s.haul;}).filter(Boolean))].sort();var goals=[...new Set(allSellers.map(function(s){return s.goalType;}).filter(Boolean))].sort();function sel(id,label,list,globalKey){var val=globalFilters[globalKey]||'all';return'<select class="filter-select" id="'+id+'" onchange="onGlobalSelectChange(\''+globalKey+'\',this.value)"><option value="all">'+label+'</option>'+list.map(function(v){return'<option value="'+v+'"'+(v===val?' selected':'')+'>'+v+'</option>';}).join('')+'</select>';}var iBtn=(view==='l1'||view==='l2')?'<button onclick="document.getElementById(\'incentive-modal\').classList.add(\'open\')" style="padding:6px 12px;border-radius:7px;font-size:11px;font-weight:600;border:1px solid #C9A84C;background:rgba(255,183,3,.1);color:#C9A84C;cursor:pointer;white-space:nowrap">💰 Incentive Structure <span style="background:#FF3B30;color:#fff;font-size:9px;padding:1px 5px;border-radius:99px;margin-left:4px">NEW</span></button>':'';var filters='<div class="filter-wrap">'+buildCycleUI()+buildDateUI(view)+(view==='l2'||view==='overview'?sel(view+'-l2f','All L2',l2s,'l2'):'')+sel(view+'-l1f','All L1',l1s,'l1')+sel(view+'-regf','All Regions',regs,'reg')+sel(view+'-goalf','All Goal Types',goals,'goal')+sel(view+'-haulf','All Haul',hauls,'haul')+iBtn+'</div>';var notice='<div class="notice-banner"><div class="notice-dot"></div>'+(_selectedCycle?'<span class="badge badge-orange" style="margin-right:8px">'+_selectedCycle+'</span>':'')+'<strong>'+sellers.length+'</strong> sellers · <strong>'+l1s.length+'</strong> L1'+filters+'</div>';return notice+'<div id="'+view+'-boxes">'+buildSummaryBoxes(sellers,view,view+'-table',null)+'</div><div id="'+view+'-filter-banner"></div><div id="'+view+'-table">'+buildTable(sellers,view,null)+'</div>';}
-function onGlobalSelectChange(key,val){globalFilters[key]=val;RC_DATA=null;renderAllViews();}
+function onGlobalSelectChange(key,val){globalFilters[key]=val;renderAllViews();}
 function renderL1View(){var cs=cycleSellers();var f=getFilteredSellers();document.getElementById('l1-content').innerHTML=_buildViewHTML(cs,'l1');_loadRaw(f,'l1');}
 function renderL2View(){var cs=cycleSellers();var f=getFilteredSellers();document.getElementById('l2-content').innerHTML=_buildViewHTML(cs,'l2');_loadRaw(f,'l2');}
 function renderOverviewView(){var cs=cycleSellers();var f=getFilteredSellers();document.getElementById('overview-content').innerHTML=_buildViewHTML(cs,'overview');_loadRaw(f,'overview');}
@@ -353,9 +357,23 @@ function getFilteredSellers(){var f=cycleSellers();if(globalFilters.l2!=='all')f
 
 // ═══════════════ REPORT CARD ═══════════════
 var RC_DATA=null,RC_LEVEL='l1',RC_CUR=null,RC_RENDERED=[],RC_CYCLE=null;
+var rcFilters={l1:'all',l2:'all',goal:'all',haul:'all'};
 function rcSetLevel(l){RC_LEVEL=l;document.getElementById('rc-tabL1').classList.toggle('on',l==='l1');document.getElementById('rc-tabL2').classList.toggle('on',l==='l2');rcApplyFilters();}
 function rcOnCycle(cy){RC_CYCLE=cy;RC_DATA=null;rcLoadReportCard();}
 function rcOnRegion(){rcApplyFilters();}
+function rcOnFilterChange(key,val){rcFilters[key]=val;RC_DATA=null;rcLoadReportCard();}
+function rcPopulateFilters(data){
+  var cs=cycleSellers();
+  function opts(sel,items,cur){var el=document.getElementById(sel);if(!el)return;el.innerHTML='<option value="all">'+el.options[0].text+'</option>'+items.map(function(v){return'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+v+'</option>';}).join('');}
+  var l1s=[...new Set(cs.map(function(s){return s.l1Manager;}).filter(Boolean))].sort();
+  var l2s=[...new Set(cs.map(function(s){return s.l2Manager;}).filter(Boolean))].sort();
+  var goals=[...new Set(cs.map(function(s){return s.goalType;}).filter(Boolean))].sort();
+  var hauls=[...new Set(cs.map(function(s){return s.haul;}).filter(Boolean))].sort();
+  opts('rc-fL1',l1s,rcFilters.l1);
+  opts('rc-fL2',l2s,rcFilters.l2);
+  opts('rc-fGoal',goals,rcFilters.goal);
+  opts('rc-fHaul',hauls,rcFilters.haul);
+}
 
 function rcApplyFilters(){
   if(!RC_DATA)return;
@@ -393,14 +411,15 @@ function rcLoadReportCard(){
   var qs='report-card';
   var payload = {
     cycle: RC_CYCLE||'',
-    l1: globalFilters.l1,
-    l2: globalFilters.l2,
-    reg: globalFilters.reg,
-    goal: globalFilters.goal,
-    haul: globalFilters.haul
+    l1: rcFilters.l1||'all',
+    l2: rcFilters.l2||'all',
+    reg: '',
+    goal: rcFilters.goal||'all',
+    haul: rcFilters.haul||'all'
   };
   api(qs, payload).then(function(d){
     RC_DATA=d;RC_CYCLE=d.selectedCycle||RC_CYCLE;rcSyncCycleDropdown();
+    rcPopulateFilters(d);
     var rsel=document.getElementById('rc-fRegion');
     rsel.innerHTML='<option value="">All regions</option>'+(d.regions||[]).map(function(r){return'<option>'+r+'</option>';}).join('');
     document.getElementById('rc-state').style.display='none';
