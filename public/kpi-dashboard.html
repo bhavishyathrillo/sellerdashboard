@@ -223,7 +223,22 @@ window.onload=function(){
   try{var raw=window.parent.document.querySelector('[data-kpi-user]');if(raw&&raw.dataset.email){currentUser={email:raw.dataset.email,name:raw.dataset.name||raw.dataset.email.split('@')[0],role:raw.dataset.role||'Seller'};document.getElementById('loading-screen').style.display='none';showApp();return;}}catch(e){}
   currentUser={email:'admin@thrillophilia.com',name:'Admin',role:'Admin'};document.getElementById('loading-screen').style.display='none';showApp();
 };
-function showApp(){document.getElementById('app').classList.add('visible');document.getElementById('sidebar-name').textContent=currentUser.name;document.getElementById('sidebar-role').textContent=currentUser.role;document.getElementById('sidebar-avatar').textContent=currentUser.name.charAt(0).toUpperCase();buildSidebar();loadDashboard();}
+function showApp(){
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('sidebar-name').textContent=currentUser.name;
+  document.getElementById('sidebar-role').textContent=currentUser.role;
+  document.getElementById('sidebar-avatar').textContent=currentUser.name.charAt(0).toUpperCase();
+  // ── Role-based scoping: lock filters to user's own team ──
+  if(currentUser.role==='L1 Manager'){
+    globalFilters.l1=currentUser.name;
+    if(typeof rcFilters!=='undefined') rcFilters.l1=currentUser.name;
+  } else if(currentUser.role==='L2 Manager'){
+    globalFilters.l2=currentUser.name;
+    if(typeof rcFilters!=='undefined') rcFilters.l2=currentUser.name;
+  }
+  buildSidebar();
+  loadDashboard();
+}
 
 // ═══════════════ SIDEBAR ═══════════════
 function buildSidebar(){var role=currentUser.role,nav=document.getElementById('sidebar-nav');var pages=[];if(role==='Seller')pages.push({id:'seller',icon:'📊',label:'My Dashboard'});if(role==='L1 Manager'){pages.push({id:'report',icon:'📋',label:'Report Card'});pages.push({id:'l1',icon:'👥',label:'L1 View'});}if(role==='L2 Manager'){pages.push({id:'report',icon:'📋',label:'Report Card'});pages.push({id:'l2',icon:'🏢',label:'Division View'});pages.push({id:'l1',icon:'👥',label:'L1 View'});}if(role==='Admin'||role==='Management'){pages.push({id:'overview',icon:'🌐',label:'Overview'});pages.push({id:'report',icon:'📋',label:'Report Card'});pages.push({id:'l2',icon:'🏢',label:'L2 View'});pages.push({id:'l1',icon:'👥',label:'L1 View'});pages.push({id:'seller',icon:'📊',label:'Seller View'});}nav.innerHTML='<div class="nav-section-label">Navigation</div>';pages.forEach(function(p){var d=document.createElement('div');d.className='nav-item';d.innerHTML='<span class="nav-icon">'+p.icon+'</span><span>'+p.label+'</span>';d.onclick=function(){switchPage(p.id);};nav.appendChild(d);});if(pages.length>0)switchPage(pages[0].id);}
@@ -353,7 +368,20 @@ function renderL1View(){var cs=cycleSellers();var f=getFilteredSellers();documen
 function renderL2View(){var cs=cycleSellers();var f=getFilteredSellers();document.getElementById('l2-content').innerHTML=_buildViewHTML(cs,'l2');_loadRaw(f,'l2');}
 function renderOverviewView(){var cs=cycleSellers();var f=getFilteredSellers();document.getElementById('overview-content').innerHTML=_buildViewHTML(cs,'overview');_loadRaw(f,'overview');}
 function _loadRaw(sellers,view){var _raw=null,_mhlR=null;function _tryRender(){if(_raw===null||_mhlR===null)return;_mhlData=_mhlR.success?_mhlR:null;var be=document.getElementById(view+'-boxes'),te=document.getElementById(view+'-table'),fb=document.getElementById(view+'-filter-banner');if(fb)fb.innerHTML='';if(be)be.innerHTML=buildSummaryBoxes(sellers,view,view+'-table',_raw.success?_raw:{},_mhlR.success?_mhlR:{});if(te)te.innerHTML=buildTable(sellers,view,_raw.success?_raw:{});}fetchRaw(sellers,view,function(raw){_raw=raw||{};if(raw&&raw.success)_rawCacheLatest=raw;_tryRender();});fetchMHL(sellers,view,function(mhlRaw){_mhlR=mhlRaw||{};_tryRender();});}
-function getFilteredSellers(){var f=cycleSellers();if(globalFilters.l2!=='all')f=f.filter(function(s){return s.l2Manager===globalFilters.l2;});if(globalFilters.l1!=='all')f=f.filter(function(s){return s.l1Manager===globalFilters.l1;});if(globalFilters.reg!=='all')f=f.filter(function(s){return s.region===globalFilters.reg;});if(globalFilters.goal!=='all')f=f.filter(function(s){return s.goalType===globalFilters.goal;});if(globalFilters.haul!=='all')f=f.filter(function(s){return s.haul===globalFilters.haul;});return f;}
+function getFilteredSellers(){
+  var f=cycleSellers();
+  // Role-based hard scope — cannot be overridden by filters
+  if(currentUser.role==='L1 Manager') { f=f.filter(function(s){return s.l1Manager===currentUser.name;}); }
+  else if(currentUser.role==='L2 Manager') { f=f.filter(function(s){return s.l2Manager===currentUser.name;}); }
+  else {
+    if(globalFilters.l2!=='all') f=f.filter(function(s){return s.l2Manager===globalFilters.l2;});
+    if(globalFilters.l1!=='all') f=f.filter(function(s){return s.l1Manager===globalFilters.l1;});
+  }
+  if(globalFilters.reg!=='all') f=f.filter(function(s){return s.region===globalFilters.reg;});
+  if(globalFilters.goal!=='all') f=f.filter(function(s){return s.goalType===globalFilters.goal;});
+  if(globalFilters.haul!=='all') f=f.filter(function(s){return s.haul===globalFilters.haul;});
+  return f;
+}
 
 // ═══════════════ REPORT CARD ═══════════════
 var RC_DATA=null,RC_LEVEL='l1',RC_CUR=null,RC_RENDERED=[],RC_CYCLE=null;
