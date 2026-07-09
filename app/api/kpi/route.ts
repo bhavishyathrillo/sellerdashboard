@@ -78,8 +78,8 @@ async function enrichWithMedians(rows: any[], sc: string) {
   const mheMap: Record<string, number> = {};
   if (mhlData) {
     const sdm: Record<string,Record<string,any>> = {};
-    mhlData.filter((r:any) => r.available_today !== false && r.available_today !== 'false' && new Date(r.activity_date).getDay() !== 0)
-    .forEach((r:any) => {
+    const validMhl = mhlData.filter((r:any) => r.available_today !== false && r.available_today !== 'false' && new Date(r.activity_date).getDay() !== 0);
+    validMhl.forEach((r:any) => {
       const e = (r.seller_email || '').toLowerCase();
       const iso = r.activity_date;
       if (!sdm[e]) sdm[e] = {};
@@ -91,6 +91,12 @@ async function enrichWithMedians(rows: any[], sc: string) {
       const days = Object.values(sdm[e]).map((d:any) => d.open > 0 ? (d.mish / d.open) : null).filter(v => v !== null) as number[];
       const smv = medArr(days);
       if (smv !== null) mheMap[e] = smv; // fraction
+    });
+    
+    // Attach raw daily data for team median calculations in rcAggregate
+    rows.forEach(r => {
+      const e = (r.email || '').toLowerCase();
+      r._mhl_daily = validMhl.filter((m:any) => (m.seller_email||'').toLowerCase() === e);
     });
   }
 
@@ -286,17 +292,16 @@ function mF(x:number|null){ if(x===null||x===undefined)return'-'; const a=Math.a
 
 function rcAggregate(rows:any[], includeFlag:boolean){
   let mish=0,mishD=0,c15=0,c15D=0,talkN=0,talkD=0,rw=0,sellers=0,prio=0,aa=0,z=0,ac=0,ae=0,ad=0,ag=0,conv2=0,botA=0,botT=0,topA=0,topT=0,convA=0,convT=0,leadsSHB=0;
-  const mheArr:number[] = [];
-  const slaArr:number[] = [];
   function median(arr:number[]):number|null{
     if(!arr.length)return null;
     const s=[...arr].sort((a,b)=>a-b);
     const mid=Math.floor(s.length/2);
     return s.length%2!==0 ? s[mid] : (s[mid-1]+s[mid])/2;
   }
+  
+  const allDaily: any[] = [];
   rows.forEach((r:any)=>{
-    if(nN(r.mhe_actual)!==null) mheArr.push(n0(r.mhe_actual));
-    if(nN(r.sla_actual)!==null) slaArr.push(n0(r.sla_actual));
+    if (r._mhl_daily) allDaily.push(...r._mhl_daily);
     mish+=n0(r.mishandled_count); mishD+=n0(r.total_lead_instances);
     c15+=n0(r.called_within_15_count); c15D+=n0(r.total_leads);
     prio+=n0(r.priority_leads_count);
@@ -310,9 +315,21 @@ function rcAggregate(rows:any[], includeFlag:boolean){
     convA+=n0(r.conversion_actual); convT+=n0(r.conversion_shb);
     leadsSHB+=n0(r.leads_shb);
   });
-  const mishAct=mheArr.length>0 ? median(mheArr) : (mishD>0?mish/mishD:null);
-  const c15ActRaw=slaArr.length>0 ? median(slaArr) : null;
-  const c15Act=c15ActRaw!==null ? c15ActRaw/100 : (c15D>0?c15/c15D:null);
+
+  let mishAct = mishD>0?mish/mishD:null;
+  if (allDaily.length > 0) {
+    const dm: Record<string,any> = {};
+    allDaily.forEach((r:any) => {
+       const iso = r.activity_date;
+       if (!dm[iso]) dm[iso] = {mish:0, open:0};
+       dm[iso].mish += +r.mishandled_count;
+       dm[iso].open += +r.open_leads_count;
+    });
+    const days = Object.values(dm).map((d:any) => d.open > 0 ? (d.mish / d.open) : null).filter(v => v !== null) as number[];
+    if (days.length > 0) mishAct = median(days);
+  }
+
+  const c15Act = (c15D>0?c15/c15D:null);
   const prioA=c15D>0?prio/c15D:null;
   const talkAct=talkD>0?talkN/talkD:null, flagAct=includeFlag&&sellers>0?rw/sellers:null;
   const quotedA=z>0?aa/z:null, qFeasA=aa>0?ac/aa:null, passA=ad>0?ae/ad:null, quoteConvA=ae>0?conv2/ae:null, reworkA=ad>0?ag/ad:null;
