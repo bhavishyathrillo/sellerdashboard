@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+
+async function fetchAll(q: any) {
+  const all: any[] = [];
+  let f = 0; const s = 1000;
+  while(true) {
+    const { data, error } = await q.range(f, f + s - 1);
+    if(error) throw error;
+    if(!data || data.length === 0) break;
+    all.push(...data);
+    if(data.length < s) break;
+    f += s;
+  }
+  return { data: all };
+}
+
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -50,7 +65,7 @@ function medArr(a: number[]) { if(!a.length) return null; const s=[...a].sort((x
 // ============================================================
 async function handleDashboard() {
   try {
-    const { data: sellers } = await supabase.from('roster').select('*');
+    const { data: sellers } = await fetchAll(supabase.from('roster').select('*'));
     const { data: cd } = await supabase.schema('seller_day_to_day').from('cycles').select('*').order('start_date',{ascending:false});
     const cr: Record<string,{from:string;to:string}> = {}; (cd||[]).forEach((c:any)=>{ cr[c.cycle]={from:c.start_date,to:c.end_date}; });
     const cycles = (cd||[]).map((c:any)=>c.cycle); const lc = cycles[0]||'';
@@ -96,7 +111,7 @@ async function handleRawMetrics(req: NextRequest) {
     const f=u.searchParams.get('from')||null, t=u.searchParams.get('to')||null;
     let q = supabase.schema('seller_day_to_day').from('leads').select('sales_email_id,first_connected_call_duration,call_bucket');
     if(em.length) q=q.in('sales_email_id',em); if(f) q=q.gte('lead_assignment_time',f+'T00:00:00+05:30'); if(t) q=q.lte('lead_assignment_time',t+'T23:59:59+05:30');
-    const { data: rows } = await q;
+    const { data: rows } = await fetchAll(q);
     const sd: Record<string,{dur:number[];wIn:number;wTot:number}> = {}; em.forEach(e=>{ sd[e]={dur:[],wIn:0,wTot:0}; });
     (rows||[]).forEach((r:any)=>{ const e=(r.sales_email_id||'').toLowerCase(); if(!sd[e]) sd[e]={dur:[],wIn:0,wTot:0}; if(r.first_connected_call_duration>0) sd[e].dur.push(+r.first_connected_call_duration); const b=(r.call_bucket||'').toLowerCase(); if(b.includes('within')){sd[e].wIn++;sd[e].wTot++;}else if(b.includes('beyond')||b.includes('15')){sd[e].wTot++;} });
     const sm: Record<string,any> = {}; Object.keys(sd).forEach(e=>{ const d=sd[e]; sm[e]={talkMedian:d.dur.length?parseFloat(medArr(d.dur)!.toFixed(1)):null, w15Pct:d.wTot>0?parseFloat((d.wIn/d.wTot*100).toFixed(1)):null, w15Within:d.wIn, w15Total:d.wTot}; });
@@ -112,14 +127,16 @@ async function handleMHLMetrics(req: NextRequest) {
     const u = new URL(req.url); const em = (u.searchParams.get('emails')||'').split(',').map(e=>e.trim().toLowerCase()).filter(Boolean);
     const f=u.searchParams.get('from')||null, t=u.searchParams.get('to')||null;
     let q = supabase.schema('seller_day_to_day').from('mhl_daily').select('*'); if(em.length) q=q.in('seller_email',em); if(f) q=q.gte('activity_date',f); if(t) q=q.lte('activity_date',t);
-    const { data: rows } = await q;
+    const { data: rowsRaw } = await fetchAll(q);
     const dm: Record<string,any> = {}; const sdm: Record<string,Record<string,any>> = {};
-    (rows||[]).forEach((r:any)=>{
+    (rowsRaw||[]).forEach((r:any)=>{
       const iso=r.activity_date, disp=new Date(r.activity_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
       if(!dm[iso]) dm[iso]={mish:0,open:0,disp};
       dm[iso].mish+=+r.mishandled_count; dm[iso].open+=+r.open_leads_count;
-      const e=(r.seller_email||'').toLowerCase(); if(!sdm[e]) sdm[e]={}; if(!sdm[e][iso]) sdm[e][iso]={mish:0,open:0,disp};
-      sdm[e][iso].mish+=+r.mishandled_count; sdm[e][iso].open+=+r.open_leads_count;
+      if (r.available_today!==false&&r.available_today!=='false') {
+        const e=(r.seller_email||'').toLowerCase(); if(!sdm[e]) sdm[e]={}; if(!sdm[e][iso]) sdm[e][iso]={mish:0,open:0,disp};
+        sdm[e][iso].mish+=+r.mishandled_count; sdm[e][iso].open+=+r.open_leads_count;
+      }
     });
     const ds = Object.keys(dm).sort().reverse().map(iso=>{ const d=dm[iso]; return {date:d.disp,isoDate:iso,mishandled:d.mish,openLeads:d.open,mhePct:d.open>0?parseFloat((d.mish/d.open*100).toFixed(2)):null}; });
     const om = medArr(ds.map(d=>d.mhePct).filter(v=>v!=null) as number[]);
@@ -133,9 +150,19 @@ async function handleMHLMetrics(req: NextRequest) {
 // ============================================================
 async function handleSellerRaw(req: NextRequest) {
   try {
-    const email = new URL(req.url).searchParams.get('email')||'';
-    const { data: m } = await supabase.schema('seller_day_to_day').from('mhl_daily').select('*').ilike('seller_email',email).order('activity_date',{ascending:false}).limit(200);
-    const { data: c } = await supabase.schema('seller_day_to_day').from('leads').select('*').ilike('sales_email_id',email).order('lead_assignment_time',{ascending:false}).limit(200);
+    const u = new URL(req.url);
+    const email = u.searchParams.get('email')||'';
+    const f = u.searchParams.get('from')||null;
+    const t = u.searchParams.get('to')||null;
+    let qM = supabase.schema('seller_day_to_day').from('mhl_daily').select('*').ilike('seller_email',email);
+    if(f) qM=qM.gte('activity_date',f);
+    if(t) qM=qM.lte('activity_date',t);
+    const { data: mRaw } = await qM.order('activity_date',{ascending:false}).limit(100000);
+    const m = (mRaw||[]).filter((r:any)=>r.available_today!==false&&r.available_today!=='false');
+    let qC = supabase.schema('seller_day_to_day').from('leads').select('*').ilike('sales_email_id',email);
+    if(f) qC=qC.gte('lead_assignment_time',f+'T00:00:00+05:30');
+    if(t) qC=qC.lte('lead_assignment_time',t+'T23:59:59+05:30');
+    const { data: c } = await qC.order('lead_assignment_time',{ascending:false}).limit(100000);
     return NextResponse.json({success:true,email,mhl:{headers:m?.length?Object.keys(m[0]):[],rows:m||[],count:(m||[]).length,sheetFound:true},call:{headers:c?.length?Object.keys(c[0]):[],rows:c||[],count:(c||[]).length,sheetFound:true}});
   } catch { return NextResponse.json({success:true,email:'',mhl:{headers:[],rows:[],count:0,sheetFound:false},call:{headers:[],rows:[],count:0,sheetFound:false}}); }
 }
@@ -195,8 +222,14 @@ function rcAggregate(rows:any[], includeFlag:boolean){
     aa+=n0(r.unique_leads_quoted); z+=n0(r.unique_leads);
     ac+=n0(r.unique_feasibility_sent); ae+=n0(r.feasibility_passed); ad+=n0(r.total_feasibility_sent); ag+=n0(r.reworks);
     conv2+=n0(r.converted_count);
-    botA+=n0(r.bottomline_actual); botT+=n0(r.bottomline_shb);
-    topA+=n0(r.topline_actual); topT+=n0(r.topline_shb);
+    if (r.goal_type === 'Bottomline') {
+      botA+=n0(r.bottomline_actual); botT+=n0(r.bottomline_shb);
+    } else if (r.goal_type === 'Topline') {
+      topA+=n0(r.topline_actual); topT+=n0(r.topline_shb);
+    } else {
+      botA+=n0(r.bottomline_actual); botT+=n0(r.bottomline_shb);
+      topA+=n0(r.topline_actual); topT+=n0(r.topline_shb);
+    }
     convA+=n0(r.conversion_actual); convT+=n0(r.conversion_shb);
     leadsSHB+=n0(r.leads_shb);
   });
@@ -239,19 +272,28 @@ function rcAggregate(rows:any[], includeFlag:boolean){
 
 async function handleReportCard(req: NextRequest) {
   try {
-    const cycle = new URL(req.url).searchParams.get('cycle')||'';
-    let q = supabase.from('roster').select('*'); if(cycle) q=q.eq('cycle',cycle);
-    const { data: rows } = await q;
+    const u = new URL(req.url);
+    const cycle = u.searchParams.get('cycle')||'';
     const { data: cd } = await supabase.schema('seller_day_to_day').from('cycles').select('cycle').order('start_date',{ascending:false});
-    const cycles = (cd||[]).map((c:any)=>c.cycle); const sc = cycle||cycles[0]||'';
+    const cycles = (cd||[]).map((c:any)=>c.cycle); 
+    const sc = cycle||cycles[0]||'';
+
+    let q = supabase.from('roster').select('*'); 
+    if(sc) q=q.eq('cycle',sc);
+    const l1 = u.searchParams.get('l1'); if(l1 && l1 !== 'all') q=q.eq('l1_manager_name', l1);
+    const l2 = u.searchParams.get('l2'); if(l2 && l2 !== 'all') q=q.eq('l2_manager_name', l2);
+    const reg = u.searchParams.get('reg'); if(reg && reg !== 'all') q=q.eq('region', reg);
+    const goal = u.searchParams.get('goal'); if(goal && goal !== 'all') q=q.eq('goal_type', goal);
+    const haul = u.searchParams.get('haul'); if(haul && haul !== 'all') q=q.eq('haul', haul);
+    const { data: rows } = await q;
     
     const l1M: Record<string,any> = {}, l2M: Record<string,any> = {}; const regs=new Set<string>();
     (rows||[]).forEach((r:any)=>{
       const reg=r.region||'';
       if(reg) regs.add(reg);
       const l1n=r.l1_manager_name||'', l1e=r.l1_manager_email||'', l2n=r.l2_manager_name||'', l2e=r.l2_manager_email||'';
-      const l1k=l1e||l1n; if(l1k){ if(!l1M[l1k]) l1M[l1k]={key:l1k,name:l1n,l2:l2n,regions:new Set(),rows:[]}; l1M[l1k].regions.add(reg); l1M[l1k].rows.push(r); }
-      const l2k=l2e||l2n; if(l2k){ if(!l2M[l2k]) l2M[l2k]={key:l2k,name:l2n,regions:new Set(),rows:[]}; l2M[l2k].regions.add(reg); l2M[l2k].rows.push(r); }
+      const l1k=(l1n||l1e).toLowerCase().trim(); if(l1k){ if(!l1M[l1k]) l1M[l1k]={key:l1k,name:l1n||l1e,l2:l2n,regions:new Set(),rows:[]}; l1M[l1k].regions.add(reg); l1M[l1k].rows.push(r); }
+      const l2k=(l2n||l2e).toLowerCase().trim(); if(l2k){ if(!l2M[l2k]) l2M[l2k]={key:l2k,name:l2n||l2e,regions:new Set(),rows:[]}; l2M[l2k].regions.add(reg); l2M[l2k].rows.push(r); }
     });
     function sellerDetail(r:any){ const d=rcAggregate([r],false); const f=nN(r.flag); return {name:r.name||r.email||'',email:r.email||'',region:r.region||'',l1:r.l1_manager_name||'',flag:f,flagLabel:f?FL[f]||String(f):'',subjects:d.subjects,aggregate:d.aggregate,grade:d.grade,chapters:d.chapters}; }
     function build(g:any,isL1:boolean){ const agg=rcAggregate(g.rows,true); return {key:g.key,name:g.name,l2:isL1?g.l2:'',regions:[...g.regions].filter(Boolean) as string[],sellers:g.rows.length,subjects:agg.subjects,aggregate:agg.aggregate,grade:agg.grade,chapters:agg.chapters,sellerList:g.rows.map(sellerDetail).sort((a:any,b:any)=>(b.aggregate||0)-(a.aggregate||0))}; }
