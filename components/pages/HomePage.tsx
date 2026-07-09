@@ -5,6 +5,7 @@ import { UserSession } from '@/lib/session'
 import styles from './HomePage.module.css'
 import Loader from '@/components/ui/Loader'
 import RoadmapPage from './RoadmapPage'
+import { useStickyState } from '@/components/hooks/useStickyState'
 
 interface SellerData {
   seller_email: string
@@ -90,9 +91,9 @@ export default function HomePage({ session }: HomePageProps) {
   const [data, setData] = useState<SellerData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [showTopline, setShowTopline] = useState(true)
-  const [showBottomline, setShowBottomline] = useState(true)
-  const [viewMode, setViewMode] = useState<'my' | 'team'>('my')
+  const [showTopline, setShowTopline] = useStickyState(true, 'HomePage_showTopline')
+  const [showBottomline, setShowBottomline] = useStickyState(true, 'HomePage_showBottomline')
+  const [viewMode, setViewMode] = useStickyState<'my' | 'team'>('my', 'HomePage_viewMode')
   const [teamData, setTeamData] = useState<any[]>([])
   const [selectedKpi, setSelectedKpi] = useState<{ id: string, label: string, isPct?: boolean } | null>(null)
 

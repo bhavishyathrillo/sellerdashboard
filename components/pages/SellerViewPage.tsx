@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './SellerViewPage.module.css'
 import Loader from '@/components/ui/Loader'
+import { useStickyState } from '@/components/hooks/useStickyState'
 
 interface MonthlyTotals {
   total_leads_allotted: number
@@ -184,11 +185,11 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
   const [data, setData] = useState<SellerViewData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedDate, setSelectedDate] = useState(todayStr())
-  const [activeTile, setActiveTile] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useStickyState(todayStr(), 'SellerView_selectedDate')
+  const [activeTile, setActiveTile] = useStickyState<string | null>(null, 'SellerView_activeTile')
   const [activeBlock, setActiveBlock] = useState<{ hour: string; start: number; end: number; leads: number; eligible: boolean; isBreak: boolean; isLateAllocation: boolean; isReady: boolean; isOrbitOnly: boolean } | null>(null)
   const [closing, setClosing] = useState(false)
-  const [showHourlyView, setShowHourlyView] = useState(false)
+  const [showHourlyView, setShowHourlyView] = useStickyState(false, 'SellerView_showHourlyView')
   const isToday = selectedDate === todayStr()
   const trendChartRef = useRef<HTMLCanvasElement>(null)
   const trendChartInstance = useRef<any>(null)

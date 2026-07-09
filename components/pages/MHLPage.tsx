@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { UserSession } from '@/lib/session'
+import { useStickyState } from '@/components/hooks/useStickyState'
 
 interface Lead {
   id: number
@@ -148,12 +149,12 @@ export default function MHLPage({ session }: HomePageProps) {
   const [openCountMap, setOpenCountMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [view, setView] = useState<'mine' | 'team'>(
-    session.role === 'L1' ? 'team' : 'mine'
+  const [view, setView] = useStickyState<'mine' | 'team'>(
+    session.role === 'L1' ? 'team' : 'mine', 'MHLPage_view'
   )
-  const [tableView, setTableView] = useState(false)
-  const [search, setSearch] = useState('')
-  const [stageFilter, setStageFilter] = useState('all')
+  const [tableView, setTableView] = useStickyState(false, 'MHLPage_tableView')
+  const [search, setSearch] = useStickyState('', 'MHLPage_search')
+  const [stageFilter, setStageFilter] = useStickyState('all', 'MHLPage_stageFilter')
   const [expandedSellers, setExpandedSellers] = useState<Record<string, boolean>>({})
   const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>({})
 

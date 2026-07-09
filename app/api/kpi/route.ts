@@ -63,6 +63,69 @@ export async function DELETE(req: NextRequest) {
 // ============================================================
 function medArr(a: number[]) { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
 
+async function enrichWithMedians(rows: any[], sc: string) {
+  if (!rows || !rows.length || !sc) return;
+  const { data: cd } = await supabase.schema('seller_day_to_day').from('cycles').select('start_date, end_date').eq('cycle', sc).limit(1);
+  if (!cd || cd.length === 0) return;
+  const from = cd[0].start_date, to = cd[0].end_date;
+  const emails = [...new Set(rows.map(r => r.email).filter(Boolean))];
+  if (!emails.length) return;
+
+  const { data: mhlData } = await fetchAll(supabase.schema('seller_day_to_day').from('mhl_daily')
+    .select('seller_email, activity_date, mishandled_count, open_leads_count, available_today')
+    .in('seller_email', emails).gte('activity_date', from).lte('activity_date', to));
+  
+  const mheMap: Record<string, number> = {};
+  if (mhlData) {
+    const sdm: Record<string,Record<string,any>> = {};
+    const validMhl = mhlData.filter((r:any) => r.available_today !== false && r.available_today !== 'false' && new Date(r.activity_date).getDay() !== 0);
+    validMhl.forEach((r:any) => {
+      const e = (r.seller_email || '').toLowerCase();
+      const iso = r.activity_date;
+      if (!sdm[e]) sdm[e] = {};
+      if (!sdm[e][iso]) sdm[e][iso] = { mish: 0, open: 0 };
+      sdm[e][iso].mish += +r.mishandled_count;
+      sdm[e][iso].open += +r.open_leads_count;
+    });
+    Object.keys(sdm).forEach(e => {
+      const days = Object.values(sdm[e]).map((d:any) => d.open > 0 ? (d.mish / d.open) : null).filter(v => v !== null) as number[];
+      const smv = medArr(days);
+      if (smv !== null) mheMap[e] = smv; // fraction
+    });
+    
+    // Attach raw daily data for team median calculations in rcAggregate
+    rows.forEach(r => {
+      const e = (r.email || '').toLowerCase();
+      r._mhl_daily = validMhl.filter((m:any) => (m.seller_email||'').toLowerCase() === e);
+    });
+  }
+
+  const { data: leadsData } = await fetchAll(supabase.schema('seller_day_to_day').from('leads')
+    .select('sales_email_id, call_bucket')
+    .in('sales_email_id', emails).gte('lead_assignment_time', from + 'T00:00:00+05:30').lte('lead_assignment_time', to + 'T23:59:59+05:30'));
+
+  const w15Map: Record<string, number> = {};
+  if (leadsData) {
+    const sd: Record<string,{wIn:number;wTot:number}> = {};
+    leadsData.forEach((r:any) => {
+      const e = (r.sales_email_id || '').toLowerCase();
+      if (!sd[e]) sd[e] = { wIn: 0, wTot: 0 };
+      const b = (r.call_bucket || '').toLowerCase();
+      if (b.includes('within')) { sd[e].wIn++; sd[e].wTot++; }
+      else if (b.includes('beyond') || b.includes('15')) { sd[e].wTot++; }
+    });
+    Object.keys(sd).forEach(e => {
+      if (sd[e].wTot > 0) w15Map[e] = (sd[e].wIn / sd[e].wTot) * 100;
+    });
+  }
+
+  rows.forEach(r => {
+    const e = (r.email || '').toLowerCase();
+    if (mheMap[e] !== undefined) r.mhe_actual = mheMap[e];
+    if (w15Map[e] !== undefined) r.sla_actual = w15Map[e];
+  });
+}
+
 // ============================================================
 // DASHBOARD — roster only, no srs_raw
 // ============================================================
@@ -72,6 +135,7 @@ async function handleDashboard() {
     const { data: cd } = await supabase.schema('seller_day_to_day').from('cycles').select('*').order('start_date',{ascending:false});
     const cr: Record<string,{from:string;to:string}> = {}; (cd||[]).forEach((c:any)=>{ cr[c.cycle]={from:c.start_date,to:c.end_date}; });
     const cycles = (cd||[]).map((c:any)=>c.cycle); const lc = cycles[0]||'';
+    await enrichWithMedians(sellers || [], lc);
 
     const mapped = (sellers||[]).map((s:any)=>{
       return {
@@ -161,11 +225,22 @@ async function handleSellerRaw(req: NextRequest) {
     if(t) qM=qM.lte('activity_date',t);
     const { data: mRaw } = await qM.order('activity_date',{ascending:false}).limit(100000);
     const m = (mRaw||[]).filter((r:any)=>r.available_today!==false&&r.available_today!=='false' && new Date(r.activity_date).getDay()!==0);
-    let qC = supabase.schema('seller_day_to_day').from('leads').select('*').ilike('sales_email_id',email);
+    
+    let qC = supabase.schema('seller_day_to_day').from('leads').select('SALES_EMAIL_ID:sales_email_id, LEAD_CREATION_TIME:created_at, LEAD_ASSIGNMENT_TIME:lead_assignment_time, REGION:region, FIRST_CONNECTED_CALL_DURATION:first_connected_call_duration, LEAD_LINK:enquiry_code, FIRST_CONNECTED_CALL_RECORDING:first_connected_call_recording, CALL_BUCKET:call_bucket').ilike('sales_email_id',email);
     if(f) qC=qC.gte('lead_assignment_time',f+'T00:00:00+05:30');
     if(t) qC=qC.lte('lead_assignment_time',t+'T23:59:59+05:30');
     const { data: c } = await qC.order('lead_assignment_time',{ascending:false}).limit(100000);
-    return NextResponse.json({success:true,email,mhl:{headers:m?.length?Object.keys(m[0]):[],rows:m||[],count:(m||[]).length,sheetFound:true},call:{headers:c?.length?Object.keys(c[0]):[],rows:c||[],count:(c||[]).length,sheetFound:true}});
+    
+    let qMho = supabase.from('mhl_mho').select('SALES_EMAIL_ID:owner_email, CURRENT_LEAD_STAGE:stage, LAST_CALL:last_call, IF_MISHANDLED:mhl_mho, ENQUIRY_LINK:lead_id').ilike('owner_email',email).ilike('mhl_mho','%mishandled%');
+    const { data: mhoRaw } = await qMho.order('last_call', {ascending:false}).limit(1000);
+    
+    m.forEach((row: any) => {
+        if (!row.activity_date) return;
+        const matches = (mhoRaw || []).filter((l: any) => l.LAST_CALL && l.LAST_CALL.startsWith(row.activity_date));
+        row.mishandled_enquiry_ids = matches.length ? matches.map((l:any) => l.ENQUIRY_LINK).join(', ') : '';
+    });
+      
+    return NextResponse.json({success:true,email,mhl:{headers:m?.length?Object.keys(m[0]):[],rows:m||[],count:(m||[]).length,sheetFound:true,leads:mhoRaw||[]},call:{headers:c?.length?Object.keys(c[0]):[],rows:c||[],count:(c||[]).length,sheetFound:true}});
   } catch { return NextResponse.json({success:true,email:'',mhl:{headers:[],rows:[],count:0,sheetFound:false},call:{headers:[],rows:[],count:0,sheetFound:false}}); }
 }
 
@@ -215,7 +290,16 @@ function mF(x:number|null){ if(x===null||x===undefined)return'-'; const a=Math.a
 
 function rcAggregate(rows:any[], includeFlag:boolean){
   let mish=0,mishD=0,c15=0,c15D=0,talkN=0,talkD=0,rw=0,sellers=0,prio=0,aa=0,z=0,ac=0,ae=0,ad=0,ag=0,conv2=0,botA=0,botT=0,topA=0,topT=0,convA=0,convT=0,leadsSHB=0;
+  function median(arr:number[]):number|null{
+    if(!arr.length)return null;
+    const s=[...arr].sort((a,b)=>a-b);
+    const mid=Math.floor(s.length/2);
+    return s.length%2!==0 ? s[mid] : (s[mid-1]+s[mid])/2;
+  }
+  
+  const allDaily: any[] = [];
   rows.forEach((r:any)=>{
+    if (r._mhl_daily) allDaily.push(...r._mhl_daily);
     mish+=n0(r.mishandled_count); mishD+=n0(r.total_lead_instances);
     c15+=n0(r.called_within_15_count); c15D+=n0(r.total_leads);
     prio+=n0(r.priority_leads_count);
@@ -229,7 +313,22 @@ function rcAggregate(rows:any[], includeFlag:boolean){
     convA+=n0(r.conversion_actual); convT+=n0(r.conversion_shb);
     leadsSHB+=n0(r.leads_shb);
   });
-  const mishAct=mishD>0?mish/mishD:null, c15Act=c15D>0?c15/c15D:null, prioA=c15D>0?prio/c15D:null;
+
+  let mishAct = mishD>0?mish/mishD:null;
+  if (allDaily.length > 0) {
+    const dm: Record<string,any> = {};
+    allDaily.forEach((r:any) => {
+       const iso = r.activity_date;
+       if (!dm[iso]) dm[iso] = {mish:0, open:0};
+       dm[iso].mish += +r.mishandled_count;
+       dm[iso].open += +r.open_leads_count;
+    });
+    const days = Object.values(dm).map((d:any) => d.open > 0 ? (d.mish / d.open) : null).filter(v => v !== null) as number[];
+    if (days.length > 0) mishAct = median(days);
+  }
+
+  const c15Act = (c15D>0?c15/c15D:null);
+  const prioA=c15D>0?prio/c15D:null;
   const talkAct=talkD>0?talkN/talkD:null, flagAct=includeFlag&&sellers>0?rw/sellers:null;
   const quotedA=z>0?aa/z:null, qFeasA=aa>0?ac/aa:null, passA=ad>0?ae/ad:null, quoteConvA=ae>0?conv2/ae:null, reworkA=ad>0?ag/ad:null;
   const botAch=botT>0?botA/botT:null, topAch=topT>0?topA/topT:null;
@@ -289,6 +388,7 @@ async function handleReportCard(req: NextRequest) {
     const goal = u.searchParams.get('goal'); if(goal && goal !== 'all') q=q.eq('goal_type', goal);
     const haul = u.searchParams.get('haul'); if(haul && haul !== 'all') q=q.eq('haul', haul);
     const { data: rows } = await q;
+    await enrichWithMedians(rows || [], sc);
     
     const l1M: Record<string,any> = {}, l2M: Record<string,any> = {}; const regs=new Set<string>();
     (rows||[]).forEach((r:any)=>{

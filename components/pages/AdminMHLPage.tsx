@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import { useStickyState } from '@/components/hooks/useStickyState'
 
 interface Lead {
   id: number
@@ -169,9 +170,9 @@ export default function AdminMHLPage() {
   const [selectedL2, setSelectedL2] = useState<any>(null)
   const [selectedSeller, setSelectedSeller] = useState<any>(null)
   const [expandedStage, setExpandedStage] = useState<Record<string, boolean>>({})
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards')
-  const [search, setSearch] = useState('')
-  const [stageFilter, setStageFilter] = useState('all')
+  const [viewMode, setViewMode] = useStickyState<'cards' | 'table'>('cards', 'AdminMHL_viewMode')
+  const [search, setSearch] = useStickyState('', 'AdminMHL_search')
+  const [stageFilter, setStageFilter] = useStickyState('all', 'AdminMHL_stageFilter')
   const [filteredResults, setFilteredResults] = useState<any[]>([])
 
   const l1Data = useMemo(() => {
