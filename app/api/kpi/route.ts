@@ -161,7 +161,8 @@ async function handleSellerRaw(req: NextRequest) {
     if(t) qM=qM.lte('activity_date',t);
     const { data: mRaw } = await qM.order('activity_date',{ascending:false}).limit(100000);
     const m = (mRaw||[]).filter((r:any)=>r.available_today!==false&&r.available_today!=='false' && new Date(r.activity_date).getDay()!==0);
-    let qC = supabase.schema('seller_day_to_day').from('leads').select('*').ilike('sales_email_id',email);
+    
+    let qC = supabase.schema('seller_day_to_day').from('leads').select('SALES_EMAIL_ID:sales_email_id, LEAD_CREATION_TIME:created_at, LEAD_ASSIGNMENT_TIME:lead_assignment_time, REGION:region, FIRST_CONNECTED_CALL_DURATION:first_connected_call_duration, LEAD_LINK:enquiry_code, FIRST_CONNECTED_CALL_RECORDING:first_connected_call_recording, CALL_BUCKET:call_bucket').ilike('sales_email_id',email);
     if(f) qC=qC.gte('lead_assignment_time',f+'T00:00:00+05:30');
     if(t) qC=qC.lte('lead_assignment_time',t+'T23:59:59+05:30');
     const { data: c } = await qC.order('lead_assignment_time',{ascending:false}).limit(100000);
