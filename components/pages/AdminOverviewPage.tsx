@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo } from 'react'
 import React from 'react'
+import { useStickyState } from '@/components/hooks/useStickyState'
 
 /* ─── helpers ─── */
 function fmt(n: number) {
@@ -540,7 +541,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
   const [expandedRegions, setExpandedRegions] = useState<Record<string, boolean>>({})
   const [expandedFlagCms, setExpandedFlagCms] = useState<Record<string, boolean>>({})
   const [flagModal, setFlagModal] = useState<{ cmName: string, l2Name?: string, flag: string } | null>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useStickyState('', 'AdminOverview_search')
   const adminName = session?.name || 'Admin'
 
   useEffect(() => {

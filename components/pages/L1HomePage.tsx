@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './HomePage.module.css'
 import Loader from '@/components/ui/Loader'
+import { useStickyState } from '@/components/hooks/useStickyState'
 
 function fmt(n: number) {
   if (!n && n !== 0) return '₹0'
@@ -48,9 +49,9 @@ export default function L1HomePage({ session }: { session: UserSession }) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [expandedL2, setExpandedL2] = useState<Record<string, boolean>>({})
-  const [toggleState, setToggleState] = useState<'topline' | 'bottomline' | 'all'>('all')
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards')
-  const [search, setSearch] = useState('')
+  const [toggleState, setToggleState] = useStickyState<'topline' | 'bottomline' | 'all'>('all', 'L1HomePage_toggleState')
+  const [viewMode, setViewMode] = useStickyState<'cards' | 'table'>('cards', 'L1HomePage_viewMode')
+  const [search, setSearch] = useStickyState('', 'L1HomePage_search')
   const [filteredResults, setFilteredResults] = useState<any[]>([])
 
   useEffect(() => {
