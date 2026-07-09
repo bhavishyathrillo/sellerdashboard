@@ -165,7 +165,19 @@ async function handleSellerRaw(req: NextRequest) {
     if(f) qC=qC.gte('lead_assignment_time',f+'T00:00:00+05:30');
     if(t) qC=qC.lte('lead_assignment_time',t+'T23:59:59+05:30');
     const { data: c } = await qC.order('lead_assignment_time',{ascending:false}).limit(100000);
-    return NextResponse.json({success:true,email,mhl:{headers:m?.length?Object.keys(m[0]):[],rows:m||[],count:(m||[]).length,sheetFound:true},call:{headers:c?.length?Object.keys(c[0]):[],rows:c||[],count:(c||[]).length,sheetFound:true}});
+    
+    let qMho = supabase.from('mhl_mho').select('SALES_EMAIL_ID:owner_email, CURRENT_LEAD_STAGE:stage, LAST_CALL:last_call, IF_MISHANDLED:mhl_mho, ENQUIRY_LINK:lead_id').ilike('owner_email',email).eq('mhl_mho','Mishandled');
+    if(f) qMho = qMho.gte('last_call', f+' 00:00:00');
+    if(t) qMho = qMho.lte('last_call', t+' 23:59:59');
+    const { data: mhoRaw } = await qMho.order('last_call', {ascending:false}).limit(1000);
+    
+    m.forEach((row: any) => {
+        if (!row.activity_date) return;
+        const matches = (mhoRaw || []).filter((l: any) => l.LAST_CALL && l.LAST_CALL.startsWith(row.activity_date));
+        row.mishandled_enquiry_ids = matches.length ? matches.map((l:any) => l.ENQUIRY_LINK).join(', ') : '';
+    });
+      
+    return NextResponse.json({success:true,email,mhl:{headers:m?.length?Object.keys(m[0]):[],rows:m||[],count:(m||[]).length,sheetFound:true,leads:mhoRaw||[]},call:{headers:c?.length?Object.keys(c[0]):[],rows:c||[],count:(c||[]).length,sheetFound:true}});
   } catch { return NextResponse.json({success:true,email:'',mhl:{headers:[],rows:[],count:0,sheetFound:false},call:{headers:[],rows:[],count:0,sheetFound:false}}); }
 }
 
