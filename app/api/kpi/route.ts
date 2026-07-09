@@ -39,9 +39,12 @@ export async function GET(req: NextRequest) {
   }
 }
 export async function POST(req: NextRequest) {
-  const a = new URL(req.url).searchParams.get('action') || '';
+  const u = new URL(req.url);
+  const a = u.searchParams.get('action') || '';
   if (a === 'session') return handleCreateSession(req);
   if (a === 'user') return handleCreateUser(req);
+  if (a === 'raw') return handleRawMetrics(req);
+  if (a === 'mhl') return handleMHLMetrics(req);
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }
 export async function PATCH(req: NextRequest) {
@@ -107,7 +110,7 @@ async function handleDashboard() {
 // ============================================================
 async function handleRawMetrics(req: NextRequest) {
   try {
-    const u = new URL(req.url); const em = (u.searchParams.get('emails')||'').split(',').map(e=>e.trim().toLowerCase()).filter(Boolean);
+    const u = new URL(req.url); let emString = u.searchParams.get('emails')||''; if(req.method==='POST'){ try { const b=await req.json(); emString=b.emails||''; }catch(e){} }; const em = emString.split(',').map(e=>e.trim().toLowerCase()).filter(Boolean);
     const f=u.searchParams.get('from')||null, t=u.searchParams.get('to')||null;
     let q = supabase.schema('seller_day_to_day').from('leads').select('sales_email_id,first_connected_call_duration,call_bucket');
     if(em.length) q=q.in('sales_email_id',em); if(f) q=q.gte('lead_assignment_time',f+'T00:00:00+05:30'); if(t) q=q.lte('lead_assignment_time',t+'T23:59:59+05:30');
@@ -124,19 +127,18 @@ async function handleRawMetrics(req: NextRequest) {
 // ============================================================
 async function handleMHLMetrics(req: NextRequest) {
   try {
-    const u = new URL(req.url); const em = (u.searchParams.get('emails')||'').split(',').map(e=>e.trim().toLowerCase()).filter(Boolean);
+    const u = new URL(req.url); let emString = u.searchParams.get('emails')||''; if(req.method==='POST'){ try { const b=await req.json(); emString=b.emails||''; }catch(e){} }; const em = emString.split(',').map(e=>e.trim().toLowerCase()).filter(Boolean);
     const f=u.searchParams.get('from')||null, t=u.searchParams.get('to')||null;
     let q = supabase.schema('seller_day_to_day').from('mhl_daily').select('*'); if(em.length) q=q.in('seller_email',em); if(f) q=q.gte('activity_date',f); if(t) q=q.lte('activity_date',t);
     const { data: rowsRaw } = await fetchAll(q);
+    const rows = (rowsRaw||[]).filter((r:any)=>r.available_today!==false&&r.available_today!=='false' && new Date(r.activity_date).getDay()!==0);
     const dm: Record<string,any> = {}; const sdm: Record<string,Record<string,any>> = {};
-    (rowsRaw||[]).forEach((r:any)=>{
+    rows.forEach((r:any)=>{
       const iso=r.activity_date, disp=new Date(r.activity_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
       if(!dm[iso]) dm[iso]={mish:0,open:0,disp};
       dm[iso].mish+=+r.mishandled_count; dm[iso].open+=+r.open_leads_count;
-      if (r.available_today!==false&&r.available_today!=='false') {
-        const e=(r.seller_email||'').toLowerCase(); if(!sdm[e]) sdm[e]={}; if(!sdm[e][iso]) sdm[e][iso]={mish:0,open:0,disp};
-        sdm[e][iso].mish+=+r.mishandled_count; sdm[e][iso].open+=+r.open_leads_count;
-      }
+      const e=(r.seller_email||'').toLowerCase(); if(!sdm[e]) sdm[e]={}; if(!sdm[e][iso]) sdm[e][iso]={mish:0,open:0,disp};
+      sdm[e][iso].mish+=+r.mishandled_count; sdm[e][iso].open+=+r.open_leads_count;
     });
     const ds = Object.keys(dm).sort().reverse().map(iso=>{ const d=dm[iso]; return {date:d.disp,isoDate:iso,mishandled:d.mish,openLeads:d.open,mhePct:d.open>0?parseFloat((d.mish/d.open*100).toFixed(2)):null}; });
     const om = medArr(ds.map(d=>d.mhePct).filter(v=>v!=null) as number[]);
@@ -158,7 +160,7 @@ async function handleSellerRaw(req: NextRequest) {
     if(f) qM=qM.gte('activity_date',f);
     if(t) qM=qM.lte('activity_date',t);
     const { data: mRaw } = await qM.order('activity_date',{ascending:false}).limit(100000);
-    const m = (mRaw||[]).filter((r:any)=>r.available_today!==false&&r.available_today!=='false');
+    const m = (mRaw||[]).filter((r:any)=>r.available_today!==false&&r.available_today!=='false' && new Date(r.activity_date).getDay()!==0);
     let qC = supabase.schema('seller_day_to_day').from('leads').select('*').ilike('sales_email_id',email);
     if(f) qC=qC.gte('lead_assignment_time',f+'T00:00:00+05:30');
     if(t) qC=qC.lte('lead_assignment_time',t+'T23:59:59+05:30');
@@ -222,14 +224,8 @@ function rcAggregate(rows:any[], includeFlag:boolean){
     aa+=n0(r.unique_leads_quoted); z+=n0(r.unique_leads);
     ac+=n0(r.unique_feasibility_sent); ae+=n0(r.feasibility_passed); ad+=n0(r.total_feasibility_sent); ag+=n0(r.reworks);
     conv2+=n0(r.converted_count);
-    if (r.goal_type === 'Bottomline') {
-      botA+=n0(r.bottomline_actual); botT+=n0(r.bottomline_shb);
-    } else if (r.goal_type === 'Topline') {
-      topA+=n0(r.topline_actual); topT+=n0(r.topline_shb);
-    } else {
-      botA+=n0(r.bottomline_actual); botT+=n0(r.bottomline_shb);
-      topA+=n0(r.topline_actual); topT+=n0(r.topline_shb);
-    }
+    botA+=n0(r.bottomline_actual); botT+=n0(r.bottomline_shb);
+    topA+=n0(r.topline_actual); topT+=n0(r.topline_shb);
     convA+=n0(r.conversion_actual); convT+=n0(r.conversion_shb);
     leadsSHB+=n0(r.leads_shb);
   });
