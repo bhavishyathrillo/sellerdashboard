@@ -232,8 +232,6 @@ async function handleSellerRaw(req: NextRequest) {
     const { data: c } = await qC.order('lead_assignment_time',{ascending:false}).limit(100000);
     
     let qMho = supabase.from('mhl_mho').select('SALES_EMAIL_ID:owner_email, CURRENT_LEAD_STAGE:stage, LAST_CALL:last_call, IF_MISHANDLED:mhl_mho, ENQUIRY_LINK:lead_id').ilike('owner_email',email).ilike('mhl_mho','%mishandled%');
-    if(f) qMho = qMho.gte('last_call', f+' 00:00:00');
-    if(t) qMho = qMho.lte('last_call', t+' 23:59:59');
     const { data: mhoRaw } = await qMho.order('last_call', {ascending:false}).limit(1000);
     
     m.forEach((row: any) => {
