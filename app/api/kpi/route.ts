@@ -261,7 +261,14 @@ function rcAggregate(rows:any[], includeFlag:boolean){
   if(includeFlag) push('Output metrics','flag','Seller flags','(red + white sellers) / total sellers',flagAct===null?'No data':pF(flagAct)+' red + white sellers ('+rw+' of '+sellers+')','below 12%',CHW.output.flag,sc.flag);
   const input=wAvg([[sc.mishandled,CHW.input.mishandled],[sc.called15,CHW.input.called15],[sc.talk,CHW.input.talk],[sc.priority,CHW.input.priority]]);
   const quotations=wAvg([[sc.quoted,CHW.quotations.quoted],[sc.quoteFeas,CHW.quotations.quoteFeas],[sc.pass,CHW.quotations.pass],[sc.rework,CHW.quotations.rework],[sc.quoteConv,CHW.quotations.quoteConv]]);
-  const output=wAvg([[sc.bottomline,CHW.output.bottomline],[sc.topline,CHW.output.topline],[sc.conversionPct,CHW.output.conversionPct],[sc.margin,CHW.output.margin]].concat(includeFlag?[[sc.flag!,CHW.output.flag]]:[]));
+  const outputPairs: [number|null, number][] = [
+    [sc.bottomline, CHW.output.bottomline],
+    [sc.topline, CHW.output.topline],
+    [sc.conversionPct, CHW.output.conversionPct],
+    [sc.margin, CHW.output.margin]
+  ];
+  if(includeFlag) outputPairs.push([sc.flag!, CHW.output.flag]);
+  const output=wAvg(outputPairs);
   const agg=wAvg([[output,SW.output],[input,SW.input],[quotations,SW.quotations]]);
   return {subjects:{input:r1(input),quotations:r1(quotations),output:r1(output)},aggregate:r1(agg),grade:grd(agg),chapters:ch};
 }

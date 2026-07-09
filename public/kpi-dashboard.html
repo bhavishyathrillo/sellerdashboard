@@ -19,11 +19,11 @@ html { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) transpar
 .sidebar{width:100%;flex-shrink:0;background:var(--bg-main);border-bottom:none;display:flex;flex-direction:row;align-items:center;position:sticky;top:0;padding:12px 20px;z-index:100;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
 .sidebar::-webkit-scrollbar{display:none}
 .sidebar-logo{display:none}
-.sidebar-nav{display:flex;flex-direction:row;align-items:center;gap:8px;flex:1;padding:0}
+.sidebar-nav{display:inline-flex;flex-direction:row;align-items:center;gap:4px;padding:5px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;margin:0 auto}
 .nav-section-label{display:none}
-.nav-item{display:inline-flex;align-items:center;justify-content:center;padding:8px 16px;border-radius:8px;cursor:pointer;transition:all .15s;color:#8E8E93;font-size:13px;font-weight:600;margin-bottom:0;white-space:nowrap}
-.nav-item:hover{color:#fff}
-.nav-item.active{background:rgba(244,99,30,0.15);color:var(--brand-orange);font-weight:600}
+.nav-item{display:inline-flex;align-items:center;justify-content:center;padding:7px 18px;border-radius:8px;cursor:pointer;transition:all .2s cubic-bezier(0.4, 0, 0.2, 1);color:#8A8278;font-size:13px;font-weight:600;margin-bottom:0;white-space:nowrap}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,0.03)}
+.nav-item.active{background:rgba(244,99,30,0.15);color:var(--brand-orange);box-shadow:inset 0 0 0 1px rgba(244,99,30,0.2)}
 .nav-icon{display:none}
 .sidebar-user{display:none}
 .user-card{display:none}
@@ -119,43 +119,177 @@ tr:hover td{background:var(--bg-hover)}
 .adopt-section-title{font-size:15px;font-weight:700;color:var(--text-primary)}
 .adopt-section-sub{font-size:11px;color:var(--text-muted)}
 .rc-wrap{max-width:1560px;margin:0 auto}
-.rc-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
-.rc-seg{display:inline-flex;background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:3px}
-.rc-seg button{border:0;background:transparent;padding:8px 16px;font-size:13px;font-weight:500;border-radius:9px;cursor:pointer;color:var(--text-muted);transition:.18s}
-.rc-seg button.on{background:var(--bg-hover);color:var(--brand-orange);font-weight:600}
-.rc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:16px}
-.rc-card{background:var(--bg-card);border-radius:16px;overflow:hidden;cursor:pointer;border:1px solid var(--border);transition:all .2s}
-.rc-card:hover{transform:translateY(-3px);border-color:#444}
-.rc-head{padding:20px 22px 16px;display:flex;gap:18px;align-items:center;border-bottom:1px solid var(--border)}
-.rc-body{padding:18px 22px}
-.rc-subrow{display:flex;align-items:center;gap:12px;margin:11px 0}
-.rc-lab{width:80px;font-size:13px;color:var(--text-muted);flex:none}
-.rc-bar{flex:1;height:8px;border-radius:4px;background:var(--border);overflow:hidden}
-.rc-bar>i{display:block;height:100%;border-radius:4px;transition:width .6s}
-.rc-state{padding:56px 0;text-align:center;color:var(--text-muted);font-size:14px}
-.rc-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px;margin-top:6px}
-.rc-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;padding:32px 14px;overflow:auto;z-index:5000}
+.rc-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:22px}
+.rc-seg{display:inline-flex;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:4px;gap:4px}
+.rc-seg button{border:0;background:transparent;padding:8px 18px;font-size:13px;font-weight:500;border-radius:9px;cursor:pointer;color:var(--text-muted);transition:all .2s;font-family:inherit;letter-spacing:0.2px}
+.rc-seg button.on{background:rgba(244,99,30,0.18);color:var(--brand-orange);font-weight:700;box-shadow:0 0 0 1px rgba(244,99,30,0.35) inset}
+.rc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:18px}
+
+/* ─── Report Card — Card ─── */
+.rc-card{
+  background:linear-gradient(160deg,#181818 0%,#121212 100%);
+  border-radius:20px;overflow:hidden;cursor:pointer;
+  border:1px solid rgba(255,255,255,0.07);
+  transition:transform .22s cubic-bezier(0.2,0.7,0.3,1),box-shadow .22s,border-color .22s;
+  box-shadow:0 2px 16px rgba(0,0,0,0.35);
+}
+.rc-card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 16px 48px rgba(0,0,0,0.55),0 0 0 1px rgba(244,99,30,0.25);
+  border-color:rgba(244,99,30,0.3);
+}
+
+/* ─── Report Card — Head ─── */
+.rc-head{
+  padding:22px 24px 18px;
+  display:flex;gap:18px;align-items:center;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  background:rgba(255,255,255,0.02);
+}
+
+/* ─── Score Ring ─── */
+.rc-score-ring{
+  width:60px;height:60px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:18px;letter-spacing:-0.5px;
+  position:relative;
+}
+.rc-score-ring::before{
+  content:'';position:absolute;inset:-3px;border-radius:50%;
+  background:conic-gradient(var(--rc-ring-color,#FF9500) var(--rc-pct,0%), rgba(255,255,255,0.08) 0%);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);
+  mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);
+}
+
+/* ─── Report Card — Body ─── */
+.rc-body{padding:18px 24px 20px}
+.rc-subrow{display:flex;align-items:center;gap:12px;margin:10px 0}
+.rc-lab{
+  width:90px;font-size:12px;color:var(--text-muted);flex:none;
+  font-weight:600;letter-spacing:0.3px;text-transform:uppercase;font-size:10px;
+}
+.rc-bar{
+  flex:1;height:6px;border-radius:99px;
+  background:rgba(255,255,255,0.07);overflow:hidden;
+}
+.rc-bar>i{
+  display:block;height:100%;border-radius:99px;
+  transition:width .7s cubic-bezier(0.4,0,0.2,1);
+}
+.rc-score-num{
+  width:34px;text-align:right;font-size:13px;font-weight:700;
+  flex:none;color:var(--text-primary);
+}
+.rc-state{padding:64px 0;text-align:center;color:var(--text-muted);font-size:14px}
+.rc-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;margin-top:6px;
+  letter-spacing:0.2px;
+}
+
+/* ─── Report Card — Detail Overlay ─── */
+.rc-ov{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);
+  display:none;align-items:flex-start;justify-content:center;
+  padding:32px 14px;overflow:auto;z-index:5000;
+}
 .rc-ov.rc-show{display:flex}
-.rc-modal{background:var(--bg-main);border-radius:20px;width:100%;max-width:760px;overflow:hidden;border:1px solid var(--border)}
-.rc-mh{background:var(--bg-card);border-bottom:1px solid var(--border);color:var(--text-primary);padding:18px 22px;display:flex;justify-content:space-between;gap:14px}
-.rc-mh .rc-t{font-size:18px;font-weight:700}
-.rc-mh .rc-x{background:var(--bg-main);border:1px solid var(--border);color:var(--text-muted);width:32px;height:32px;border-radius:9px;font-size:18px;cursor:pointer}
-.rc-mbody{padding:16px;max-height:calc(100vh - 140px);overflow:auto}
-.rc-hero{background:var(--bg-card);border-radius:16px;padding:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:14px;border:1px solid var(--border)}
-.rc-subj{background:var(--bg-card);border-radius:16px;overflow:hidden;margin-bottom:14px;border:1px solid var(--border)}
-.rc-subj .rc-sh{padding:14px 16px;display:flex;align-items:center;gap:12px;background:var(--bg-hover)}
-.rc-chap{display:flex;align-items:center;gap:12px;padding:11px 15px;border-top:1px solid var(--border);flex-wrap:wrap}
-.rc-sellersBtn{width:100%;border:1px solid var(--border);background:var(--bg-card);border-radius:14px;padding:14px;font-size:13px;font-weight:600;color:var(--brand-orange);cursor:pointer}
-.rc-spacer{flex:1}.rc-count{font-size:12px;color:var(--text-muted);font-weight:500}
-.rc-wchip{font-size:11px;font-weight:600;color:var(--text-muted);background:var(--bg-main);border:1px solid var(--border);border-radius:6px;padding:2px 7px;flex:none}
-.rc-cbar{width:84px;height:7px;border-radius:4px;background:var(--bg-main);overflow:hidden;flex:none}
-.rc-cbar>i{display:block;height:100%;border-radius:4px}
-.rc-cmark{width:30px;text-align:right;font-size:14px;font-weight:700;flex:none;color:var(--text-primary)}
-.rc-how{background:var(--bg-card);border-radius:16px;padding:18px;margin-bottom:6px;border:1px solid var(--border)}
+.rc-modal{
+  background:var(--bg-main);border-radius:22px;
+  width:100%;max-width:780px;overflow:hidden;
+  border:1px solid rgba(255,255,255,0.1);
+  box-shadow:0 32px 80px rgba(0,0,0,0.7);
+  animation:rc-slide-in .28s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes rc-slide-in{from{opacity:0;transform:translateY(28px) scale(0.97)}to{opacity:1;transform:none}}
+
+.rc-mh{
+  background:rgba(255,255,255,0.03);
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  color:var(--text-primary);padding:20px 24px;
+  display:flex;justify-content:space-between;align-items:center;gap:14px;
+}
+.rc-mh .rc-t{font-size:19px;font-weight:700;letter-spacing:-0.3px}
+.rc-mh .rc-x{
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
+  color:var(--text-muted);width:34px;height:34px;border-radius:10px;
+  font-size:18px;cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.rc-mh .rc-x:hover{background:rgba(239,68,68,0.15);color:#EF4444;border-color:rgba(239,68,68,0.3)}
+.rc-mbody{padding:20px;max-height:calc(100vh - 140px);overflow:auto}
+
+/* ─── Detail Hero ─── */
+.rc-hero{
+  background:linear-gradient(135deg,rgba(244,99,30,0.08) 0%,rgba(255,255,255,0.03) 100%);
+  border-radius:18px;padding:20px;
+  display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  margin-bottom:18px;
+  border:1px solid rgba(244,99,30,0.2);
+  box-shadow:0 4px 24px rgba(0,0,0,0.25);
+}
+
+/* ─── Detail Subject Sections ─── */
+.rc-subj{
+  border-radius:18px;overflow:hidden;margin-bottom:16px;
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:0 4px 20px rgba(0,0,0,0.2);
+}
+.rc-subj .rc-sh{
+  padding:16px 20px;display:flex;align-items:center;
+  justify-content:space-between;gap:12px;
+  background:rgba(255,255,255,0.04);
+  border-bottom:1px solid rgba(255,255,255,0.07);
+}
+.rc-subj-icon{
+  width:38px;height:38px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+
+/* ─── Detail Chapter Rows ─── */
+.rc-chap{
+  display:flex;align-items:flex-start;gap:16px;
+  padding:16px 20px;border-top:1px solid rgba(255,255,255,0.05);
+  flex-wrap:wrap;background:rgba(0,0,0,0.15);
+  transition:background .15s;
+}
+.rc-chap:hover{background:rgba(255,255,255,0.025)}
+
+.rc-sellersBtn{
+  width:100%;margin-top:10px;
+  border:1px solid rgba(244,99,30,0.3);
+  background:rgba(244,99,30,0.07);
+  border-radius:14px;padding:14px;
+  font-size:13px;font-weight:600;color:var(--brand-orange);
+  cursor:pointer;transition:all .2s;font-family:inherit;
+}
+.rc-sellersBtn:hover{background:rgba(244,99,30,0.14);border-color:rgba(244,99,30,0.5)}
+
+.rc-spacer{flex:1}
+.rc-count{font-size:12px;color:var(--text-muted);font-weight:500}
+.rc-wchip{
+  font-size:11px;font-weight:600;color:var(--text-muted);
+  background:rgba(255,255,255,0.05);border:1px solid var(--border);
+  border-radius:7px;padding:3px 8px;flex:none;
+}
+.rc-cbar{width:84px;height:6px;border-radius:99px;background:rgba(255,255,255,0.07);overflow:hidden;flex:none}
+.rc-cbar>i{display:block;height:100%;border-radius:99px}
+.rc-cmark{
+  width:36px;text-align:right;font-size:15px;
+  font-weight:800;flex:none;color:var(--text-primary);
+}
+.rc-how{
+  background:rgba(255,255,255,0.03);border-radius:16px;
+  padding:18px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.07);
+}
 .rc-how h4{margin:0 0 10px;font-size:13px;font-weight:700;color:var(--text-primary)}
-.rc-how p{margin:0 0 8px;font-size:12.5px;color:var(--text-muted);line-height:1.55}
+.rc-how p{margin:0 0 8px;font-size:12.5px;color:var(--text-muted);line-height:1.6}
+
 /* Base overrides for inputs added in HTML modals */
 input[type="text"], input[type="email"], select { background: var(--bg-main) !important; color: var(--text-primary) !important; border: 1px solid var(--border) !important; outline: none; }
+
 </style>
 </head>
 <body>
@@ -222,8 +356,8 @@ window.onload=function(){
 function showApp(){document.getElementById('app').classList.add('visible');document.getElementById('sidebar-name').textContent=currentUser.name;document.getElementById('sidebar-role').textContent=currentUser.role;document.getElementById('sidebar-avatar').textContent=currentUser.name.charAt(0).toUpperCase();buildSidebar();loadDashboard();}
 
 // ═══════════════ SIDEBAR ═══════════════
-function buildSidebar(){var role=currentUser.role,nav=document.getElementById('sidebar-nav');var pages=[];if(role==='Seller')pages.push({id:'seller',icon:'📊',label:'My Dashboard'});if(role==='L1 Manager'){pages.push({id:'report',icon:'📋',label:'Report Card'});pages.push({id:'l1',icon:'👥',label:'L1 View'});}if(role==='L2 Manager'){pages.push({id:'report',icon:'📋',label:'Report Card'});pages.push({id:'l2',icon:'🏢',label:'Division View'});pages.push({id:'l1',icon:'👥',label:'L1 View'});}if(role==='Admin'||role==='Management'){pages.push({id:'overview',icon:'🌐',label:'Overview'});pages.push({id:'report',icon:'📋',label:'Report Card'});pages.push({id:'l2',icon:'🏢',label:'L2 View'});pages.push({id:'l1',icon:'👥',label:'L1 View'});pages.push({id:'seller',icon:'📊',label:'Seller View'});}nav.innerHTML='<div class="nav-section-label">Navigation</div>';pages.forEach(function(p){var d=document.createElement('div');d.className='nav-item';d.innerHTML='<span class="nav-icon">'+p.icon+'</span><span>'+p.label+'</span>';d.onclick=function(){switchPage(p.id);};nav.appendChild(d);});if(pages.length>0)switchPage(pages[0].id);}
-function switchPage(id){document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active');});document.querySelectorAll('.page').forEach(function(e){e.classList.remove('active');});var ni=document.querySelector('.nav-item[onclick*="'+id+'"]');if(ni)ni.classList.add('active');var pg=document.getElementById('page-'+id);if(pg)pg.classList.add('active');if(id==='report')rcLoadReportCard();}
+function buildSidebar(){var role=currentUser.role,nav=document.getElementById('sidebar-nav');var pages=[];if(role==='Seller')pages.push({id:'seller',icon:'📊',label:'My Dashboard'});if(role==='L1 Manager'){pages.push({id:'report',icon:'📋',label:'Report Card'});pages.push({id:'l1',icon:'👥',label:'L1 View'});}if(role==='L2 Manager'){pages.push({id:'report',icon:'📋',label:'Report Card'});pages.push({id:'l2',icon:'🏢',label:'Division View'});pages.push({id:'l1',icon:'👥',label:'L1 View'});}if(role==='Admin'||role==='Management'){pages.push({id:'overview',icon:'🌐',label:'Overview'});pages.push({id:'report',icon:'📋',label:'Report Card'});pages.push({id:'l2',icon:'🏢',label:'L2 View'});pages.push({id:'l1',icon:'👥',label:'L1 View'});pages.push({id:'seller',icon:'📊',label:'Seller View'});}nav.innerHTML='';pages.forEach(function(p){var d=document.createElement('div');d.className='nav-item';d.dataset.id=p.id;d.innerHTML='<span class="nav-icon">'+p.icon+'</span><span>'+p.label+'</span>';d.onclick=function(){switchPage(p.id);};nav.appendChild(d);});if(pages.length>0)switchPage(pages[0].id);}
+function switchPage(id){document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active');});document.querySelectorAll('.page').forEach(function(e){e.classList.remove('active');});var ni=document.querySelector('.nav-item[data-id="'+id+'"]');if(ni)ni.classList.add('active');var pg=document.getElementById('page-'+id);if(pg)pg.classList.add('active');if(id==='report')rcLoadReportCard();}
 
 // ═══════════════ FORMATTERS ═══════════════
 function fmtGoal(v){if(v==null)return'--';if(v>=10000000)return'Rs.'+(v/10000000).toFixed(2)+'Cr';if(v>=100000)return'Rs.'+(v/100000).toFixed(1)+'L';if(v>0)return'Rs.'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0});return'Rs.0';}
@@ -377,12 +511,128 @@ function rcApplyFilters(){
   if(countEl) countEl.textContent=sortedList.length+' '+(RC_LEVEL==='l1'?'managers':'seniors');
   if(!sortedList.length){g.innerHTML='<div class="rc-state">No results.</div>';return;}
   g.innerHTML=sortedList.map(function(m,idx){
-    return'<div class="rc-card" onclick="rcOpenDetail('+idx+')"><div class="rc-head"><div style="width:56px;height:56px;border-radius:50%;border:4px solid '+((m.aggregate||0)>=70?'#34C759':'#FF9500')+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px">'+(m.aggregate!=null?Math.round(m.aggregate):'NR')+'</div><div style="flex:1"><div style="font-size:16px;font-weight:700">'+m.name+'</div><div style="font-size:12px;color:#8E8E93">'+(m.regions||[]).join(', ')+' · '+m.sellers+' sellers</div><span class="rc-pill" style="background:'+((m.aggregate||0)>=70?'#E9F7EC':'#FBE6E4')+';color:'+((m.aggregate||0)>=70?'#1A8F3C':'#CC2F27')+'">'+m.grade+'</span></div></div><div class="rc-body">'+['output','input','quotations'].map(function(k){return'<div class="rc-subrow"><span class="rc-lab">'+k.charAt(0).toUpperCase()+k.slice(1)+'</span><div class="rc-bar"><i style="width:'+(m.subjects[k]||0)+'%;background:#FF5200"></i></div><span style="width:30px;text-align:right;font-weight:700">'+(m.subjects[k]!=null?Math.round(m.subjects[k]):'NR')+'</span></div>';}).join('')+'</div></div>';
+    var agg=m.aggregate||0;
+    var ringColor=agg>=90?'#4ADE80':agg>=70?'#FB923C':'#F87171';
+    var barColors={'output':'rgba(244,99,30,0.55)','input':'rgba(91,156,246,0.55)','quotations':'rgba(184,151,62,0.55)'};
+    var labColors={'output':'#F4631E','input':'#5B9CF6','quotations':'#B8973E'};
+    var labIcons={'output':'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>','input':'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>','quotations':'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'};
+    return'<div class="rc-card" onclick="rcOpenDetail('+idx+')">'+
+      '<div class="rc-head">'+
+        '<div class="rc-score-ring" style="--rc-ring-color:'+ringColor+';--rc-pct:'+(Math.round(agg)*3.6)+'deg;background:rgba(255,255,255,0.04);color:var(--text-primary)">'+
+          (m.aggregate!=null?Math.round(m.aggregate):'NR')+
+        '</div>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:15px;font-weight:600;letter-spacing:-0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-primary)">'+m.name+'</div>'+
+          '<div style="font-size:11px;color:var(--text-muted);margin-top:3px">'+(m.regions||[]).join(', ')+' &middot; '+m.sellers+' sellers</div>'+
+          '<span class="rc-pill" style="background:rgba(255,255,255,0.06);color:var(--text-secondary);border:1px solid rgba(255,255,255,0.09)">'+m.grade+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="rc-body">'+
+        ['output','input','quotations'].map(function(k){
+          var score=m.subjects[k]||0;
+          return '<div class="rc-subrow">'+
+            '<span class="rc-lab" style="display:flex;align-items:center;gap:5px;color:'+labColors[k]+';opacity:0.7">'+(labIcons[k]||'')+k+'</span>'+
+            '<div class="rc-bar"><i style="width:'+score+'%;background:'+barColors[k]+'"></i></div>'+
+            '<span class="rc-score-num" style="color:var(--text-primary)">'+(m.subjects[k]!=null?Math.round(m.subjects[k]):'–')+'</span>'+
+          '</div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
   }).join('');
 }
-function rcOpenDetail(idx){var m=RC_RENDERED[idx];if(!m)return;RC_CUR=m;document.getElementById('rc-t1').textContent=m.name;document.getElementById('rc-s1').textContent=m.sellers+' sellers · '+(m.regions||[]).join(', ');var chaptersHtml='';['Output metrics','Input metrics','Quotations'].forEach(function(sn){var key=sn==='Output metrics'?'output':sn==='Input metrics'?'input':'quotations';var score=m.subjects[key];chaptersHtml+='<div class="rc-subj" style="background:var(--bg-card); border-radius:16px; overflow:hidden; margin-bottom:20px; border:1px solid var(--border); box-shadow:0 4px 20px rgba(0,0,0,0.2);"><div class="rc-sh" style="padding:16px 20px; display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.03); border-bottom:1px solid var(--border);"><div style="display:flex; align-items:center; gap:12px;"><div style="width:36px; height:36px; border-radius:10px; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:16px;">'+(sn==='Output metrics'?'📈':sn==='Input metrics'?'⚡':'💬')+'</div><div style="font-size:16px; font-weight:700; color:var(--text-primary); letter-spacing:0.2px;">'+sn+'</div></div><div style="display:flex; align-items:center; gap:10px;"><div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Score</div><div style="background:'+((score||0)>=90?'rgba(52,199,89,0.15)':(score||0)>=70?'rgba(255,149,0,0.15)':'rgba(255,59,48,0.15)')+'; color:'+((score||0)>=90?'#34C759':(score||0)>=70?'#FF9500':'#FF3B30')+'; padding:6px 14px; border-radius:20px; font-weight:700; font-size:15px; border:1px solid '+((score||0)>=90?'rgba(52,199,89,0.3)':(score||0)>=70?'rgba(255,149,0,0.3)':'rgba(255,59,48,0.3)')+';">'+(score!=null?Math.round(score):'NR')+'</div></div></div>'+(m.chapters||[]).filter(function(c){return c.subject===sn;}).map(function(c){return'<div class="rc-chap" style="padding:20px; border-bottom:1px solid var(--border); background:var(--bg-main);"><div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;"><div style="flex:1; padding-right:20px;"><div style="font-weight:600; font-size:14px; color:var(--text-primary); margin-bottom:6px; display:flex; align-items:center; gap:8px;">'+c.label+' <span style="font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:3px 8px; border-radius:6px; border:1px solid var(--border);">'+c.weight+'% Weight</span></div><div style="font-size:12.5px; color:var(--text-muted); line-height:1.5;">'+c.detail+' <span style="margin:0 6px;color:rgba(255,255,255,0.2)">|</span> <span style="color:#C9A84C">Target: '+c.target+'</span></div></div><div style="text-align:right; flex-shrink:0;"><div style="font-size:22px; font-weight:800; color:'+((c.mark||0)>=90?'#34C759':(c.mark||0)>=70?'#FF9500':'#FF3B30')+'">'+(c.mark!=null?Math.round(c.mark):'NR')+'</div></div></div><div style="width:100%; height:6px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden;"><div style="width:'+(c.mark||0)+'%; height:100%; background:'+((c.mark||0)>=90?'#34C759':(c.mark||0)>=70?'#FF9500':'#FF3B30')+'; border-radius:4px; transition:width 1s cubic-bezier(0.4, 0, 0.2, 1);"></div></div></div>';}).join('')+'</div>';});document.getElementById('rc-b1').innerHTML='<div class="rc-hero" style="background:linear-gradient(135deg, rgba(255,255,255,0.03), transparent); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:24px 28px; display:flex; align-items:center; gap:28px; margin-bottom:24px; box-shadow:0 8px 30px rgba(0,0,0,0.3);"><div style="position:relative; width:100px; height:100px; border-radius:50%; background:var(--bg-main); display:flex; align-items:center; justify-content:center; box-shadow: 0 0 0 2px rgba(255,255,255,0.03);"><svg viewBox="0 0 36 36" style="position:absolute; inset:0; width:100%; height:100%; transform:rotate(-90deg);"><circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="2.5"></circle><circle cx="18" cy="18" r="16" fill="none" stroke="'+((m.aggregate||0)>=90?'#34C759':(m.aggregate||0)>=70?'#FF9500':'#FF3B30')+'" stroke-width="2.5" stroke-dasharray="100" stroke-dashoffset="'+(100-(m.aggregate||0))+'" stroke-linecap="round" style="transition:stroke-dashoffset 1s ease-out;"></circle></svg><div style="font-size:26px; font-weight:800; color:var(--text-primary); z-index:1;">'+(m.aggregate!=null?Math.round(m.aggregate):'NR')+'</div></div><div style="flex:1;"><div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; font-weight:700;">Overall Performance</div><div style="display:flex; align-items:baseline; gap:12px;"><div style="font-size:36px; font-weight:800; color:var(--text-primary); letter-spacing:-0.5px;">Grade '+m.grade+'</div></div></div></div>'+chaptersHtml+'<div class="rc-how" style="background:rgba(255,255,255,0.02); border-radius:16px; padding:20px; margin-bottom:16px; border:1px solid rgba(255,255,255,0.05);"><h4 style="margin:0 0 12px;font-size:14px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;"><span style="color:#8E8E93">ℹ️</span> How this is calculated</h4><p style="margin:0 0 6px;font-size:13px;color:#8E8E93;"><strong>Chapter score</strong> = How close to target (capped at 100).</p><p style="margin:0;font-size:13px;color:#8E8E93;"><strong>Overall Grade</strong> = Output × 70% + Input × 15% + Quotations × 15%.</p></div><button class="rc-sellersBtn" onclick="rcOpenSellers()" style="width:100%; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); border-radius:14px; padding:16px; font-size:14px; font-weight:600; color:var(--brand-orange); cursor:pointer; transition:all 0.2s;">View seller-level breakdown ('+m.sellers+') &rarr;</button>';document.getElementById('rc-ov1').classList.add('rc-show');document.getElementById('rc-ov1').style.display='flex';}
 
-function rcOpenDetail(idx){var m=RC_RENDERED[idx];if(!m)return;RC_CUR=m;document.getElementById('rc-t1').textContent=m.name;document.getElementById('rc-s1').textContent=m.sellers+' sellers · '+(m.regions||[]).join(', ');var chaptersHtml='';['Output metrics','Input metrics','Quotations'].forEach(function(sn){var key=sn==='Output metrics'?'output':sn==='Input metrics'?'input':'quotations';var score=m.subjects[key];chaptersHtml+='<div class="rc-subj" style="background:var(--bg-card); border-radius:16px; overflow:hidden; margin-bottom:20px; border:1px solid var(--border); box-shadow:0 4px 20px rgba(0,0,0,0.2);"><div class="rc-sh" style="padding:16px 20px; display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.03); border-bottom:1px solid var(--border);"><div style="display:flex; align-items:center; gap:12px;"><div style="width:36px; height:36px; border-radius:10px; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:16px;">'+(sn==='Output metrics'?'📈':sn==='Input metrics'?'⚡':'💬')+'</div><div style="font-size:16px; font-weight:700; color:var(--text-primary); letter-spacing:0.2px;">'+sn+'</div></div><div style="display:flex; align-items:center; gap:10px;"><div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Score</div><div style="background:'+((score||0)>=90?'rgba(52,199,89,0.15)':(score||0)>=70?'rgba(255,149,0,0.15)':'rgba(255,59,48,0.15)')+'; color:'+((score||0)>=90?'#34C759':(score||0)>=70?'#FF9500':'#FF3B30')+'; padding:6px 14px; border-radius:20px; font-weight:700; font-size:15px; border:1px solid '+((score||0)>=90?'rgba(52,199,89,0.3)':(score||0)>=70?'rgba(255,149,0,0.3)':'rgba(255,59,48,0.3)')+';">'+(score!=null?Math.round(score):'NR')+'</div></div></div>'+(m.chapters||[]).filter(function(c){return c.subject===sn;}).map(function(c){return'<div class="rc-chap" style="padding:20px; border-bottom:1px solid var(--border); background:var(--bg-main);"><div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;"><div style="flex:1; padding-right:20px;"><div style="font-weight:600; font-size:14px; color:var(--text-primary); margin-bottom:6px; display:flex; align-items:center; gap:8px;">'+c.label+' <span style="font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:3px 8px; border-radius:6px; border:1px solid var(--border);">'+c.weight+'% Weight</span></div><div style="font-size:12.5px; color:var(--text-muted); line-height:1.5;">'+c.detail+' <span style="margin:0 6px;color:rgba(255,255,255,0.2)">|</span> <span style="color:#C9A84C">Target: '+c.target+'</span></div></div><div style="text-align:right; flex-shrink:0;"><div style="font-size:22px; font-weight:800; color:'+((c.mark||0)>=90?'#34C759':(c.mark||0)>=70?'#FF9500':'#FF3B30')+'">'+(c.mark!=null?Math.round(c.mark):'NR')+'</div></div></div><div style="width:100%; height:6px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden;"><div style="width:'+(c.mark||0)+'%; height:100%; background:'+((c.mark||0)>=90?'#34C759':(c.mark||0)>=70?'#FF9500':'#FF3B30')+'; border-radius:4px; transition:width 1s cubic-bezier(0.4, 0, 0.2, 1);"></div></div></div>';}).join('')+'</div>';});document.getElementById('rc-b1').innerHTML='<div class="rc-hero" style="background:linear-gradient(135deg, rgba(255,255,255,0.03), transparent); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:24px 28px; display:flex; align-items:center; gap:28px; margin-bottom:24px; box-shadow:0 8px 30px rgba(0,0,0,0.3);"><div style="position:relative; width:100px; height:100px; border-radius:50%; background:var(--bg-main); display:flex; align-items:center; justify-content:center; box-shadow: 0 0 0 2px rgba(255,255,255,0.03);"><svg viewBox="0 0 36 36" style="position:absolute; inset:0; width:100%; height:100%; transform:rotate(-90deg);"><circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="2.5"></circle><circle cx="18" cy="18" r="16" fill="none" stroke="'+((m.aggregate||0)>=90?'#34C759':(m.aggregate||0)>=70?'#FF9500':'#FF3B30')+'" stroke-width="2.5" stroke-dasharray="100" stroke-dashoffset="'+(100-(m.aggregate||0))+'" stroke-linecap="round" style="transition:stroke-dashoffset 1s ease-out;"></circle></svg><div style="font-size:26px; font-weight:800; color:var(--text-primary); z-index:1;">'+(m.aggregate!=null?Math.round(m.aggregate):'NR')+'</div></div><div style="flex:1;"><div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; font-weight:700;">Overall Performance</div><div style="display:flex; align-items:baseline; gap:12px;"><div style="font-size:36px; font-weight:800; color:var(--text-primary); letter-spacing:-0.5px;">Grade '+m.grade+'</div></div></div></div>'+chaptersHtml+'<div class="rc-how" style="background:rgba(255,255,255,0.02); border-radius:16px; padding:20px; margin-bottom:16px; border:1px solid rgba(255,255,255,0.05);"><h4 style="margin:0 0 12px;font-size:14px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;"><span style="color:#8E8E93">ℹ️</span> How this is calculated</h4><p style="margin:0 0 6px;font-size:13px;color:#8E8E93;"><strong>Chapter score</strong> = How close to target (capped at 100).</p><p style="margin:0;font-size:13px;color:#8E8E93;"><strong>Overall Grade</strong> = Output × 70% + Input × 15% + Quotations × 15%.</p></div><button class="rc-sellersBtn" onclick="rcOpenSellers()" style="width:100%; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); border-radius:14px; padding:16px; font-size:14px; font-weight:600; color:var(--brand-orange); cursor:pointer; transition:all 0.2s;">View seller-level breakdown ('+m.sellers+') &rarr;</button>';document.getElementById('rc-ov1').classList.add('rc-show');document.getElementById('rc-ov1').style.display='flex';}
+
+
+
+function rcOpenDetail(idx){
+  var m=RC_RENDERED[idx];if(!m)return;RC_CUR=m;
+  document.getElementById('rc-t1').textContent=m.name;
+  document.getElementById('rc-s1').textContent=m.sellers+' sellers \u00b7 '+(m.regions||[]).join(', ');
+  var subjectIcons={
+    'Output metrics':'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>',
+    'Input metrics':'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+    'Quotations':'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+  };
+  var subjectColors={'Output metrics':'#F4631E','Input metrics':'#5B9CF6','Quotations':'#B8973E'};
+  var chaptersHtml='';
+  ['Output metrics','Input metrics','Quotations'].forEach(function(sn){
+    var key=sn==='Output metrics'?'output':sn==='Input metrics'?'input':'quotations';
+    var score=m.subjects[key];
+    var sc=subjectColors[sn];
+    /* Status dot color — only used on tiny indicators */
+    var dotColor=(score||0)>=90?'#4ADE80':(score||0)>=70?'#FB923C':'#F87171';
+    chaptersHtml+=
+      '<div class="rc-subj">'+
+        '<div class="rc-sh">'+
+          '<div style="display:flex;align-items:center;gap:10px">'+
+            '<div style="width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;color:'+sc+';opacity:0.9">'+subjectIcons[sn]+'</div>'+
+            '<div style="font-size:15px;font-weight:600;color:var(--text-primary)">'+sn+'</div>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:8px">'+
+            '<div style="width:7px;height:7px;border-radius:50%;background:'+dotColor+'"></div>'+
+            '<div style="font-size:20px;font-weight:700;color:var(--text-primary);letter-spacing:-0.5px">'+(score!=null?Math.round(score):'NR')+'</div>'+
+          '</div>'+
+        '</div>'+
+        (m.chapters||[]).filter(function(c){return c.subject===sn;}).map(function(c){
+          var mc=c.mark||0;
+          /* Dot only — bar uses single muted color */
+          var statusDot=mc>=90?'#4ADE80':mc>=70?'#FB923C':'#F87171';
+          var barColor=mc>=90?'rgba(74,222,128,0.5)':mc>=70?'rgba(251,146,60,0.5)':'rgba(248,113,113,0.5)';
+          var statusLabel=mc>=90?'On track':mc>=70?'At risk':'Behind';
+          return '<div class="rc-chap">'+
+            '<div style="flex:1;padding-right:20px">'+
+              '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+
+                '<div style="font-weight:600;font-size:13.5px;color:var(--text-primary)">'+c.label+'</div>'+
+                '<span style="font-size:10px;font-weight:500;color:var(--text-muted);background:rgba(255,255,255,0.04);padding:2px 7px;border-radius:5px;border:1px solid rgba(255,255,255,0.07)">'+c.weight+'%</span>'+
+              '</div>'+
+              '<div style="font-size:11.5px;color:var(--text-muted);line-height:1.55;margin-bottom:8px">'+c.detail+'<span style="margin:0 8px;opacity:0.2">·</span>Target: '+c.target+'</div>'+
+              '<div style="height:3px;background:rgba(255,255,255,0.05);border-radius:99px;overflow:hidden">'+
+                '<div style="width:'+mc+'%;height:100%;background:'+barColor+';border-radius:99px;transition:width 0.9s cubic-bezier(0.4,0,0.2,1)"></div>'+
+              '</div>'+
+            '</div>'+
+            '<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:52px">'+
+              '<div style="font-size:21px;font-weight:700;color:var(--text-primary);letter-spacing:-0.5px">'+(c.mark!=null?Math.round(c.mark):'NR')+'</div>'+
+              '<div style="display:flex;align-items:center;gap:4px">'+
+                '<div style="width:5px;height:5px;border-radius:50%;background:'+statusDot+'"></div>'+
+                '<div style="font-size:10px;color:var(--text-muted)">'+statusLabel+'</div>'+
+              '</div>'+
+            '</div>'+
+          '</div>';
+        }).join('')+
+      '</div>';
+  });
+  var agg=m.aggregate||0;
+  var aggColor=agg>=90?'#4ADE80':agg>=70?'#FB923C':'#F87171';
+  document.getElementById('rc-b1').innerHTML=
+    '<div class="rc-hero" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:22px 24px;display:flex;align-items:center;gap:22px;margin-bottom:18px">'+
+      '<div style="position:relative;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;flex-shrink:0">'+
+        '<svg viewBox="0 0 36 36" style="position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)">'+
+          '<circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2.5"></circle>'+
+          '<circle cx="18" cy="18" r="15" fill="none" stroke="'+aggColor+'" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="'+(94.2-(agg/100*94.2))+'" stroke-linecap="round" style="transition:stroke-dashoffset 1s ease-out"></circle>'+
+        '</svg>'+
+        '<div style="font-size:22px;font-weight:700;color:var(--text-primary);z-index:1">'+(m.aggregate!=null?Math.round(m.aggregate):'NR')+'</div>'+
+      '</div>'+
+      '<div style="flex:1">'+
+        '<div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;font-weight:600">Overall Performance</div>'+
+        '<div style="font-size:28px;font-weight:700;color:var(--text-primary);letter-spacing:-0.5px">Grade <span style="color:'+aggColor+'">'+m.grade+'</span></div>'+
+        '<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px">'+(m.regions||[]).join(', ')+' &middot; '+m.sellers+' sellers</div>'+
+      '</div>'+
+    '</div>'+
+    chaptersHtml+
+    '<div class="rc-how" style="margin-top:4px">'+
+      '<h4 style="display:flex;align-items:center;gap:7px">'+
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'+
+        'How scores are calculated'+
+      '</h4>'+
+      '<p><strong>Chapter score</strong> = Proximity to target (capped at 100).</p>'+
+      '<p style="margin:0"><strong>Overall</strong> = Output &times; 70% + Input &times; 15% + Quotations &times; 15%.</p>'+
+    '</div>'+
+    '<button class="rc-sellersBtn" onclick="rcOpenSellers()">'+
+      'View seller breakdown ('+m.sellers+') &rarr;'+
+    '</button>';
+  document.getElementById('rc-ov1').classList.add('rc-show');
+  document.getElementById('rc-ov1').style.display='flex';
+}
 
 function rcOpenSellers(){var m=RC_CUR;if(!m)return;var rows=m.sellerList.map(function(s){var fs=s.flag?['#B8860B','#1F7A3D','#B5560E','#8A6D00','#B42318','#5b5b5b'][s.flag-1]||'#AEAEB2':'#AEAEB2';var fl=s.flag?['Star','Green','Orange','Yellow','Red','White'][s.flag-1]||'-':'-';return'<tr><td>'+s.name+'</td><td>'+s.region+'</td><td><span style="display:inline-flex;align-items:center;gap:6px;background:'+fs+'20;color:'+fs+';padding:3px 8px;border-radius:7px;font-size:12px"><span style="width:8px;height:8px;border-radius:50%;background:'+fs+';display:inline-block"></span>'+fl+'</span></td><td style="text-align:right">'+(s.subjects.output!=null?Math.round(s.subjects.output):'NR')+'</td><td style="text-align:right">'+(s.subjects.input!=null?Math.round(s.subjects.input):'NR')+'</td><td style="text-align:right">'+(s.subjects.quotations!=null?Math.round(s.subjects.quotations):'NR')+'</td><td style="text-align:right;font-weight:700">'+(s.aggregate!=null?Math.round(s.aggregate):'NR')+'</td><td>'+s.grade+'</td></tr>';}).join('');document.getElementById('rc-t2').textContent=m.name+' · sellers';document.getElementById('rc-b2').innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th>Seller</th><th>Region</th><th>Flag</th><th style="text-align:right">Output</th><th style="text-align:right">Input</th><th style="text-align:right">Quot.</th><th style="text-align:right">Overall</th><th>Grade</th></tr></thead><tbody>'+rows+'</tbody></table>';document.getElementById('rc-ov2').classList.add('rc-show');document.getElementById('rc-ov2').style.display='flex';}
 function rcClose1(){document.getElementById('rc-ov1').classList.remove('rc-show');document.getElementById('rc-ov1').style.display='none';}

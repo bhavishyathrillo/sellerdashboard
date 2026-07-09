@@ -15,6 +15,7 @@ import RewardsPage from './RewardsPage'
 import MHLPage from './MHLPage'
 import RoadmapPage from './RoadmapPage'
 import HygienePage from './HygienePage'
+import KPITab from '@/components/kpi/KPITab'
 
 interface Props {
   session: UserSession
@@ -29,6 +30,7 @@ const personaTabs = [
   { id: 'mhl', label: 'MHL' },
   { id: 'pipeline', label: 'Pipeline' },
   { id: 'hygiene', label: 'Hygiene' },
+  { id: 'kpi_view', label: 'KPI View' },
 ]
 
 export default function CMSelectPersonaPage({ session }: Props) {
@@ -305,7 +307,18 @@ export default function CMSelectPersonaPage({ session }: Props) {
               {activePersonaTab === 'leaderboard' && <LeaderboardPage session={personaSession} />}
               {activePersonaTab === 'rewards' && <RewardsPage session={personaSession} />}
               {activePersonaTab === 'mhl' && <MHLPage session={personaSession} />}
+              {activePersonaTab === 'roadmap' && <RoadmapPage session={personaSession} />}
               {activePersonaTab === 'hygiene' && <HygienePage session={personaSession} />}
+              {activePersonaTab === 'kpi_view' && (
+                <KPITab user={{
+                  email: personaSession.email,
+                  name: personaSession.name,
+                  role: personaSession.role === 'L2' ? 'L1 Manager' :
+                    personaSession.role === 'L1' ? 'L2 Manager' :
+                      personaSession.role === 'ADMIN' || personaSession.role === 'SUPERADMIN' ? 'Admin' :
+                        'Seller'
+                }} />
+              )}
               {activePersonaTab === 'seller-view' && personaSession.role === 'L1' && <L1SellerViewPage session={personaSession} />}
               {activePersonaTab === 'seller-view' && personaSession.role === 'L2' && <L2SellerViewPage session={personaSession} />}
               {activePersonaTab === 'seller-view' && !['L1', 'L2'].includes(personaSession.role) && <SellerViewPage session={personaSession} />}
