@@ -231,13 +231,8 @@ function showApp(){
   // ── Role-based scoping: lock filters to user's own team ──
   if(currentUser.role==='L1 Manager'){
     globalFilters.l1=currentUser.name;
-    if(typeof rcFilters!=='undefined') rcFilters.l1=currentUser.name;
-    // Hide L2 tab and filter so L1 cannot see the L2 Senior report card
-    var tL2 = document.getElementById('rc-tabL2'); if(tL2) tL2.style.display = 'none';
-    var fL2 = document.getElementById('rc-fL2'); if(fL2) fL2.style.display = 'none';
   } else if(currentUser.role==='L2 Manager'||currentUser.role==='Category Manager'){
     globalFilters.l2=currentUser.name;
-    if(typeof rcFilters!=='undefined') rcFilters.l2=currentUser.name;
   }
   buildSidebar();
   loadDashboard();
@@ -420,26 +415,15 @@ function rcOnRegion(){rcApplyFilters();}
 function rcOnFilterChange(key,val){rcFilters[key]=val;RC_DATA=null;rcLoadReportCard();}
 function rcPopulateFilters(data){
   var cs=cycleSellers();
-  var scoped=cs;
-  if(currentUser.role==='L1 Manager') scoped=scoped.filter(function(s){return s.l1Manager===currentUser.name;});
-  else if(currentUser.role==='L2 Manager'||currentUser.role==='Category Manager') scoped=scoped.filter(function(s){return s.l2Manager===currentUser.name;});
-
-  function opts(selId,items,cur,lockedRole){
-    var el=document.getElementById(selId);if(!el)return;
-    if(lockedRole){
-      el.outerHTML='<div class="badge badge-blue" style="margin-right:8px;padding:6px 12px;font-size:12px">'+currentUser.name+'</div>';
-      return;
-    }
-    el.innerHTML='<option value="all">'+el.options[0].text+'</option>'+items.map(function(v){return'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+v+'</option>';}).join('');
-  }
-  var l1s=[...new Set(scoped.map(function(s){return s.l1Manager;}).filter(Boolean))].sort();
-  var l2s=[...new Set(scoped.map(function(s){return s.l2Manager;}).filter(Boolean))].sort();
-  var goals=[...new Set(scoped.map(function(s){return s.goalType;}).filter(Boolean))].sort();
-  var hauls=[...new Set(scoped.map(function(s){return s.haul;}).filter(Boolean))].sort();
-  opts('rc-fL1',l1s,rcFilters.l1, currentUser.role==='L1 Manager');
-  opts('rc-fL2',l2s,rcFilters.l2, currentUser.role==='L2 Manager'||currentUser.role==='Category Manager');
-  opts('rc-fGoal',goals,rcFilters.goal, false);
-  opts('rc-fHaul',hauls,rcFilters.haul, false);
+  function opts(sel,items,cur){var el=document.getElementById(sel);if(!el)return;el.innerHTML='<option value="all">'+el.options[0].text+'</option>'+items.map(function(v){return'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+v+'</option>';}).join('');}
+  var l1s=[...new Set(cs.map(function(s){return s.l1Manager;}).filter(Boolean))].sort();
+  var l2s=[...new Set(cs.map(function(s){return s.l2Manager;}).filter(Boolean))].sort();
+  var goals=[...new Set(cs.map(function(s){return s.goalType;}).filter(Boolean))].sort();
+  var hauls=[...new Set(cs.map(function(s){return s.haul;}).filter(Boolean))].sort();
+  opts('rc-fL1',l1s,rcFilters.l1);
+  opts('rc-fL2',l2s,rcFilters.l2);
+  opts('rc-fGoal',goals,rcFilters.goal);
+  opts('rc-fHaul',hauls,rcFilters.haul);
 }
 
 function rcApplyFilters(){
