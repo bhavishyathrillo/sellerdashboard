@@ -16,7 +16,7 @@ interface DashboardLayoutProps {
 const navItems = [
   { id: 'home',        label: 'Overview',    icon: '◈' },
   { id: 'seller-view', label: 'LTA',         icon: '📈' },
-  { id: 'priority',    label: 'Priority/QB Stats', icon: '⭐' },
+  { id: 'priority',    label: 'Priority/QB Stats', icon: '★' },
   { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
   { id: 'performance', label: 'Performance', icon: '↗', adminOnly: false },
   { id: 'rewards',     label: 'Rewards',     icon: '🎰', adminOnly: false },
@@ -24,7 +24,7 @@ const navItems = [
   { id: 'pipeline',    label: 'Pipeline',    icon: '⬇' },
   { id: 'roadmap',     label: 'Roadmap',     icon: '🗺', adminOnly: false },
   { id: 'hygiene',     label: 'Hygiene',     icon: '✦' },
-  { id: 'kpi_view',    label: 'KPI view',    icon: '⚛️', isExternal: true, url: 'https://script.google.com/a/macros/thrillophilia.com/s/AKfycbwkOEzTA9Y3RgdtDkhsVG96k8KMgkQfmKLW6nSpybkXtcB47PUfmIL67HCDsoepL4MQxA/exec' },
+  { id: 'kpi_view',    label: 'KPI View',    icon: '📊' },
 ]
 
 export default function DashboardLayout({
@@ -33,8 +33,13 @@ export default function DashboardLayout({
   const [collapsed, setCollapsed] = useState(false)
   const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session.role)
 
+  const isSeller = !['L1', 'L2', 'ADMIN', 'SUPERADMIN', 'MODERATOR'].includes(session.role)
+  const isTL = ['L1', 'L2'].includes(session.role)
+
   const filteredNavItems = navItems.filter(item => {
     if (isAdmin && item.adminOnly === false) return false
+    if (isSeller && (item.id === 'performance' || item.id === 'roadmap')) return false
+    if (isTL && (item.id === 'performance' || item.id === 'roadmap')) return false
     return true
   })
 
@@ -66,13 +71,7 @@ export default function DashboardLayout({
             <button
               key={item.id}
               className={`${styles.navItem} ${activePage === item.id ? styles.navItemActive : ''}`}
-              onClick={() => {
-                if (item.isExternal && item.url) {
-                  window.open(item.url, '_blank')
-                } else {
-                  onNavigate(item.id)
-                }
-              }}
+              onClick={() => onNavigate(item.id)}
             >
               <span className={styles.navIcon}>{item.icon}</span>
               {!collapsed && <span className={styles.navLabel}>{item.label}</span>}
