@@ -232,7 +232,10 @@ function showApp(){
   if(currentUser.role==='L1 Manager'){
     globalFilters.l1=currentUser.name;
     if(typeof rcFilters!=='undefined') rcFilters.l1=currentUser.name;
-  } else if(currentUser.role==='L2 Manager'){
+    // Hide L2 tab and filter so L1 cannot see the L2 Senior report card
+    var tL2 = document.getElementById('rc-tabL2'); if(tL2) tL2.style.display = 'none';
+    var fL2 = document.getElementById('rc-fL2'); if(fL2) fL2.style.display = 'none';
+  } else if(currentUser.role==='L2 Manager'||currentUser.role==='Category Manager'){
     globalFilters.l2=currentUser.name;
     if(typeof rcFilters!=='undefined') rcFilters.l2=currentUser.name;
   }
