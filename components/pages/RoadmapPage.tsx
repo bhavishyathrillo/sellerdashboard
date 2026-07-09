@@ -12,7 +12,7 @@ interface RoadmapData {
   last_3_months_arps: number; last_6_months_arps: number; last_12_months_arps: number
 }
 
-interface Props { session: UserSession }
+interface Props { session: UserSession; viewMode?: 'my' | 'team' }
 
 function fmt(n: number) { if (!n && n !== 0) return '—'; if (n >= 1000) return `₹${(n/1000).toFixed(1)}K`; return `₹${n.toFixed(0)}` }
 function initials(n: string) { if (!n) return '?'; return n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() }
@@ -256,14 +256,16 @@ function RoadmapCard({ roadmap, name, compact = false }: { roadmap: any; name: s
   )
 }
 
-export default function RoadmapPage({ session }: Props) {
+export default function RoadmapPage({ session, viewMode: externalViewMode }: Props) {
   const [data, setData] = useState<RoadmapData | null>(null)
   const [teamData, setTeamData] = useState<any>(null)
   const [l1Data, setL1Data] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<'my' | 'team'>('my')
+  const [internalViewMode, setInternalViewMode] = useState<'my' | 'team'>('my')
   const [expandedL2, setExpandedL2] = useState<Record<string, boolean>>({})
   const [expandedSellers, setExpandedSellers] = useState<Record<string, boolean>>({})
+
+  const viewMode = externalViewMode || internalViewMode
 
   const isL1 = session.role === 'L1'
   const isL2 = session.role === 'L2'
@@ -420,20 +422,22 @@ export default function RoadmapPage({ session }: Props) {
 
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'18px'}}>
           <h1 style={{fontSize:'1.3rem',fontWeight:700,color:'#C9A84C'}}>Roadmap</h1>
-          <div style={{display:'flex',gap:'3px',background:'#141414',border:'1px solid #232323',borderRadius:'8px',padding:'3px'}}>
-            <button onClick={() => setViewMode('my')} style={{
-              padding:'7px 16px',border:'none',borderRadius:'6px',
-              background: viewMode==='my'?'rgba(244,99,30,0.15)':'transparent',
-              color: viewMode==='my'?'#F4631E':'#8A8278',
-              cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
-            }}>My Roadmap</button>
-            <button onClick={() => setViewMode('team')} style={{
-              padding:'7px 16px',border:'none',borderRadius:'6px',
-              background: viewMode==='team'?'rgba(244,99,30,0.15)':'transparent',
-              color: viewMode==='team'?'#F4631E':'#8A8278',
-              cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
-            }}>Team ({teamSellers.length})</button>
-          </div>
+          {!externalViewMode && (
+            <div style={{display:'flex',gap:'3px',background:'#141414',border:'1px solid #232323',borderRadius:'8px',padding:'3px'}}>
+              <button onClick={() => setInternalViewMode('my')} style={{
+                padding:'7px 16px',border:'none',borderRadius:'6px',
+                background: viewMode==='my'?'rgba(244,99,30,0.15)':'transparent',
+                color: viewMode==='my'?'#F4631E':'#8A8278',
+                cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
+              }}>My Roadmap</button>
+              <button onClick={() => setInternalViewMode('team')} style={{
+                padding:'7px 16px',border:'none',borderRadius:'6px',
+                background: viewMode==='team'?'rgba(244,99,30,0.15)':'transparent',
+                color: viewMode==='team'?'#F4631E':'#8A8278',
+                cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.2s'
+              }}>Team ({teamSellers.length})</button>
+            </div>
+          )}
         </div>
 
         {viewMode === 'my' && (

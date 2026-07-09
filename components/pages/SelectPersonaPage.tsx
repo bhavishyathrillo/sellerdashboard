@@ -15,6 +15,7 @@ import RoadmapPage from '@/components/pages/RoadmapPage'
 import HygienePage from '@/components/pages/HygienePage'
 import RewardsPage from '@/components/pages/RewardsPage'
 import PerformancePage from '@/components/pages/PerformancePage'
+import KPITab from '@/components/kpi/KPITab'
 
 interface Props { session: UserSession }
 
@@ -34,11 +35,10 @@ const personaTabs = [
   { id: 'priority', label: 'Priority/QB' },
   { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'seller-view', label: 'LTA' },
-  { id: 'performance', label: 'Performance' },
   { id: 'rewards', label: 'Rewards' },
   { id: 'mhl', label: 'Mishandled' },
-  { id: 'roadmap', label: 'Roadmap' },
   { id: 'hygiene', label: 'Hygiene' },
+  { id: 'kpi_view', label: 'KPI View' },
 ]
 
 export default function SelectPersonaPage({ session }: Props) {
@@ -297,11 +297,19 @@ export default function SelectPersonaPage({ session }: Props) {
               {activePersonaTab === 'pipeline' && <PipelinePage session={personaSession} />}
               {activePersonaTab === 'priority' && <PriorityPage session={personaSession} />}
               {activePersonaTab === 'leaderboard' && <LeaderboardPage session={personaSession} />}
-              {activePersonaTab === 'performance' && <PerformancePage session={personaSession} />}
               {activePersonaTab === 'rewards' && <RewardsPage session={personaSession} />}
               {activePersonaTab === 'mhl' && <MHLPage session={personaSession} />}
-              {activePersonaTab === 'roadmap' && <RoadmapPage session={personaSession} />}
               {activePersonaTab === 'hygiene' && <HygienePage session={personaSession} />}
+              {activePersonaTab === 'kpi_view' && (
+                <KPITab user={{
+                  email: personaSession.email,
+                  name: personaSession.name,
+                  role: personaSession.role === 'L2' ? 'L1 Manager' :
+                    personaSession.role === 'L1' ? 'L2 Manager' :
+                      personaSession.role === 'ADMIN' || personaSession.role === 'SUPERADMIN' ? 'Admin' :
+                        'Seller'
+                }} />
+              )}
               {activePersonaTab === 'seller-view' && personaSession.role === 'L1' && <L1SellerViewPage session={personaSession} />}
               {activePersonaTab === 'seller-view' && personaSession.role === 'L2' && <L2SellerViewPage session={personaSession} />}
               {activePersonaTab === 'seller-view' && !['L1', 'L2'].includes(personaSession.role) && <SellerViewPage session={personaSession} />}

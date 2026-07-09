@@ -41,7 +41,7 @@ const navItems = [
   { id: 'pipeline',    label: 'Pipeline',          Icon: GitPullRequestArrow },
   { id: 'roadmap',     label: 'Roadmap',           Icon: Map,        adminOnly: false },
   { id: 'hygiene',     label: 'Hygiene',           Icon: ShieldCheck },
-  { id: 'kpi_view',    label: 'KPI view',          Icon: Gauge, isExternal: true, url: 'https://script.google.com/a/macros/thrillophilia.com/s/AKfycbwkOEzTA9Y3RgdtDkhsVG96k8KMgkQfmKLW6nSpybkXtcB47PUfmIL67HCDsoepL4MQxA/exec' },
+  { id: 'kpi_view',    label: 'KPI View',          Icon: Gauge },
 ] as const
 
 export default function DashboardLayout({
@@ -50,8 +50,12 @@ export default function DashboardLayout({
   const [collapsed, setCollapsed] = useState(false)
   const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session.role)
 
+  const isSeller = !['L1', 'L2', 'ADMIN', 'SUPERADMIN', 'MODERATOR'].includes(session.role)
+  const isTL = ['L1', 'L2'].includes(session.role)
   const filteredNavItems = navItems.filter((item: any) => {
     if (isAdmin && item.adminOnly === false) return false
+    if (isSeller && (item.id === 'performance' || item.id === 'roadmap')) return false
+    if (isTL && (item.id === 'performance' || item.id === 'roadmap')) return false
     return true
   })
 

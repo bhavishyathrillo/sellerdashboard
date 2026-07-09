@@ -33,6 +33,7 @@ import TeamPage from '@/components/pages/TeamPage'
 import SellerViewPage from '@/components/pages/SellerViewPage'
 import L2SellerViewPage from '@/components/pages/L2SellerViewPage'
 import L1SellerViewPage from '@/components/pages/L1SellerViewPage'
+import KPITab from '@/components/kpi/KPITab'
 
 type AppState = 'intro' | 'login' | 'pipeline_gate' | 'dashboard'
 
@@ -70,7 +71,6 @@ export default function Home() {
 
   const checkPipelineAndRoute = async (s: UserSession) => {
     try {
-      // Add 5.5 hours (19800000 ms) to get IST date string
       const today = new Date(Date.now() + 19800000).toISOString().split('T')[0]
       const res = await fetch(`/api/pipeline/check?email=${s.email}&date=${today}`)
       const json = await res.json()
@@ -199,7 +199,6 @@ export default function Home() {
             <HygienePage session={session} />
           )}
 
-
           {activePage === 'seller-view' && !isAdmin && session.role === 'L1' && (
             <L1SellerViewPage session={session} />
           )}
@@ -216,6 +215,18 @@ export default function Home() {
           {activePage === 'calendar' && <CalendarPage session={session} />}
           {activePage === 'ttk' && <TTKPage />}
           {activePage === 'team' && <TeamPage session={session} />}
+
+          {/* KPI VIEW TAB */}
+          {activePage === 'kpi_view' && (
+            <KPITab user={{
+              email: session.email,
+              name: session.name,
+              role: session.role === 'L2' ? 'L1 Manager' :
+                session.role === 'L1' ? 'L2 Manager' :
+                  session.role === 'ADMIN' || session.role === 'SUPERADMIN' ? 'Admin' :
+                    'Seller'
+            }} />
+          )}
         </DashboardLayout>
       )}
     </>

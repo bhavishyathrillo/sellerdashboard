@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Poppins:wght@300;400;500;600&display=swap');
+
+/* ─── KPI Tab Styles ─── */
+
+
 :root {
   --bg:           #080808;
   --bg-surface:   #111111;
@@ -19,7 +23,7 @@
   --text-muted:     #5A5650;
 
   --font-display: 'Cormorant Garamond', Georgia, serif;
---font-body: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Poppins', system-ui, sans-serif;
 
   --radius-sm:  6px;
   --radius-md:  12px;
@@ -86,7 +90,6 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
-
 
 /* Hide Next.js dev indicator */
 nextjs-portal {
