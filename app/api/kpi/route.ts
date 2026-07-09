@@ -63,6 +63,63 @@ export async function DELETE(req: NextRequest) {
 // ============================================================
 function medArr(a: number[]) { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
 
+async function enrichWithMedians(rows: any[], sc: string) {
+  if (!rows || !rows.length || !sc) return;
+  const { data: cd } = await supabase.schema('seller_day_to_day').from('cycles').select('start_date, end_date').eq('cycle', sc).limit(1);
+  if (!cd || cd.length === 0) return;
+  const from = cd[0].start_date, to = cd[0].end_date;
+  const emails = [...new Set(rows.map(r => r.email).filter(Boolean))];
+  if (!emails.length) return;
+
+  const { data: mhlData } = await fetchAll(supabase.schema('seller_day_to_day').from('mhl_daily')
+    .select('seller_email, activity_date, mishandled_count, open_leads_count, available_today')
+    .in('seller_email', emails).gte('activity_date', from).lte('activity_date', to));
+  
+  const mheMap: Record<string, number> = {};
+  if (mhlData) {
+    const sdm: Record<string,Record<string,any>> = {};
+    mhlData.filter((r:any) => r.available_today !== false && r.available_today !== 'false' && new Date(r.activity_date).getDay() !== 0)
+    .forEach((r:any) => {
+      const e = (r.seller_email || '').toLowerCase();
+      const iso = r.activity_date;
+      if (!sdm[e]) sdm[e] = {};
+      if (!sdm[e][iso]) sdm[e][iso] = { mish: 0, open: 0 };
+      sdm[e][iso].mish += +r.mishandled_count;
+      sdm[e][iso].open += +r.open_leads_count;
+    });
+    Object.keys(sdm).forEach(e => {
+      const days = Object.values(sdm[e]).map((d:any) => d.open > 0 ? (d.mish / d.open) : null).filter(v => v !== null) as number[];
+      const smv = medArr(days);
+      if (smv !== null) mheMap[e] = smv; // fraction
+    });
+  }
+
+  const { data: leadsData } = await fetchAll(supabase.schema('seller_day_to_day').from('leads')
+    .select('sales_email_id, call_bucket')
+    .in('sales_email_id', emails).gte('lead_assignment_time', from + 'T00:00:00+05:30').lte('lead_assignment_time', to + 'T23:59:59+05:30'));
+
+  const w15Map: Record<string, number> = {};
+  if (leadsData) {
+    const sd: Record<string,{wIn:number;wTot:number}> = {};
+    leadsData.forEach((r:any) => {
+      const e = (r.sales_email_id || '').toLowerCase();
+      if (!sd[e]) sd[e] = { wIn: 0, wTot: 0 };
+      const b = (r.call_bucket || '').toLowerCase();
+      if (b.includes('within')) { sd[e].wIn++; sd[e].wTot++; }
+      else if (b.includes('beyond') || b.includes('15')) { sd[e].wTot++; }
+    });
+    Object.keys(sd).forEach(e => {
+      if (sd[e].wTot > 0) w15Map[e] = (sd[e].wIn / sd[e].wTot) * 100;
+    });
+  }
+
+  rows.forEach(r => {
+    const e = (r.email || '').toLowerCase();
+    if (mheMap[e] !== undefined) r.mhe_actual = mheMap[e];
+    if (w15Map[e] !== undefined) r.sla_actual = w15Map[e];
+  });
+}
+
 // ============================================================
 // DASHBOARD — roster only, no srs_raw
 // ============================================================
@@ -72,6 +129,7 @@ async function handleDashboard() {
     const { data: cd } = await supabase.schema('seller_day_to_day').from('cycles').select('*').order('start_date',{ascending:false});
     const cr: Record<string,{from:string;to:string}> = {}; (cd||[]).forEach((c:any)=>{ cr[c.cycle]={from:c.start_date,to:c.end_date}; });
     const cycles = (cd||[]).map((c:any)=>c.cycle); const lc = cycles[0]||'';
+    await enrichWithMedians(sellers || [], lc);
 
     const mapped = (sellers||[]).map((s:any)=>{
       return {
@@ -308,6 +366,7 @@ async function handleReportCard(req: NextRequest) {
     const goal = u.searchParams.get('goal'); if(goal && goal !== 'all') q=q.eq('goal_type', goal);
     const haul = u.searchParams.get('haul'); if(haul && haul !== 'all') q=q.eq('haul', haul);
     const { data: rows } = await q;
+    await enrichWithMedians(rows || [], sc);
     
     const l1M: Record<string,any> = {}, l2M: Record<string,any> = {}; const regs=new Set<string>();
     (rows||[]).forEach((r:any)=>{
