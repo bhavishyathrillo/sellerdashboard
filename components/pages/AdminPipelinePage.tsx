@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import styles from './PipelinePage.module.css'
+import Loader from '@/components/ui/Loader'
+import { useStickyState } from '@/components/hooks/useStickyState'
 
 interface PipelineSubmission {
   id: number
@@ -60,11 +62,11 @@ export default function AdminPipelinePage() {
   const [loading, setLoading] = useState(true)
   const [selectedL1, setSelectedL1] = useState<any>(null)
   const [selectedL2, setSelectedL2] = useState<any>(null)
-  const [dateFilter, setDateFilter] = useState<'today' | '5days' | '15days' | 'all'>('all')
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards')
-  const [search, setSearch] = useState('')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [dateFilter, setDateFilter] = useStickyState<'today' | '5days' | '15days' | 'all'>('all', 'AdminPipeline_dateFilter')
+  const [viewMode, setViewMode] = useStickyState<'cards' | 'table'>('cards', 'AdminPipeline_viewMode')
+  const [search, setSearch] = useStickyState('', 'AdminPipeline_search')
+  const [dateFrom, setDateFrom] = useStickyState('', 'AdminPipeline_dateFrom')
+  const [dateTo, setDateTo] = useStickyState('', 'AdminPipeline_dateTo')
   const [filteredResults, setFilteredResults] = useState<any[]>([])
 
   useEffect(() => {
@@ -165,7 +167,7 @@ export default function AdminPipelinePage() {
     setDateFilter('all')
   }
 
-  if (loading) return <div className={styles.loadingWrap}><div className={styles.spinner}/><p>Loading...</p></div>
+  if (loading) return <Loader text="Loading..." />
 
   // Calculate totals from filtered data
   const getFilteredL1Data = () => {

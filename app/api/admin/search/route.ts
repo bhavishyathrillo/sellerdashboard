@@ -49,9 +49,9 @@ export async function GET(req: Request) {
       const key = email.toLowerCase().trim()
       // 1. Check roles table first
       if (roleMap[key]) return roleMap[key]
-      // 2. Check if this email appears as l1_email in ANY row (means they're an L1 manager)
+      // 2. Check if this email appears as l1_email in ANY row (means they're an L1 manager - CM)
       if (l1Emails.has(key)) return 'L1'
-      // 3. Check if this email appears as l2_email in ANY row (means they're an L2 manager)
+      // 3. Check if this email appears as l2_email in ANY row (means they're an L2 manager - TL)
       if (l2Emails.has(key)) return 'L2'
       // 4. Default to SELLER
       return 'SELLER'

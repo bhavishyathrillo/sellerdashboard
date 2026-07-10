@@ -12,7 +12,7 @@ export async function GET() {
       .from('audit_log')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(300)
+      
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data || [])

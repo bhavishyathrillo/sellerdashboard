@@ -12,11 +12,13 @@ import { getSession, saveSession, clearSession, UserSession } from '@/lib/sessio
 import HomePage from '@/components/pages/HomePage'
 import L1HomePage from '@/components/pages/L1HomePage'
 import AdminOverviewPage from '@/components/pages/AdminOverviewPage'
+import AdminLTAPage from '@/components/pages/AdminLTAPage'
 import AdminPerformancePage from '@/components/pages/AdminPerformancePage'
 import AdminMHLPage from '@/components/pages/AdminMHLPage'
 import AdminPipelinePage from '@/components/pages/AdminPipelinePage'
 import AdminHygienePage from '@/components/pages/AdminHygienePage'
 import SelectPersonaPage from '@/components/pages/SelectPersonaPage'
+import CMSelectPersonaPage from '@/components/pages/CMSelectPersonaPage'
 import PipelinePage from '@/components/pages/PipelinePage'
 import MHLPage from '@/components/pages/MHLPage'
 import LeaderboardPage from '@/components/pages/LeaderboardPage'
@@ -28,6 +30,10 @@ import PerformancePage from '@/components/pages/PerformancePage'
 import TTKPage from '@/components/pages/TTKPage'
 import PriorityPage from '@/components/pages/PriorityPage'
 import TeamPage from '@/components/pages/TeamPage'
+import SellerViewPage from '@/components/pages/SellerViewPage'
+import L2SellerViewPage from '@/components/pages/L2SellerViewPage'
+import L1SellerViewPage from '@/components/pages/L1SellerViewPage'
+import KPITab from '@/components/kpi/KPITab'
 
 type AppState = 'intro' | 'login' | 'pipeline_gate' | 'dashboard'
 
@@ -65,7 +71,6 @@ export default function Home() {
 
   const checkPipelineAndRoute = async (s: UserSession) => {
     try {
-      // Add 5.5 hours (19800000 ms) to get IST date string
       const today = new Date(Date.now() + 19800000).toISOString().split('T')[0]
       const res = await fetch(`/api/pipeline/check?email=${s.email}&date=${today}`)
       const json = await res.json()
@@ -77,7 +82,7 @@ export default function Home() {
 
   const handleIntroComplete = () => setState('login')
 
- const handleLogin = async (email: string, name: string, role: string) => {
+  const handleLogin = async (email: string, name: string, role: string) => {
     saveSession(email, name, role)
     const s = getSession()
     setSession(s)
@@ -143,6 +148,9 @@ export default function Home() {
           {activePage === 'selectPersona' && isAdmin && (
             <SelectPersonaPage session={session} />
           )}
+          {activePage === 'selectPersona' && session.role === 'L1' && (
+            <CMSelectPersonaPage session={session} />
+          )}
 
           {activePage === 'mhl' && isAdmin && (
             <AdminMHLPage />
@@ -167,6 +175,9 @@ export default function Home() {
           {activePage === 'home' && isAdmin && (
             <AdminOverviewPage session={session} />
           )}
+          {activePage === 'seller-view' && isAdmin && (
+            <AdminLTAPage session={session} />
+          )}
           {activePage === 'home' && !isAdmin && session.role === 'L1' && (
             <L1HomePage session={session} />
           )}
@@ -188,11 +199,34 @@ export default function Home() {
             <HygienePage session={session} />
           )}
 
+          {activePage === 'seller-view' && !isAdmin && session.role === 'L1' && (
+            <L1SellerViewPage session={session} />
+          )}
+
+          {activePage === 'seller-view' && !isAdmin && session.role === 'L2' && (
+            <L2SellerViewPage session={session} />
+          )}
+
+          {activePage === 'seller-view' && !isAdmin && session.role !== 'L1' && session.role !== 'L2' && (
+            <SellerViewPage session={session} />
+          )}
           {activePage === 'leaderboard' && <LeaderboardPage session={session} />}
-          {activePage === 'rewards'     && <RewardsPage session={session} />}
-          {activePage === 'calendar'    && <CalendarPage session={session} />}
-          {activePage === 'ttk'         && <TTKPage />}
-          {activePage === 'team'        && <TeamPage session={session} />}
+          {activePage === 'rewards' && <RewardsPage session={session} />}
+          {activePage === 'calendar' && <CalendarPage session={session} />}
+          {activePage === 'ttk' && <TTKPage />}
+          {activePage === 'team' && <TeamPage session={session} />}
+
+          {/* KPI VIEW TAB */}
+          {activePage === 'kpi_view' && (
+            <KPITab user={{
+              email: session.email,
+              name: session.name,
+              role: session.role === 'L2' ? 'L1 Manager' :
+                session.role === 'L1' ? 'L2 Manager' :
+                  session.role === 'ADMIN' || session.role === 'SUPERADMIN' ? 'Admin' :
+                    'Seller'
+            }} />
+          )}
         </DashboardLayout>
       )}
     </>

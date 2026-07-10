@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './PipelinePage.module.css'
+import Loader from '@/components/ui/Loader'
+import { useStickyState } from '@/components/hooks/useStickyState'
 
 interface PipelineSubmission {
   id: number
@@ -62,13 +64,14 @@ export default function PipelinePage({ session }: PipelinePageProps) {
   const [value, setValue] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [view, setView] = useState<'mine' | 'team'>(
-    session.role === 'L1' ? 'team' : 'mine'
+
+  const [view, setView] = useStickyState<'mine' | 'team'>(
+    session.role === 'L1' ? 'team' : 'mine', 'PipelinePage_view'
   )
-  const [dateFilter, setDateFilter] = useState<'today' | '5days' | '15days' | 'all'>('all')
-  const [search, setSearch] = useState('')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [dateFilter, setDateFilter] = useStickyState<'today' | '5days' | '15days' | 'all'>('all', 'PipelinePage_dateFilter')
+  const [search, setSearch] = useStickyState('', 'PipelinePage_search')
+  const [dateFrom, setDateFrom] = useStickyState('', 'PipelinePage_dateFrom')
+  const [dateTo, setDateTo] = useStickyState('', 'PipelinePage_dateTo')
   const [filteredHistory, setFilteredHistory] = useState<PipelineSubmission[]>([])
 
   const isManager = ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(session.role)
@@ -197,12 +200,7 @@ export default function PipelinePage({ session }: PipelinePageProps) {
     }
   }
 
-  if (loading) return (
-    <div className={styles.loadingWrap}>
-      <div className={styles.spinner} />
-      <p>Loading pipeline...</p>
-    </div>
-  )
+  if (loading) return <Loader text="Loading..." />
 
   // Use filteredHistory for display
   const displayHistory = filteredHistory

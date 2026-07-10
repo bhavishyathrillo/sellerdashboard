@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './HygienePage.module.css'
+import Loader from '@/components/ui/Loader'
 
 interface Props { session: UserSession }
 
@@ -32,7 +33,7 @@ export default function HygienePage({ session }: Props) {
   }, [session.email, viewMode, isL1, isL2])
 
   const toggleSeller = (email: string) => { setExpandedSellers((prev: any) => ({ ...prev, [email]: !prev[email] })) }
-  if (loading) return <div className={styles.loading}><div className={styles.spinner} /><p>Loading hygiene...</p></div>
+  if (loading) return <Loader text="Loading hygiene..." />
   const lastUpdatedTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
 
   // L1 VIEW

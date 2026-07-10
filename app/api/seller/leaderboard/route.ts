@@ -23,7 +23,7 @@ export async function GET(req: Request) {
       .from(table)
       .select(selectColumns)
       .gt(table === 'srs_june' ? '"Actual Achieved (Monthly)"' : 'actual_achieved_monthly', 0)
-      .limit(50000)
+      
 
     if (haul) query = query.eq(table === 'srs_june' ? '"Haul"' : 'haul', haul)
     if (region) query = query.eq(table === 'srs_june' ? '"Region"' : 'region', region)

@@ -98,24 +98,25 @@ export async function POST(req: Request) {
 
   if (roleEntry?.role) {
     role = roleEntry.role
-  }
+  } else {
+    // Check srs_raw for L1/L2
+    const { data: srsCheck } = await supabase
+      .from('srs_raw')
+      .select('l1_email, l2_email')
+      .or(`l1_email.eq.${trimmedEmail},l2_email.eq.${trimmedEmail}`)
 
-  // Check srs_raw for L1/L2 to override legacy roles table
-  const { data: srsCheck } = await supabase
-    .from('srs_raw')
-    .select('l1_email, l2_email')
-    .or(`l1_email.eq.${trimmedEmail},l2_email.eq.${trimmedEmail}`)
-
-  if (srsCheck && srsCheck.length > 0) {
-    // Check if this person is an L1 for ANY seller
-    const isL1 = srsCheck.some(row => row.l1_email === trimmedEmail)
-    // Check if this person is an L2 for ANY seller
-    const isL2 = srsCheck.some(row => row.l2_email === trimmedEmail)
-    
-    if (isL1) {
-      role = 'L1'
-    } else if (isL2) {
-      role = 'L2'
+    if (srsCheck && srsCheck.length > 0) {
+      // Check if this person is an L1 for ANY seller
+      const isL1 = srsCheck.some((s: any) => s.l1_email === trimmedEmail)
+      const isL2Only = srsCheck.some((s: any) => s.l2_email === trimmedEmail && s.l1_email !== trimmedEmail)
+      
+      if (isL1) {
+        role = 'L1' // CM takes precedence
+      } else if (isL2Only) {
+        role = 'L2'
+      } else {
+        role = 'L2' // fallback
+      }
     }
   }
 
