@@ -93,16 +93,20 @@ const CSS = `
 .ov-live { width: 7px; height: 7px; border-radius: 50%; background: #EF4444; animation: ovPulse 2s ease infinite; box-shadow: 0 0 8px rgba(239,68,68,0.5); flex-shrink: 0; }
 
 /* Summary Bar */
-.ov-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
-.ov-stat { background: #111111; border: 1px solid #1E1E1E; border-radius: 10px; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
-.ov-stat-val { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1; }
-.ov-stat-lbl { font-size: 0.6rem; color: #8A8278; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+.ov-summary { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.ov-stat { background: #0F0F0F; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 2px; min-width: 120px; position: relative; overflow: hidden; transition: transform 0.22s cubic-bezier(0.4,0,0.2,1), box-shadow 0.22s, border-color 0.22s; cursor: default; }
+.ov-stat:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.4); border-color: rgba(244,99,30,0.3); }
+.ov-stat-val { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1; font-family: 'Inter', sans-serif; }
+.ov-stat-lbl { font-size: 0.58rem; color: #6A6258; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; font-family: 'Inter', sans-serif; }
+.ov-stat-strip { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0; }
 
 /* Controls */
 .ov-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.ov-toggle { display: flex; gap: 3px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 3px; }
-.ov-toggle-btn { padding: 6px 14px; border: none; border-radius: 7px; background: transparent; color: #8A8278; cursor: pointer; font-size: 0.72rem; font-weight: 600; transition: all 0.2s; font-family: 'Inter', sans-serif; }
-.ov-toggle-btn-act { background: rgba(244,99,30,0.15); color: #F4631E; }
+.ov-toggle { display: inline-flex; gap: 3px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.10); border-radius: 100px; padding: 4px; }
+.ov-toggle-btn { padding: 7px 18px; border: none; border-radius: 100px; background: transparent; color: #6A6258; cursor: pointer; font-size: 0.72rem; font-weight: 600; transition: all 0.22s cubic-bezier(0.4,0,0.2,1); font-family: 'Inter', sans-serif; letter-spacing: 0.02em; white-space: nowrap; }
+.ov-toggle-btn:hover { color: #B0ABA4; background: rgba(255,255,255,0.04); }
+.ov-toggle-btn-act { background: linear-gradient(135deg, #F4631E, #e84d0a); color: #fff; box-shadow: 0 4px 14px rgba(244,99,30,0.35); }
+
 
 .ov-search-wrap { position: relative; }
 .ov-search-ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #5A5448; pointer-events: none; }
@@ -260,15 +264,18 @@ export default function MHLPage({ session }: HomePageProps) {
       {/* ── Summary Bar ── */}
       {!loading && !error && (
         <div className="ov-summary">
-          <div className="ov-stat">
+          <div className="ov-stat" style={{ borderColor: 'rgba(239,68,68,0.25)' }}>
+            <div className="ov-stat-strip" style={{ background: '#EF4444' }} />
             <span className="ov-stat-val" style={{ color: '#EF4444' }}>{filtered.length}</span>
             <span className="ov-stat-lbl">Mishandled Leads</span>
           </div>
           <div className="ov-stat">
+            <div className="ov-stat-strip" style={{ background: 'linear-gradient(90deg, #F4631E, #C9A84C)' }} />
             <span className="ov-stat-val" style={{ color: '#F0EDE8' }}>{totalOpenLeads}</span>
             <span className="ov-stat-lbl">Total Open Leads</span>
           </div>
-          <div className="ov-stat" style={{ borderColor: overallMhePct >= 30 ? 'rgba(239,68,68,0.3)' : overallMhePct >= 15 ? 'rgba(245,158,11,0.3)' : 'rgba(34,197,94,0.3)' }}>
+          <div className="ov-stat" style={{ borderColor: overallMhePct >= 30 ? 'rgba(239,68,68,0.25)' : overallMhePct >= 15 ? 'rgba(245,158,11,0.25)' : 'rgba(34,197,94,0.25)' }}>
+            <div className="ov-stat-strip" style={{ background: overallMhePct >= 30 ? '#EF4444' : overallMhePct >= 15 ? '#F59E0B' : '#22C55E' }} />
             <span className="ov-stat-val" style={{ color: overallMhePct >= 30 ? '#EF4444' : overallMhePct >= 15 ? '#F59E0B' : '#22C55E' }}>{overallMhePct}%</span>
             <span className="ov-stat-lbl">MHE Rate</span>
           </div>

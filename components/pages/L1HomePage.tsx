@@ -238,18 +238,22 @@ export default function L1HomePage({ session }: { session: UserSession }) {
           {/* 4 KPI Cards */}
           <div className={styles.statGrid} style={{gridTemplateColumns:'repeat(4,1fr)'}}>
             <div className={styles.statCard}>
+              <div className={styles.statBar} style={{ background: '#D4AF37' }} />
               <p className={styles.statLabel}>Team Goal</p>
               <p className={styles.statValue}>{fmt(totalGoal)}</p>
             </div>
             <div className={styles.statCard}>
+              <div className={styles.statBar} style={{ background: '#22C55E' }} />
               <p className={styles.statLabel}>Team Achieved</p>
               <p className={`${styles.statValue} ${styles.brandColor}`}>{fmt(totalAch)}</p>
             </div>
             <div className={styles.statCard}>
+              <div className={styles.statBar} style={{ background: '#F4631E' }} />
               <p className={styles.statLabel}>Team SHB</p>
               <p className={styles.statValue}>{fmt(totalShb)}</p>
             </div>
             <div className={`${styles.statCard} ${styles.statCardHighlight}`}>
+              <div className={styles.statBar} style={{ background: '#C9A84C' }} />
               <p className={styles.statLabel}>Team % Achieved</p>
               <p className={styles.statValue}>{totalPct.toFixed(1)}%</p>
               <div className={styles.progressBar}>

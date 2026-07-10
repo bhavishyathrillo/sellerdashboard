@@ -210,20 +210,32 @@ const CSS = `
 }
 
 .la-kpi-card {
-  background: #141414;
-  border: 1px solid #232323;
+  background: #0F0F0F;
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
-  padding: 16px;
+  padding: 16px 18px;
   min-width: 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
+}
+
+.la-kpi-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 14px 14px 0 0;
 }
 
 .la-kpi-card.clickable {
   cursor: pointer;
-  transition: border-color 0.2s;
 }
 
-.la-kpi-card.clickable:hover {
-  border-color: #F4631E;
+.la-kpi-card:hover, .la-kpi-card.clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+  border-color: rgba(244,99,30,0.3);
 }
 
 .la-kpi-label {
@@ -2748,68 +2760,66 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
 
         <div className="la-kpi-row" style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'nowrap', overflowX: 'auto' }}>
           {/* LEADS ALLOTTED */}
-          <div className="la-kpi-card" style={{ background: 'var(--card, #121212)', border: '1px solid var(--border, #1E1E1E)', borderRadius: '12px', padding: '16px 20px', display: 'flex', flexDirection: 'column', position: 'relative', flex: 1.5 }}>
-            
+          <div className="la-kpi-card" style={{ flex: 1.5, padding: '16px 20px' }}>
+            <div className="la-kpi-bar" style={{ background: '#F4631E' }} />
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F4631E', boxShadow: '0 0 10px #F4631E' }} />
-              <div style={{ fontSize: '0.65rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Leads Allotted</div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>Leads Allotted</div>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{org.totalLeads?.toLocaleString() || 0}</span>
-              <span style={{ fontSize: '1rem', color: '#71717A', fontWeight: 400 }}>/ {sumFinalLta.toLocaleString()}</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{org.totalLeads?.toLocaleString() || 0}</span>
+              <span style={{ fontSize: '1rem', color: '#71717A', fontWeight: 500 }}>/ {sumFinalLta.toLocaleString()}</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Auto</span>
-                <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#E5E7EB' }}>{orgTotalAuto}</span>
+                <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Auto</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#E5E7EB' }}>{orgTotalAuto}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Manual</span>
-                <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#9CA3AF' }}>{orgTotalManual}</span>
+                <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Manual</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#9CA3AF' }}>{orgTotalManual}</span>
               </div>
             </div>
           </div>
 
           {/* RTG BREAKDOWN */}
-          <div className="la-kpi-card" style={{ background: 'var(--card, #121212)', border: '1px solid var(--border, #1E1E1E)', borderRadius: '12px', padding: '16px 20px', display: 'flex', flexDirection: 'column', position: 'relative', flex: 1 }}>
-            
+          <div className="la-kpi-card" style={{ flex: 1, padding: '16px 20px' }}>
+            <div className="la-kpi-bar" style={{ background: '#378ADD' }} />
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#378ADD', boxShadow: '0 0 10px #378ADD' }} />
-              <div style={{ fontSize: '0.65rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>RTG Breakdown</div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>RTG Breakdown</div>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{org.rtgPct}</span>
-              <span style={{ fontSize: '1.75rem', fontWeight: 600, color: '#F9FAFB', lineHeight: 1 }}>%</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{org.rtgPct}</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#F9FAFB', lineHeight: 1 }}>%</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
-              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Count</span>
-              <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#378ADD' }}>{orgTotalRtg}</span>
+              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Count</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#378ADD' }}>{orgTotalRtg}</span>
             </div>
           </div>
 
           {/* SELLERS NO LEADS & OVERALLOCATION */}
           <div
             className="la-kpi-card"
-            style={{ background: 'var(--card, #121212)', border: '1px solid var(--border, #1E1E1E)', borderRadius: '12px', display: 'flex', flexDirection: 'column', position: 'relative', flex: 1, overflow: 'hidden', padding: 0 }}
+            style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: 0 }}
           >
             {/* UPPER HALF: No Leads */}
             <div 
-              style={{ flex: 1, padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: noLeadsSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+              style={{ flex: 1, padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: noLeadsSellers.length > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}
               onClick={() => { if (noLeadsSellers.length > 0) setShowNoLeadsModal(true); }}
               onMouseEnter={e => { if(noLeadsSellers.length > 0) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
             >
+              <div className="la-kpi-bar" style={{ background: '#EF4444' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444', flexShrink: 0 }} />
-                <div style={{ fontSize: '0.6rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', lineHeight: 1.2 }}>NO LEADS</div>
+                <div style={{ fontSize: '0.6rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', lineHeight: 1.2, letterSpacing: '0.07em' }}>NO LEADS</div>
               </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{noLeadsSellers.length}</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{noLeadsSellers.length}</div>
             </div>
 
             {/* LOWER HALF: Overallocation */}
@@ -2820,78 +2830,71 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B', boxShadow: '0 0 10px #F59E0B', flexShrink: 0 }} />
-                <div style={{ fontSize: '0.6rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', lineHeight: 1.2 }}>OVERALLOCATED</div>
+                <div style={{ fontSize: '0.6rem', fontWeight: 600, color: '#F59E0B', textTransform: 'uppercase', lineHeight: 1.2, letterSpacing: '0.07em' }}>OVERALLOCATED</div>
               </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{overallocatedSellers.length}</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{overallocatedSellers.length}</div>
             </div>
           </div>
 
           {/* MHE TREND */}
           <div
             className="la-kpi-card clickable"
-            style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1.2, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: 'pointer', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
+            style={{ padding: '16px 20px', flex: 1.2 }}
             onClick={() => setShowMheModal(true)}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'}
           >
-            
+            <div className="la-kpi-bar" style={{ background: '#22C55E' }} />
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 10px #22C55E' }} />
-                <div style={{ fontSize: '0.65rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>MHE Trend</div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>MHE Trend</div>
               </div>
-              <span style={{ fontSize: '0.65rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tap to view ▸</span>
+              <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Tap to view ▸</span>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{computedOrgMhe}</span>
-              <span style={{ fontSize: '1.75rem', fontWeight: 600, color: '#F9FAFB', lineHeight: 1 }}>%</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{computedOrgMhe}</span>
+              <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#F9FAFB', lineHeight: 1 }}>%</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
-              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Target</span>
-              <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#22C55E' }}>20%</span>
+              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#22C55E' }}>20%</span>
             </div>
           </div>
 
           {/* GOAL VS SHB */}
           <div
             className="la-kpi-card clickable"
-            style={{ background: 'linear-gradient(180deg, #1A1A1A 0%, #111111 100%)', padding: '12px 16px', borderRadius: '16px', flex: 1.5, border: '1px solid rgba(255,255,255,0.04)', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', cursor: 'pointer', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}
+            style={{ padding: '16px 20px', flex: 1.5 }}
             onClick={() => setShowGoalShbModal(true)}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'}
           >
-            
+            <div className="la-kpi-bar" style={{ background: '#3B82F6' }} />
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3B82F6', boxShadow: '0 0 10px #3B82F6' }} />
-                <div style={{ fontSize: '0.65rem', fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Goal vs SHB</div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>Goal vs SHB</div>
               </div>
-              <span style={{ fontSize: '0.65rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tap to view ▸</span>
+              <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Tap to view ▸</span>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{computedOrgGoal}</span>
-                <span style={{ fontSize: '1.75rem', fontWeight: 600, color: '#F9FAFB', lineHeight: 1 }}>%</span>
+                <span style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{computedOrgGoal}</span>
+                <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#F9FAFB', lineHeight: 1 }}>%</span>
               </div>
               <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)' }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{computedOrgShb}</span>
-                <span style={{ fontSize: '1.75rem', fontWeight: 600, color: '#F9FAFB', lineHeight: 1 }}>%</span>
+                <span style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{computedOrgShb}</span>
+                <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#F9FAFB', lineHeight: 1 }}>%</span>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.65rem', color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Goal</span>
+                <span style={{ fontSize: '0.65rem', color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Goal</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.65rem', color: '#EAB308', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SHB</span>
+                <span style={{ fontSize: '0.65rem', color: '#EAB308', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>SHB</span>
               </div>
             </div>
           </div>

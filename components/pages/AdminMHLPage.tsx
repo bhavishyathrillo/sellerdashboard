@@ -74,9 +74,11 @@ const CSS = `
 
 /* Controls */
 .ov-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; z-index: 1; position: relative; }
-.ov-toggle { display: flex; gap: 4px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 3px; }
-.ov-toggle-btn { padding: 6px 14px; border: none; border-radius: 8px; background: transparent; color: #8A8278; cursor: pointer; font-size: 0.72rem; font-weight: 600; transition: all 0.2s; font-family: 'Inter', sans-serif; }
-.ov-toggle-btn-act { background: rgba(244,99,30,0.15); color: #F4631E; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.ov-toggle { display: inline-flex; gap: 3px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.10); border-radius: 100px; padding: 4px; }
+.ov-toggle-btn { padding: 7px 18px; border: none; border-radius: 100px; background: transparent; color: #6A6258; cursor: pointer; font-size: 0.72rem; font-weight: 600; transition: all 0.22s cubic-bezier(0.4,0,0.2,1); font-family: 'Inter', sans-serif; letter-spacing: 0.02em; white-space: nowrap; }
+.ov-toggle-btn:hover { color: #B0ABA4; background: rgba(255,255,255,0.04); }
+.ov-toggle-btn-act { background: linear-gradient(135deg, #F4631E, #e84d0a); color: #fff; box-shadow: 0 4px 14px rgba(244,99,30,0.35); }
+
 
 .ov-search-wrap { position: relative; }
 .ov-search-ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #4A4438; pointer-events: none; }
@@ -94,8 +96,9 @@ const CSS = `
 
 /* Cards Grid */
 .ov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; z-index: 1; position: relative; }
-.ov-card { background: rgba(14,14,14,0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 20px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
-.ov-card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+.ov-card { background: #0F0F0F; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px 18px; text-align: center; cursor: pointer; transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s; position: relative; overflow: hidden; }
+.ov-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.4); border-color: rgba(244,99,30,0.3); }
+.ov-kpi-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0; }
 .ov-card::before { content:''; position:absolute; inset:0; background: linear-gradient(135deg, rgba(255,255,255,0.02), transparent); opacity:0; transition:opacity 0.3s; }
 .ov-card:hover::before { opacity:1; }
 
@@ -309,8 +312,9 @@ export default function AdminMHLPage() {
             </div>
           ) : l1Data.map((l1: any, i: number) => (
             <div key={l1.l1_email} className="ov-card" style={{ animation: `ovSlide 0.4s ${i*0.05}s both` }} onClick={() => setSelectedL1(l1)}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'12px'}}>
-                <div>
+              <div className="ov-kpi-bar" style={{ background: '#F4631E' }} />
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                <div style={{textAlign:'left'}}>
                   <div style={{fontWeight:800,fontSize:'1rem',color:'#E8E4DD',marginBottom:'4px'}}>{l1.l1_name}</div>
                   <span className="ov-badge">{l1.l2_count} L1 Managers</span>
                 </div>
@@ -327,9 +331,6 @@ export default function AdminMHLPage() {
                     </div>
                   )}
                 </div>
-              </div>
-              <div style={{height:'4px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',overflow:'hidden'}}>
-                <div style={{height:'100%',background:'linear-gradient(90deg, #F4631E, #EF4444)',borderRadius:'2px',width:`${Math.min((l1.total_leads/Math.max(totalLeads,1))*100,100)}%`}}/>
               </div>
             </div>
           ))}

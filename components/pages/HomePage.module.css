@@ -1,65 +1,87 @@
-.page { padding: 20px; max-width: 1000px; margin: 0 auto; color: #F0EDE8; position: relative; animation: pageIn 0.5s ease; }
-@keyframes pageIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+/* HomePage — uses ds-* tokens from design-system.css */
 
-.loadingWrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50vh; gap: 12px; }
-.spinner { width: 40px; height: 40px; border: 3px solid rgba(244,99,30,0.15); border-top-color: #F4631E; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.page {
+  padding: 24px 24px 64px;
+  max-width: 1100px;
+  margin: 0 auto;
+  color: var(--ds-text, #F0EDE8);
+  position: relative;
+  animation: ds-pageIn 0.4s cubic-bezier(0.4,0,0.2,1) both;
+  font-family: var(--ds-font, 'Inter', sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes ds-pageIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes particleRise { 0%{transform:translateY(0) rotate(0);opacity:0} 10%{opacity:0.5} 90%{opacity:0.2} 100%{transform:translateY(-110vh) rotate(360deg);opacity:0} }
 @keyframes spin { to{transform:rotate(360deg)} }
-.errorWrap { text-align: center; padding: 60px; color: #EF4444; }
 
-.hero { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 12px; flex-wrap: wrap; }
-.heroLeft { flex: 1; }
-.sellerMeta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
-.flag { font-size: 0.62rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
-.metaDot { color: rgba(255,255,255,0.1); font-size: 0.7rem; }
-.metaText { font-size: 0.68rem; color: #8A8278; }
-.oneLiner { font-size: 0.72rem; color: #8A8278; font-style: italic; }
-.heroRight { flex-shrink: 0; }
-.goalType { font-size: 0.7rem; font-weight: 600; color: #C9A84C; background: rgba(201,168,76,0.08); padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(201,168,76,0.15); }
+.loadingWrap { display:flex; flex-direction:column; align-items:center; justify-content:center; height:50vh; gap:14px; }
+.spinner { width:36px; height:36px; border:3px solid rgba(244,99,30,0.12); border-top-color:#F4631E; border-right-color:#C9A84C; border-radius:50%; animation:spin 0.8s linear infinite; }
+.errorWrap { text-align:center; padding:60px; color:#EF4444; font-size:0.85rem; }
+
+/* Hero */
+.hero { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; padding-bottom:18px; border-bottom:1px solid rgba(255,255,255,0.06); gap:14px; flex-wrap:wrap; }
+.heroLeft { flex:1; }
+.sellerMeta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+.flag { font-size:0.62rem; font-weight:700; padding:2px 8px; border-radius:4px; letter-spacing:0.02em; }
+.metaDot { color:rgba(255,255,255,0.1); font-size:0.7rem; }
+.metaText { font-size:0.68rem; color:#6A6258; }
+.oneLiner { font-size:0.72rem; color:#6A6258; font-style:italic; margin-top:2px; }
+.heroRight { flex-shrink:0; }
+.goalType { font-size:0.7rem; font-weight:700; color:#C9A84C; background:rgba(201,168,76,0.08); padding:5px 14px; border-radius:100px; border:1px solid rgba(201,168,76,0.18); letter-spacing:0.02em; }
 
 /* Stat Grid */
-.statGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
-.statCard { background: #141414; border: 1px solid #232323; border-radius: 12px; padding: 14px; text-align: center; transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s; }
-.statCard:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); border-color: rgba(244,99,30,0.2); }
-.statCardHighlight { border-color: rgba(201,168,76,0.25); background: linear-gradient(135deg, rgba(201,168,76,0.04), #141414); }
-.statLabel { font-size: 0.58rem; color: #8A8278; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
-.statValue { font-size: 1.3rem; font-weight: 700; }
-.brandColor { color: #F4631E; }
-.statHint { margin-top: 6px; font-size: 0.58rem; }
-.hintNeutral { color: #8A8278; }
-.hintGreen { color: #22C55E; }
-.hintRed { color: #EF4444; }
-.hintPct { opacity: 0.7; }
-.progressBar { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin: 8px 0; }
-.progressFill { height: 100%; background: linear-gradient(90deg, #6B1E3A, #F4631E, #C9A84C); border-radius: 2px; transition: width 0.8s ease; }
+.statGrid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:20px; }
+.statCard { background:#0F0F0F; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:16px 18px; text-align:center; transition:transform 0.22s, box-shadow 0.22s, border-color 0.22s; cursor:default; position:relative; overflow:hidden; }
+.statCard:hover { transform:translateY(-4px); box-shadow:0 12px 30px rgba(0,0,0,0.4); border-color:rgba(244,99,30,0.3); }
+.statBar { position:absolute; top:0; left:0; right:0; height:3px; border-radius:14px 14px 0 0; }
+.statCardHighlight { border-color:rgba(201,168,76,0.3); background:linear-gradient(135deg,rgba(201,168,76,0.05),#0F0F0F); }
+.statLabel { font-size:0.58rem; color:#6A6258; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:6px; font-weight:600; }
+.statValue { font-size:1.35rem; font-weight:800; letter-spacing:-0.025em; }
+.brandColor { color:#F4631E; }
+.statHint { margin-top:6px; font-size:0.58rem; }
+.hintNeutral { color:#6A6258; }
+.hintGreen  { color:#22C55E; }
+.hintRed    { color:#EF4444; }
+.hintPct    { opacity:0.7; }
+.progressBar  { height:4px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden; margin:8px 0; }
+.progressFill { height:100%; background:linear-gradient(90deg,#6B1E3A,#F4631E,#C9A84C); border-radius:2px; transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1); }
 
-/* Weekly */
-.section { margin-bottom: 20px; }
-.sectionTitle { font-size: 0.78rem; font-weight: 700; color: #C9A84C; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
-.weekGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.weekCard { background: #141414; border: 1px solid #232323; border-radius: 10px; padding: 12px; transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s; }
-.weekCard:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); border-color: rgba(244,99,30,0.2); }
-.weekHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.weekLabel { font-weight: 700; font-size: 0.85rem; }
-.weekPct { font-size: 0.75rem; font-weight: 700; color: #C9A84C; }
-.weekRow { display: flex; justify-content: space-between; font-size: 0.7rem; padding: 3px 0; }
-.weekSub { color: #8A8278; }
-.weekVal { font-weight: 600; }
-.weekBar { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: 6px; }
-.weekBarFill { height: 100%; background: linear-gradient(90deg, #F4631E, #C9A84C); border-radius: 2px; transition: width 0.5s ease; }
+/* Section */
+.section { margin-bottom:20px; }
+.sectionTitle { font-size:0.72rem; font-weight:700; color:#C9A84C; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; gap:8px; }
+.sectionTitle::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.06); }
+
+/* Weekly Grid */
+.weekGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.weekCard { background:#0F0F0F; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:14px; transition:transform 0.22s, box-shadow 0.22s, border-color 0.22s; }
+.weekCard:hover { transform:translateY(-3px); box-shadow:0 8px 22px rgba(0,0,0,0.35); border-color:rgba(244,99,30,0.25); }
+.weekHeader { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.weekLabel { font-weight:700; font-size:0.85rem; }
+.weekPct   { font-size:0.75rem; font-weight:700; color:#C9A84C; }
+.weekRow   { display:flex; justify-content:space-between; font-size:0.7rem; padding:3px 0; }
+.weekSub   { color:#6A6258; }
+.weekVal   { font-weight:600; }
+.weekBar     { height:3px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden; margin-top:7px; }
+.weekBarFill { height:100%; background:linear-gradient(90deg,#F4631E,#C9A84C); border-radius:2px; transition:width 0.5s; }
 
 /* Bottom Grid */
-.bottomGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.infoCard { background: #141414; border: 1px solid #232323; border-radius: 12px; padding: 14px; transition: transform 0.3s, box-shadow 0.3s; }
-.infoCard:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
-.infoTitle { font-size: 0.75rem; font-weight: 700; margin-bottom: 10px; color: #C9A84C; }
-.infoRow { display: flex; justify-content: space-between; padding: 5px 0; font-size: 0.72rem; border-bottom: 1px solid rgba(255,255,255,0.03); }
-.infoRow:last-child { border-bottom: none; }
-.infoLabel { color: #8A8278; }
-.infoValue { font-weight: 600; }
-.infoSub { font-size: 0.62rem; color: #8A8278; }
+.bottomGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.infoCard { background:#0F0F0F; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:14px; transition:transform 0.22s, box-shadow 0.22s; }
+.infoCard:hover { transform:translateY(-3px); box-shadow:0 8px 22px rgba(0,0,0,0.3); }
+.infoTitle { font-size:0.72rem; font-weight:700; margin-bottom:12px; color:#C9A84C; }
+.infoRow { display:flex; justify-content:space-between; padding:5px 0; font-size:0.72rem; border-bottom:1px solid rgba(255,255,255,0.03); }
+.infoRow:last-child { border-bottom:none; }
+.infoLabel { color:#6A6258; }
+.infoValue { font-weight:600; }
+.infoSub { font-size:0.62rem; color:#6A6258; }
 
-@media (max-width: 800px) {
-  .statGrid { grid-template-columns: repeat(2, 1fr); }
-  .weekGrid { grid-template-columns: repeat(2, 1fr); }
-  .bottomGrid { grid-template-columns: 1fr; }
+@media (max-width:900px) {
+  .statGrid { grid-template-columns:repeat(3,1fr); }
+}
+@media (max-width:700px) {
+  .page { padding:16px 14px 48px; }
+  .statGrid  { grid-template-columns:repeat(2,1fr); }
+  .weekGrid  { grid-template-columns:repeat(2,1fr); }
+  .bottomGrid { grid-template-columns:1fr; }
 }

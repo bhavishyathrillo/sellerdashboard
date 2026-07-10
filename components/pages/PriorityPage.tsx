@@ -45,6 +45,29 @@ function MishandledPill({ pct }: { pct: number }) {
   return <StatusPill label={`${pct}%`} variant={variant} />
 }
 
+// ─── UNIFIED KPI CARD STYLES ────────────────────────────────────────────────
+const S = {
+  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', marginBottom: '20px' } as React.CSSProperties,
+  kpiCard: (accent: string, accentBg: string) => ({
+    background: '#0F0F0F',
+    borderRadius: '14px',
+    padding: '16px 18px',
+    position: 'relative' as const,
+    overflow: 'hidden',
+    border: `1px solid ${accentBg}`,
+    transition: 'transform 0.22s, box-shadow 0.22s, border-color 0.22s',
+    cursor: 'default',
+  }),
+  strip: (bg: string) => ({ position: 'absolute' as const, top: 0, left: 0, right: 0, height: '3px', background: bg, borderRadius: '14px 14px 0 0' }),
+  lbl: { fontSize: '0.58rem', color: '#6A6258', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: '8px', fontWeight: 700, fontFamily: 'Inter, sans-serif' } as React.CSSProperties,
+  val: (color: string) => ({ fontSize: '1.6rem', fontWeight: 800, color, lineHeight: 1, letterSpacing: '-0.025em', fontFamily: 'Inter, sans-serif' }),
+  sub: { fontSize: '0.6rem', color: '#6A6258', marginTop: '6px', fontFamily: 'Inter, sans-serif' } as React.CSSProperties,
+  sublbl: { fontSize: '0.55rem', color: '#5A5650', marginBottom: '4px' } as React.CSSProperties,
+  divider: { width: '1px', height: '36px', background: 'rgba(255,255,255,0.06)', flexShrink: 0 } as React.CSSProperties,
+  miniBar: (w: number, color: string) => ({ marginTop: '5px', height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden' as const }),
+  miniBarFill: (w: number, color: string) => ({ height: '100%', width: `${w}%`, background: color, borderRadius: '10px' }),
+}
+
 // ── KPI cards ─────────────────────────────────────────────────────────────
 function KpiCards({ metrics }: { metrics: any }) {
   if (!metrics) return null
@@ -52,55 +75,57 @@ function KpiCards({ metrics }: { metrics: any }) {
   const convoPct = total > 0 ? Math.round((metrics.conversationHappenedLeads / total) * 100) : 0
   const attemptsPct = total > 0 ? Math.round((metrics.twoAttemptsDoneLeads / total) * 100) : 0
   const isGoodMishandled = metrics.mishandledPct <= 20
+  const mColor = isGoodMishandled ? '#22C55E' : '#EF4444'
+  const mBg    = isGoodMishandled ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)'
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
+    <div style={S.kpiGrid}>
       {/* Total Leads */}
-      <div style={{ background: '#1A1A1A', borderRadius: 12, padding: '18px 20px', position: 'relative', overflow: 'hidden', border: '1px solid rgba(244,99,30,0.2)' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg,#F4631E,#C9A84C)' }} />
-        <div style={{ fontSize: '0.6rem', color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Total Priority Leads</div>
-        <div style={{ fontSize: '2rem', fontWeight: 700, color: '#F4631E', lineHeight: 1 }}>{total}</div>
-        <div style={{ fontSize: '0.6rem', color: '#5A5650', marginTop: 6 }}>Assigned to you today</div>
+      <div style={S.kpiCard('#F4631E','rgba(244,99,30,0.2)')}>
+        <div style={S.strip('linear-gradient(90deg,#F4631E,#C9A84C)')} />
+        <div style={S.lbl}>Total Priority Leads</div>
+        <div style={S.val('#F4631E')}>{total}</div>
+        <div style={S.sub}>Assigned to you today</div>
       </div>
 
       {/* Mishandled */}
-      <div style={{ background: '#1A1A1A', borderRadius: 12, padding: '18px 20px', position: 'relative', overflow: 'hidden', border: `1px solid ${isGoodMishandled ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: isGoodMishandled ? '#22C55E' : '#EF4444' }} />
-        <div style={{ fontSize: '0.6rem', color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Mishandled Leads</div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12 }}>
+      <div style={S.kpiCard(mColor, mBg)}>
+        <div style={S.strip(mColor)} />
+        <div style={S.lbl}>Mishandled Leads</div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px' }}>
           <div>
-            <div style={{ fontSize: '0.55rem', color: '#5A5650', marginBottom: 2 }}>Rate</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: isGoodMishandled ? '#22C55E' : '#EF4444', lineHeight: 1 }}>{metrics.mishandledPct}%</div>
+            <div style={S.sublbl}>Rate</div>
+            <div style={S.val(mColor)}>{metrics.mishandledPct}%</div>
           </div>
-          <div style={{ width: 1, height: 36, background: '#232323', flexShrink: 0 }} />
+          <div style={S.divider} />
           <div>
-            <div style={{ fontSize: '0.55rem', color: '#5A5650', marginBottom: 2 }}>Count</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: isGoodMishandled ? '#22C55E' : '#EF4444', lineHeight: 1 }}>{metrics.mishandledLeads}</div>
+            <div style={S.sublbl}>Count</div>
+            <div style={S.val(mColor)}>{metrics.mishandledLeads}</div>
           </div>
         </div>
       </div>
 
-      {/* Conversation / Attempts */}
-      <div style={{ background: '#1A1A1A', borderRadius: 12, padding: '18px 20px', position: 'relative', overflow: 'hidden', border: '1px solid rgba(201,168,76,0.2)' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#C9A84C' }} />
-        <div style={{ fontSize: '0.6rem', color: '#8A8278', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>Conversion Progress</div>
-        <div style={{ display: 'flex', gap: 16 }}>
+      {/* Conversion Progress */}
+      <div style={S.kpiCard('#C9A84C','rgba(201,168,76,0.18)')}>
+        <div style={S.strip('#C9A84C')} />
+        <div style={S.lbl}>Conversion Progress</div>
+        <div style={{ display: 'flex', gap: '16px' }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '0.55rem', color: '#5A5650', marginBottom: 4 }}>Conv. Happened</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#22C55E', lineHeight: 1 }}>{metrics.conversationHappenedLeads ?? 0}</div>
-            <div style={{ marginTop: 5, height: 4, background: '#232323', borderRadius: 10, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${convoPct}%`, background: '#22C55E', borderRadius: 10 }} />
+            <div style={S.sublbl}>Conv. Happened</div>
+            <div style={S.val('#22C55E')}>{metrics.conversationHappenedLeads ?? 0}</div>
+            <div style={S.miniBar(convoPct,'#22C55E')}>
+              <div style={S.miniBarFill(convoPct,'#22C55E')} />
             </div>
-            <div style={{ fontSize: '0.55rem', color: '#22C55E', marginTop: 3 }}>{convoPct}%</div>
+            <div style={{ fontSize: '0.55rem', color: '#22C55E', marginTop: '3px' }}>{convoPct}%</div>
           </div>
-          <div style={{ width: 1, background: '#232323', flexShrink: 0 }} />
+          <div style={{ ...S.divider, height: 'auto' }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '0.55rem', color: '#5A5650', marginBottom: 4 }}>2 Attempts Done</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#C9A84C', lineHeight: 1 }}>{metrics.twoAttemptsDoneLeads ?? 0}</div>
-            <div style={{ marginTop: 5, height: 4, background: '#232323', borderRadius: 10, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${attemptsPct}%`, background: '#C9A84C', borderRadius: 10 }} />
+            <div style={S.sublbl}>2 Attempts Done</div>
+            <div style={S.val('#C9A84C')}>{metrics.twoAttemptsDoneLeads ?? 0}</div>
+            <div style={S.miniBar(attemptsPct,'#C9A84C')}>
+              <div style={S.miniBarFill(attemptsPct,'#C9A84C')} />
             </div>
-            <div style={{ fontSize: '0.55rem', color: '#C9A84C', marginTop: 3 }}>{attemptsPct}%</div>
+            <div style={{ fontSize: '0.55rem', color: '#C9A84C', marginTop: '3px' }}>{attemptsPct}%</div>
           </div>
         </div>
       </div>
@@ -327,10 +352,30 @@ function TabToggle({ active, onChange }: { active: 'priority' | 'qb'; onChange: 
 // ── View mode / table toggle ──────────────────────────────────────────────
 function ToggleBtn({ options, value, onChange }: { options: { label: string; value: string }[]; value: string; onChange: (v: string) => void }) {
   return (
-    <div style={{ display: 'flex', gap: 3, background: '#141414', border: '1px solid #232323', borderRadius: 8, padding: 3 }}>
-      {options.map(o => (
-        <button key={o.value} onClick={() => onChange(o.value)} style={{ padding: '7px 14px', border: 'none', borderRadius: 6, background: value === o.value ? 'rgba(244,99,30,0.15)' : 'transparent', color: value === o.value ? '#F4631E' : '#8A8278', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600, transition: 'all 0.15s' }}>{o.label}</button>
-      ))}
+    <div style={{ display: 'inline-flex', gap: 3, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 100, padding: 4 }}>
+      {options.map(o => {
+        const isActive = value === o.value;
+        return (
+          <button 
+            key={o.value} 
+            onClick={() => onChange(o.value)} 
+            style={{ 
+              padding: '7px 18px', 
+              border: 'none', 
+              borderRadius: 100, 
+              background: isActive ? 'linear-gradient(135deg, #F4631E, #e84d0a)' : 'transparent', 
+              color: isActive ? '#fff' : '#6A6258', 
+              cursor: 'pointer', 
+              fontSize: '0.72rem', 
+              fontWeight: 600, 
+              transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
+              boxShadow: isActive ? '0 4px 14px rgba(244,99,30,0.35)' : 'none'
+            }}
+          >
+            {o.label}
+          </button>
+        )
+      })}
     </div>
   )
 }

@@ -160,9 +160,23 @@ export default function AdminHygienePage() {
       </div>
 
       <div className={styles.kpiGrid}>
-        <div className={`${styles.kpiCard} ${styles.kpiPrimary}`}><div className={styles.kpiIcon}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4631E" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div><div className={styles.kpiValue}>{totalCalls}</div><div className={styles.kpiLabel}>Total Calls</div></div>
-        <div className={styles.kpiCard}><div className={styles.kpiIcon}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div><div className={styles.kpiValue}>{avgCallsPerDay}</div><div className={styles.kpiLabel}>Avg Calls/Day</div><div className={styles.kpiTrend}>Per seller · {totalSellers} sellers</div></div>
-        <div className={styles.kpiCard}><div className={styles.kpiIcon}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div className={styles.kpiValue}>{fmtDuration(avgDurationPerDay)}</div><div className={styles.kpiLabel}>Avg Duration/Day</div><div className={styles.kpiTrend}>Per seller · working days</div></div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#F4631E' }} />
+          <div className={styles.kpiLabel}>Total Calls</div>
+          <div className={styles.kpiValue}>{totalCalls}</div>
+        </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#C9A84C' }} />
+          <div className={styles.kpiLabel}>Avg Calls/Day</div>
+          <div className={styles.kpiValue}>{avgCallsPerDay}</div>
+          <div className={styles.kpiTrend}>Per seller · {totalSellers} sellers</div>
+        </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#22C55E' }} />
+          <div className={styles.kpiLabel}>Avg Duration/Day</div>
+          <div className={styles.kpiValue}>{fmtDuration(avgDurationPerDay)}</div>
+          <div className={styles.kpiTrend}>Per seller · working days</div>
+        </div>
       </div>
 
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px',flexWrap:'wrap',gap:'10px'}}>

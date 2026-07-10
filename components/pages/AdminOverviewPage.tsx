@@ -44,7 +44,7 @@ function renderAch(ach: number, shb: number, isBl: boolean, tagMatch: boolean = 
 }
 
 /* ─── Animated Counter ─── */
-function AnimCount({ value }: { value: number }) {
+function AnimCount({ value, money = true }: { value: number, money?: boolean }) {
   const [display, setDisplay] = useState(0)
   const ref = useRef(0)
   useEffect(() => {
@@ -57,7 +57,7 @@ function AnimCount({ value }: { value: number }) {
     }
     requestAnimationFrame(tick)
   }, [value])
-  return <>{fmt(display)}</>
+  return <>{money ? fmt(display) : Math.round(display)}</>
 }
 
 /* ─── Mini Sparkline SVG ─── */
@@ -221,53 +221,49 @@ const CSS = `
 }
 
 .ov-kpi {
-  position: relative;
-  border-radius: 16px;
-  padding: 20px 22px 18px;
-  background: #111111;
-  border: 1px solid #1E1E1E;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  background: #0F0F0F;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 16px 18px;
+  text-align: center;
+  transition: transform 0.22s cubic-bezier(0.4,0,0.2,1), box-shadow 0.22s, border-color 0.22s;
   cursor: default;
+  position: relative;
   overflow: hidden;
 }
-.ov-kpi::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  border-radius: 16px 16px 0 0;
-}
-.ov-kpi-bl::before { background: linear-gradient(90deg, #F4631E, rgba(244,99,30,0.3)); }
-.ov-kpi-tl::before { background: linear-gradient(90deg, #22C55E, rgba(34,197,94,0.3)); }
-
 .ov-kpi:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+  border-color: rgba(244,99,30,0.3);
+}
+.ov-kpi-bar {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0;
+}
+
   transform: translateY(-2px);
   box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   border-color: #2a2a2a;
 }
-.ov-kpi-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+.ov-kpi-bar {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0;
 }
 .ov-kpi-lbl {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #8A8278;
+  font-size: 0.58rem;
+  color: #6A6258;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 10px;
+  letter-spacing: 0.07em;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 .ov-kpi-val {
-  font-size: 1.55rem;
+  font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.025em;
   line-height: 1;
-  animation: ovCount 0.6s cubic-bezier(0.16,1,0.3,1);
 }
+.ov-kpi-val-def { color: #F0EDE8; }
 .ov-kpi-val-bl { color: #F4631E; }
 .ov-kpi-val-tl { color: #22C55E; }
-.ov-kpi-val-def { color: #F0EDE8; }
 
 /* ── Search ── */
 .ov-search-wrap {
@@ -561,7 +557,10 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
     bottomline_should_have_been: 0,
     bl_actual_splits: 0,
     topline_should_have_been: 0,
-    tl_actual_splits: 0
+    tl_actual_splits: 0,
+    enquiries_created: 0,
+    sellers_called: 0,
+    total_calls: 0
   }
   const flagTable = apiData?.flagTable || { columns: [], rows: [] }
   let gBlG = 0, gBlS = 0, gBlA = 0, gTlG = 0, gTlS = 0, gTlA = 0
@@ -730,6 +729,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
 
       {/* ── KPIs ── */}
       <div className="ov-kpi-sec">
+
+
         <div className="ov-kpi-tag ov-kpi-tag-bl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F4631E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2c0 6-8 10-8 16a8 8 0 0016 0c0-6-8-10-8-16z"/></svg> Bottom Line</div>
         <div className="ov-kpi-row">
           {[
@@ -745,16 +746,12 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
               pctColor: kpis.bl_actual_splits >= kpis.bottomline_should_have_been ? '#22C55E' : '#EF4444' 
             },
           ].map(k => (
-            <div key={k.lbl} className="ov-kpi ov-kpi-bl">
-              <div className="ov-kpi-top">
-                <div>
-                  <div className="ov-kpi-lbl">{k.lbl}</div>
-                  <div className={`ov-kpi-val ${k.cls}`}>
-                    <AnimCount value={k.val}/>
-                    {k.pct !== undefined && <span style={{fontSize:'0.8rem', marginLeft:'8px', color: k.pctColor || k.c, fontWeight:800}}>{k.arrow} {k.pct}%</span>}
-                  </div>
-                </div>
-                <Spark color={k.c}/>
+            <div key={k.lbl} className="ov-kpi">
+              <div className="ov-kpi-bar" style={{ background: k.c }} />
+              <div className="ov-kpi-lbl">{k.lbl}</div>
+              <div className={`ov-kpi-val ${k.cls}`}>
+                <AnimCount value={k.val}/>
+                {k.pct !== undefined && <span style={{fontSize:'0.8rem', marginLeft:'8px', color: k.pctColor || k.c, fontWeight:800}}>{k.arrow} {k.pct}%</span>}
               </div>
             </div>
           ))}
@@ -775,16 +772,12 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
               pctColor: kpis.tl_actual_splits >= kpis.topline_should_have_been ? '#22C55E' : '#EF4444' 
             },
           ].map(k => (
-            <div key={k.lbl} className="ov-kpi ov-kpi-tl">
-              <div className="ov-kpi-top">
-                <div>
-                  <div className="ov-kpi-lbl">{k.lbl}</div>
-                  <div className={`ov-kpi-val ${k.cls}`}>
-                    <AnimCount value={k.val}/>
-                    {k.pct !== undefined && <span style={{fontSize:'0.8rem', marginLeft:'8px', color: k.pctColor || k.c, fontWeight:800}}>{k.arrow} {k.pct}%</span>}
-                  </div>
-                </div>
-                <Spark color={k.c}/>
+            <div key={k.lbl} className="ov-kpi">
+              <div className="ov-kpi-bar" style={{ background: k.c }} />
+              <div className="ov-kpi-lbl">{k.lbl}</div>
+              <div className={`ov-kpi-val ${k.cls}`}>
+                <AnimCount value={k.val}/>
+                {k.pct !== undefined && <span style={{fontSize:'0.8rem', marginLeft:'8px', color: k.pctColor || k.c, fontWeight:800}}>{k.arrow} {k.pct}%</span>}
               </div>
             </div>
           ))}

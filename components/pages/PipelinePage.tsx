@@ -319,17 +319,28 @@ export default function PipelinePage({ session }: PipelinePageProps) {
         </div>
       </div>
 
-      {/* Stats Strip */}
-      <div className={styles.statsStrip}>
-        <div className={styles.stat}><div className={styles.statVal}>{displayHistory.length}</div><div className={styles.statLbl}>Total</div></div>
-        <div className={styles.statDivider} />
-        <div className={styles.stat}><div className={styles.statVal} style={{color:'#22C55E'}}>{greenCount}</div><div className={styles.statLbl}>Green</div></div>
-        <div className={styles.statDivider} />
-        <div className={styles.stat}><div className={styles.statVal} style={{color:'#EF4444'}}>{redCount}</div><div className={styles.statLbl}>Red</div></div>
-        <div className={styles.statDivider} />
-        <div className={styles.stat}><div className={styles.statVal} style={{color:'#C9A84C'}}>{fmt(totalPipeline)}</div><div className={styles.statLbl}>Total Pipeline</div></div>
-        <div className={styles.statDivider} />
-        <div className={styles.stat}><div className={styles.statVal} style={{color:'#22C55E'}}>{displayHistory.length>0?((greenCount/displayHistory.length)*100).toFixed(0):0}%</div><div className={styles.statLbl}>Green Rate</div></div>
+      {/* Stats Grid */}
+      <div className={styles.kpiGrid}>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#F0EDE8' }} />
+          <div className={styles.kpiLabel}>Total Submissions</div>
+          <div className={styles.kpiValue}>{displayHistory.length}</div>
+        </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#C9A84C' }} />
+          <div className={styles.kpiLabel}>Total Pipeline</div>
+          <div className={styles.kpiValue} style={{color:'#C9A84C'}}>{fmt(totalPipeline)}</div>
+        </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#22C55E' }} />
+          <div className={styles.kpiLabel}>Green</div>
+          <div className={styles.kpiValue} style={{color:'#22C55E'}}>{greenCount}</div>
+        </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#C9A84C' }} />
+          <div className={styles.kpiLabel}>Green Rate</div>
+          <div className={styles.kpiValue} style={{color:'#C9A84C'}}>{displayHistory.length>0?((greenCount/displayHistory.length)*100).toFixed(0):0}%</div>
+        </div>
       </div>
 
       {/* History */}

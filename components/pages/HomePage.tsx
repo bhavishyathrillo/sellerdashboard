@@ -223,6 +223,7 @@ export default function HomePage({ session }: HomePageProps) {
           style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
           onClick={() => viewMode === 'team' && setSelectedKpi({ id: 'bottomline_goal_monthly', label: 'Monthly Goal' })}
         >
+          <div className={styles.statBar} style={{ background: '#D4AF37' }} />
           <p className={styles.statLabel}>Monthly Goal</p>
           <p className={styles.statValue}>{fmt(displayData.bottomline_goal_monthly)}</p>
           <p className={styles.statHint}><span className={styles.hintNeutral}>Target for this month</span></p>
@@ -232,6 +233,7 @@ export default function HomePage({ session }: HomePageProps) {
           style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
           onClick={() => viewMode === 'team' && setSelectedKpi({ id: 'actual_achieved_monthly', label: 'Achieved' })}
         >
+          <div className={styles.statBar} style={{ background: '#22C55E' }} />
           <p className={styles.statLabel}>Achieved</p>
           <p className={`${styles.statValue} ${styles.brandColor}`}>{fmt(displayData.actual_achieved_monthly)}</p>
           {(() => {
@@ -253,6 +255,7 @@ export default function HomePage({ session }: HomePageProps) {
           style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
           onClick={() => viewMode === 'team' && setSelectedKpi({ id: 'required_daily_monthly', label: 'Required Daily' })}
         >
+          <div className={styles.statBar} style={{ background: '#F4631E' }} />
           <p className={styles.statLabel}>Required Daily</p>
           <p className={styles.statValue}>{fmt(displayData.required_daily_monthly)}</p>
         </div>
@@ -261,6 +264,7 @@ export default function HomePage({ session }: HomePageProps) {
           style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
           onClick={() => viewMode === 'team' && setSelectedKpi({ id: 'should_have_been_monthly', label: 'Should Have Been' })}
         >
+          <div className={styles.statBar} style={{ background: '#F4631E' }} />
           <p className={styles.statLabel}>Should Have Been</p>
           <p className={styles.statValue}>{fmt(displayData.should_have_been_monthly)}</p>
         </div>
@@ -269,6 +273,7 @@ export default function HomePage({ session }: HomePageProps) {
           style={{ cursor: viewMode === 'team' ? 'pointer' : 'default' }}
           onClick={() => viewMode === 'team' && setSelectedKpi({ id: 'goal_achieved_percent', label: '% Achieved', isPct: true })}
         >
+          <div className={styles.statBar} style={{ background: '#C9A84C' }} />
           <p className={styles.statLabel}>% Achieved</p>
           <p className={styles.statValueHighlight}>{displayData.goal_achieved_percent?.toFixed(1)}%</p>
           <div className={styles.progressBar}>

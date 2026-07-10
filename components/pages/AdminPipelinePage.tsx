@@ -303,22 +303,26 @@ export default function AdminPipelinePage() {
       </div>
 
       {/* Stats Row */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'10px',marginBottom:'16px'}}>
-        <div style={{background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'12px',textAlign:'center'}}>
-          <div style={{fontSize:'0.55rem',color:'#8A8278',textTransform:'uppercase'}}>Total Submissions</div>
-          <div style={{fontSize:'1.2rem',fontWeight:700,color:'#F4631E'}}>{totalSubmissions}</div>
+      <div className={styles.kpiGrid}>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#F0EDE8' }} />
+          <div className={styles.kpiLabel}>Total Submissions</div>
+          <div className={styles.kpiValue} style={{color:'#F4631E'}}>{totalSubmissions}</div>
         </div>
-        <div style={{background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'12px',textAlign:'center'}}>
-          <div style={{fontSize:'0.55rem',color:'#8A8278',textTransform:'uppercase'}}>Total Pipeline</div>
-          <div style={{fontSize:'1.2rem',fontWeight:700,color:'#C9A84C'}}>{fmt(totalPipeline)}</div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#C9A84C' }} />
+          <div className={styles.kpiLabel}>Total Pipeline</div>
+          <div className={styles.kpiValue} style={{color:'#C9A84C'}}>{fmt(totalPipeline)}</div>
         </div>
-        <div style={{background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'12px',textAlign:'center'}}>
-          <div style={{fontSize:'0.55rem',color:'#8A8278',textTransform:'uppercase'}}>Green</div>
-          <div style={{fontSize:'1.2rem',fontWeight:700,color:'#22C55E'}}>{totalGreen}</div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#22C55E' }} />
+          <div className={styles.kpiLabel}>Green</div>
+          <div className={styles.kpiValue} style={{color:'#22C55E'}}>{totalGreen}</div>
         </div>
-        <div style={{background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'12px',textAlign:'center'}}>
-          <div style={{fontSize:'0.55rem',color:'#8A8278',textTransform:'uppercase'}}>Green Rate</div>
-          <div style={{fontSize:'1.2rem',fontWeight:700,color:'#C9A84C'}}>{totalSubmissions > 0 ? ((totalGreen / totalSubmissions) * 100).toFixed(0) : 0}%</div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#C9A84C' }} />
+          <div className={styles.kpiLabel}>Green Rate</div>
+          <div className={styles.kpiValue} style={{color:'#C9A84C'}}>{totalSubmissions > 0 ? ((totalGreen / totalSubmissions) * 100).toFixed(0) : 0}%</div>
         </div>
       </div>
 

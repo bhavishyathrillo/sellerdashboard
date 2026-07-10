@@ -1,339 +1,76 @@
-.page {
-  padding: 20px;
-  max-width: 1100px;
-  margin: 0 auto;
-  color: #F0EDE8;
-}
+/* PriorityPage — unified design-system styles */
 
-.kpiGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
-}
+@keyframes ds-pageIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
 
-.kpiCard {
-  background: #141414;
-  border: 1px solid #232323;
-  border-radius: 12px;
-  padding: 16px;
-  text-align: center;
-  transition: transform 0.3s, box-shadow 0.3s;
-}
+.page { padding:24px 24px 64px; max-width:1100px; margin:0 auto; color:#F0EDE8; animation:ds-pageIn 0.4s cubic-bezier(0.4,0,0.2,1) both; font-family:'Inter',-apple-system,sans-serif; -webkit-font-smoothing:antialiased; }
 
-.kpiCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-}
+/* KPI Cards */
+.kpiGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; }
+.kpiCard { background:#0F0F0F; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:18px; text-align:center; transition:transform 0.22s,box-shadow 0.22s,border-color 0.22s; cursor:default; }
+.kpiCard:hover { transform:translateY(-4px); box-shadow:0 12px 30px rgba(0,0,0,0.4); border-color:rgba(244,99,30,0.3); }
+.kpiPrimary { border-color:rgba(244,99,30,0.25);  background:rgba(244,99,30,0.04); }
+.kpiSuccess { border-color:rgba(34,197,94,0.2);   background:rgba(34,197,94,0.03); }
+.kpiDanger  { border-color:rgba(239,68,68,0.25);  background:rgba(239,68,68,0.04); }
 
-.kpiPrimary {
-  border-color: rgba(244, 99, 30, 0.3);
-  background: rgba(244, 99, 30, 0.04);
-}
+.kpiLabel { display:block; font-size:0.58rem; color:#6A6258; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px; font-weight:600; }
+.kpiValue { display:block; font-size:1.5rem; font-weight:800; letter-spacing:-0.025em; }
+.kpiSub   { display:block; font-size:0.58rem; color:#6A6258; margin-top:5px; }
 
-.kpiSuccess {
-  border-color: rgba(34, 197, 94, 0.2);
-  background: rgba(34, 197, 94, 0.03);
-}
+/* Table */
+.tableWrap { background:#0F0F0F; border:1px solid rgba(255,255,255,0.08); border-radius:14px; overflow:hidden; }
+.table    { width:100%; border-collapse:collapse; font-size:0.76rem; font-family:'Inter',sans-serif; }
+.table th { padding:11px 14px; text-align:left; background:rgba(255,255,255,0.025); color:#6A6258; font-size:0.6rem; text-transform:uppercase; letter-spacing:0.09em; font-weight:700; border-bottom:1px solid rgba(255,255,255,0.06); cursor:default; transition:background 0.2s,color 0.2s; white-space:nowrap; }
+.table th.sortable { cursor:pointer; }
+.table th:hover { background:rgba(255,255,255,0.05); color:#F0EDE8; }
 
-.kpiDanger {
-  border-color: rgba(239, 68, 68, 0.3);
-  background: rgba(239, 68, 68, 0.04);
-}
+/* Leaderboard */
+.leaderboardWrap { width:100%; overflow-x:auto; margin-top:12px; }
+.leaderboardContainer { min-width:800px; display:flex; flex-direction:column; gap:8px; padding-bottom:20px; }
+.leaderboardHeader { display:grid; grid-template-columns:60px 2.2fr 1fr 2fr 1.2fr 1.2fr; align-items:center; padding:10px 16px; color:#6A6258; font-size:0.6rem; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; }
+.headerCell { display:flex; align-items:center; user-select:none; font-weight:700; transition:color 0.2s; }
+.headerCell.sortable { cursor:pointer; }
+.headerCell.sortable:hover { color:#F0EDE8; }
 
-.kpiLabel {
-  display: block;
-  font-size: 0.6rem;
-  color: #8A8278;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 8px;
-}
+.leaderboardRow { display:grid; grid-template-columns:60px 2.2fr 1fr 2fr 1.2fr 1.2fr; align-items:center; padding:14px 16px; background:#0F0F0F; border:1px solid rgba(255,255,255,0.08); border-radius:12px; transition:transform 0.22s,border-color 0.22s,box-shadow 0.22s; }
+.leaderboardRow:hover { transform:translateY(-2px); border-color:rgba(244,99,30,0.3); box-shadow:0 8px 24px rgba(0,0,0,0.35); }
 
-.kpiValue {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
+.rankCell { font-size:1.1rem; font-weight:700; color:#6A6258; text-align:center; }
+.nameCell { display:flex; flex-direction:column; gap:3px; }
+.nameText { font-weight:600; font-size:0.88rem; color:#F0EDE8; }
+.subText  { font-size:0.72rem; color:#6A6258; }
+.metricCell { font-size:0.85rem; font-weight:700; color:#F0EDE8; }
 
-.kpiSub {
-  display: block;
-  font-size: 0.58rem;
-  color: #8A8278;
-  margin-top: 4px;
-}
+/* Progress bar in table */
+.callRateCell { display:flex; flex-direction:column; gap:4px; }
+.progressBarTrack { width:120px; height:5px; background:rgba(255,255,255,0.05); border-radius:10px; overflow:hidden; }
+.progressBarFill  { height:100%; border-radius:10px; }
+.progressText { font-size:0.7rem; font-weight:700; color:#22C55E; }
 
-.tableWrap {
-  background: #141414;
-  border: 1px solid #232323;
-  border-radius: 12px;
-  overflow: hidden;
-}
+/* Mishandled pill */
+.mishandledPill { display:inline-block; padding:4px 12px; border-radius:100px; font-size:0.72rem; font-weight:700; text-align:center; width:fit-content; border:1px solid transparent; }
+.pillDanger  { background:rgba(239,68,68,0.12);  color:#EF4444; border-color:rgba(239,68,68,0.25); }
+.pillWarning { background:rgba(201,168,76,0.12); color:#C9A84C; border-color:rgba(201,168,76,0.25); }
+.pillSuccess { background:rgba(34,197,94,0.08);  color:#22C55E; border-color:rgba(34,197,94,0.2); }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.76rem;
-}
+/* Card header metrics */
+.cardHeaderMetrics    { display:flex; gap:16px; align-items:center; }
+.cardMiniProgressBarCell { display:flex; align-items:center; gap:8px; }
+.cardProgressBarTrack { width:80px; height:5px; background:rgba(255,255,255,0.05); border-radius:10px; overflow:hidden; }
+.cardProgressBarFill  { height:100%; border-radius:10px; }
+.cardProgressText     { font-size:0.7rem; font-weight:700; color:#22C55E; min-width:32px; }
+.cardDurationLabel    { font-size:0.72rem; color:#C9A84C; font-weight:600; }
 
-.table th {
-  padding: 10px 14px;
-  text-align: left;
-  background: rgba(255, 255, 255, 0.03);
-  color: #8A8278;
-  font-size: 0.62rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: background 0.2s ease, color 0.2s ease;
-}
+.chevronContainer { display:inline-flex; align-items:center; justify-content:center; color:#6A6258; transition:transform 0.2s,color 0.2s; }
+.chevronContainer:hover { color:#F0EDE8; }
 
-.table th:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #F0EDE8;
-}
+/* Split card */
+.kpiSplit { display:flex; justify-content:space-around; align-items:center; margin-top:6px; min-height:42px; }
+.kpiSplitCol { flex:1; display:flex; flex-direction:column; align-items:center; position:relative; }
+.kpiSplitCol:not(:last-child)::after { content:''; position:absolute; right:0; top:10%; height:80%; width:1px; background:rgba(255,255,255,0.07); }
+.kpiSplitLabel { font-size:0.58rem; color:#6A6258; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px; text-align:center; font-weight:600; }
+.kpiSplitValue { font-size:1.3rem; font-weight:800; color:#F0EDE8; letter-spacing:-0.025em; }
 
-@media (max-width: 800px) {
-  .kpiGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* Leaderboard view classes */
-.leaderboardWrap {
-  width: 100%;
-  overflow-x: auto;
-  margin-top: 12px;
-}
-
-.leaderboardContainer {
-  min-width: 800px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-bottom: 20px;
-}
-
-.leaderboardHeader {
-  display: grid;
-  grid-template-columns: 60px 2.2fr 1fr 2fr 1.2fr 1.2fr;
-  align-items: center;
-  padding: 10px 16px;
-  color: #8A8278;
-  font-size: 0.62rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.headerCell {
-  display: flex;
-  align-items: center;
-  user-select: none;
-  font-weight: 600;
-  transition: color 0.2s ease;
-}
-
-.headerCell.sortable {
-  cursor: pointer;
-}
-
-.headerCell.sortable:hover {
-  color: #F0EDE8;
-}
-
-.leaderboardRow {
-  display: grid;
-  grid-template-columns: 60px 2.2fr 1fr 2fr 1.2fr 1.2fr;
-  align-items: center;
-  padding: 16px;
-  background: #141414;
-  border: 1px solid #232323;
-  border-radius: 12px;
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.leaderboardRow:hover {
-  transform: translateY(-2px);
-  border-color: rgba(244, 99, 30, 0.3);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-}
-
-.rankCell {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #8A8278;
-  text-align: center;
-}
-
-.nameCell {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.nameText {
-  font-weight: 600;
-  font-size: 0.88rem;
-  color: #F0EDE8;
-}
-
-.subText {
-  font-size: 0.72rem;
-  color: #8A8278;
-}
-
-.metricCell {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #F0EDE8;
-}
-
-.callRateCell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.progressBarTrack {
-  width: 120px;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.progressBarFill {
-  height: 100%;
-  border-radius: 10px;
-  background: #22C55E;
-}
-
-.progressText {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #22C55E;
-}
-
-.mishandledPill {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-align: center;
-  width: fit-content;
-  border: 1px solid transparent;
-}
-
-.pillDanger {
-  background: rgba(239, 68, 68, 0.12);
-  color: #EF4444;
-  border-color: rgba(239, 68, 68, 0.2);
-}
-
-.pillWarning {
-  background: rgba(201, 168, 76, 0.12);
-  color: #C9A84C;
-  border-color: rgba(201, 168, 76, 0.2);
-}
-
-.pillSuccess {
-  background: rgba(34, 197, 94, 0.08);
-  color: #22C55E;
-  border-color: rgba(34, 197, 94, 0.15);
-}
-
-/* Card header metrics and animations */
-.cardHeaderMetrics {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.cardMiniProgressBarCell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.cardProgressBarTrack {
-  width: 80px;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.cardProgressBarFill {
-  height: 100%;
-  border-radius: 10px;
-  background: #22C55E;
-}
-
-.cardProgressText {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #22C55E;
-  min-width: 32px;
-}
-
-.cardDurationLabel {
-  font-size: 0.72rem;
-  color: #C9A84C;
-  font-weight: 600;
-}
-
-.chevronContainer {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #8A8278;
-  transition: transform 0.2s ease, color 0.2s ease;
-}
-
-.chevronContainer:hover {
-  color: #F0EDE8;
-}
-
-/* Split card styles */
-.kpiSplit {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  margin-top: 6px;
-  min-height: 42px;
-}
-
-.kpiSplitCol {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-}
-
-.kpiSplitCol:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 10%;
-  height: 80%;
-  width: 1px;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.kpiSplitLabel {
-  font-size: 0.58rem;
-  color: #8A8278;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
-  text-align: center;
-}
-
-.kpiSplitValue {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #F0EDE8;
+@media (max-width:800px) {
+  .page { padding:16px 14px 48px; }
+  .kpiGrid { grid-template-columns:repeat(2,1fr); }
 }
