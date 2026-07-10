@@ -60,7 +60,7 @@ export async function GET(req: Request) {
   const monthEnd = `${qy}-${String(qm).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
   const queryMonth = `${qy}-${String(qm).padStart(2, '0')}`
 
-  const emailFilters = emails.map(e => `seller_email.ilike.${e.split('@')[0].substring(0, 5)}%`).join(',')
+  const emailFilters = emails.map(e => `seller_email.eq.${e}`).join(',')
 
   // Step 2: Fetch daily data for these sellers
   const [attendanceRes, orbitRes, ctiRes, allotmentRes, ltaRes, hourlyRes, dotRes, monthlyAllotmentRes, monthlyLtaLogRes, goalShbRes, kalpitRes, plannedLtaRes] = await Promise.all([
@@ -82,7 +82,7 @@ export async function GET(req: Request) {
 
   // Step 3: Combine
   const members = validTeam.map(seller => {
-    const shortPrefix = seller.seller_email.split('@')[0].substring(0, 5)
+    const exactEmail = seller.seller_email
     const orbitRecord = orbitRes.data?.find(o => o.seller_email === seller.seller_email)
 
     return {

@@ -220,50 +220,7 @@ const CSS = `
   margin-bottom: 24px;
 }
 
-.ov-kpi {
-  background: #0F0F0F;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
-  padding: 16px 18px;
-  text-align: center;
-  transition: transform 0.22s cubic-bezier(0.4,0,0.2,1), box-shadow 0.22s, border-color 0.22s;
-  cursor: default;
-  position: relative;
-  overflow: hidden;
-}
-.ov-kpi:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.4);
-  border-color: rgba(244,99,30,0.3);
-}
-.ov-kpi-bar {
-  position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0;
-}
 
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-  border-color: #2a2a2a;
-}
-.ov-kpi-bar {
-  position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0;
-}
-.ov-kpi-lbl {
-  font-size: 0.58rem;
-  color: #6A6258;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-.ov-kpi-val {
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1;
-}
-.ov-kpi-val-def { color: #F0EDE8; }
-.ov-kpi-val-bl { color: #F4631E; }
-.ov-kpi-val-tl { color: #22C55E; }
 
 /* ── Search ── */
 .ov-search-wrap {
@@ -732,7 +689,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
 
 
         <div className="ov-kpi-tag ov-kpi-tag-bl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F4631E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2c0 6-8 10-8 16a8 8 0 0016 0c0-6-8-10-8-16z"/></svg> Bottom Line</div>
-        <div className="ov-kpi-row">
+        <div className="la-kpi-row">
           {[
             { lbl: 'BL Goal', val: kpis.bottomline_goal, cls: 'ov-kpi-val-def', c: '#F4631E' },
             { lbl: 'BL SHB', val: kpis.bottomline_should_have_been, cls: 'ov-kpi-val-def', c: '#F4631E' },
@@ -746,19 +703,25 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
               pctColor: kpis.bl_actual_splits >= kpis.bottomline_should_have_been ? '#22C55E' : '#EF4444' 
             },
           ].map(k => (
-            <div key={k.lbl} className="ov-kpi">
-              <div className="ov-kpi-bar" style={{ background: k.c }} />
-              <div className="ov-kpi-lbl">{k.lbl}</div>
-              <div className={`ov-kpi-val ${k.cls}`}>
-                <AnimCount value={k.val}/>
-                {k.pct !== undefined && <span style={{fontSize:'0.8rem', marginLeft:'8px', color: k.pctColor || k.c, fontWeight:800}}>{k.arrow} {k.pct}%</span>}
+            <div key={k.lbl} className="la-kpi-card" style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+              <div className="la-kpi-bar" style={{ background: k.c }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>{k.lbl}</div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', color: k.cls === 'ov-kpi-val-bl' ? '#F4631E' : (k.cls === 'ov-kpi-val-tl' ? '#22C55E' : '#F9FAFB'), lineHeight: 1 }}>
+                  <AnimCount value={k.val}/>
+                </span>
+                {k.pct !== undefined && <span style={{fontSize:'0.85rem', color: k.pctColor || k.c, fontWeight:800}}>{k.arrow} {k.pct}%</span>}
               </div>
             </div>
           ))}
         </div>
 
         <div className="ov-kpi-tag ov-kpi-tag-tl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> Top Line</div>
-        <div className="ov-kpi-row">
+        <div className="la-kpi-row">
           {[
             { lbl: 'TL Goal', val: kpis.topline_goal_this_month, cls: 'ov-kpi-val-def', c: '#22C55E' },
             { lbl: 'TL SHB', val: kpis.topline_should_have_been, cls: 'ov-kpi-val-def', c: '#22C55E' },
@@ -772,12 +735,18 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
               pctColor: kpis.tl_actual_splits >= kpis.topline_should_have_been ? '#22C55E' : '#EF4444' 
             },
           ].map(k => (
-            <div key={k.lbl} className="ov-kpi">
-              <div className="ov-kpi-bar" style={{ background: k.c }} />
-              <div className="ov-kpi-lbl">{k.lbl}</div>
-              <div className={`ov-kpi-val ${k.cls}`}>
-                <AnimCount value={k.val}/>
-                {k.pct !== undefined && <span style={{fontSize:'0.8rem', marginLeft:'8px', color: k.pctColor || k.c, fontWeight:800}}>{k.arrow} {k.pct}%</span>}
+            <div key={k.lbl} className="la-kpi-card" style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+              <div className="la-kpi-bar" style={{ background: k.c }} />
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>{k.lbl}</div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', color: k.cls === 'ov-kpi-val-bl' ? '#F4631E' : (k.cls === 'ov-kpi-val-tl' ? '#22C55E' : '#F9FAFB'), lineHeight: 1 }}>
+                  <AnimCount value={k.val}/>
+                </span>
+                {k.pct !== undefined && <span style={{fontSize:'0.85rem', color: k.pctColor || k.c, fontWeight:800}}>{k.arrow} {k.pct}%</span>}
               </div>
             </div>
           ))}

@@ -84,6 +84,7 @@ export async function GET(req: Request) {
       plannedLtaRes,
       timelineRes,
       kalpitRes,
+      lostReasonRes,
     ] = await Promise.all([
       // Attendance (login, breaks)
       fetchAll(supabase.schema('seller_day_to_day')
@@ -117,7 +118,7 @@ export async function GET(req: Request) {
       // Goal vs SHB
       fetchAll(supabase
         .from('goal_vs_shb')
-        .select('seller_email, goal_pct, achievement_pct')
+        .select('seller_email, goal_completion, shb_percent')
         .eq('date', queryDate)),
 
       // SRS July for monthly goals
@@ -171,7 +172,17 @@ export async function GET(req: Request) {
         .eq('assigned_date', queryDate)),
 
       // Kalpit for toggles
-      supabase.from('kalpit_2').select('*').eq('date', queryDate)
+
+      // Kalpit for toggles
+      supabase.from('kalpit_2').select('*').eq('date', queryDate),
+
+      // Lost Reason Details
+      fetchAll(supabase.schema('seller_day_to_day')
+        .from('lead_journey_details')
+        .select('sales_email_id, lost_reason_details, lead_assignment_time')
+        .ilike('current_lead_state', 'lost')
+        .gte('lead_assignment_time', monthStart + 'T00:00:00+05:30')
+        .lte('lead_assignment_time', monthEnd + 'T23:59:59+05:30'))
     ])
 
     // ── 3. Build lookup maps ────────────────────────────────────────────
@@ -225,6 +236,14 @@ export async function GET(req: Request) {
       monthlyGoalMap.get(email)!.push(r)
     })
 
+    const monthlyLostReasonMap = new Map<string, any[]>()
+    ;(lostReasonRes.data || []).forEach((r: any) => {
+      if (!r.sales_email_id) return
+      const email = cleanEmail(r.sales_email_id)
+      if (!monthlyLostReasonMap.has(email)) monthlyLostReasonMap.set(email, [])
+      monthlyLostReasonMap.get(email)!.push(r)
+    })
+
     const hourlyMap = new Map<string, any[]>()
     ;(hourlyRes.data || []).forEach((h: any) => {
       const email = cleanEmail(h.seller_email)
@@ -261,7 +280,7 @@ export async function GET(req: Request) {
       const srsJuly = srsJulyMap.get(email)
       const orbitRecord = orbitMap.get(email)
       const ctiRecord = ctiMap.get(email)
-      const prefix = email.split('@')[0].substring(0, 5)
+      const exactEmail = email
       const monthly_goal_shb = monthlyGoalMap.get(email) || []
 
       // Parse login time
@@ -353,6 +372,7 @@ export async function GET(req: Request) {
         sellerFlag: srsJuly?.seller_flag || 'No Flag',
         monthly_lta_rows: monthlyLtaMap.get(email) || [],
         monthly_goal_shb: monthly_goal_shb,
+        monthly_lost_reasons: monthlyLostReasonMap.get(email) || [],
         monthly_rows: monthlyAllotmentMap.get(email) || [],
 
         // ── added for CM-parity rendering (funnel / trend / timeline modals) ──

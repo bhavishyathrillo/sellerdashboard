@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
       supabasePublic
         .from('goal_vs_shb')
         .select('*')
-        .ilike('seller_email', `${email.split('@')[0].substring(0, 5)}%`)
+        .eq('seller_email', email)
         .eq('date', date)
         .limit(1)
         .maybeSingle(),
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
       supabasePublic
         .from('goal_vs_shb')
         .select('*')
-        .ilike('seller_email', `${email.split('@')[0].substring(0, 5)}%`)
+        .eq('seller_email', email)
         .gte('date', monthStart)
         .lte('date', monthEnd)
         .order('date', { ascending: true }),

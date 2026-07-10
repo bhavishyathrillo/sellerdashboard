@@ -662,18 +662,13 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
 
             
       {/* KPI Grid */}
-      <div className={styles.sectionHeader}><span className={styles.sectionTitle}>Team Metrics</span></div>
-      <div className={styles.kpiGrid}>
-        {/* Leads Allotted */}
-        <div className={styles.kpiTile} style={{ gridColumn: showHourlyView ? '1 / -1' : undefined, transition: 'all 0.3s ease' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <div>
-              <div className={styles.kpiLabel}>Leads Allotted</div>
-              <div className={`${styles.kpiValue} ${totalLeads > 0 ? styles.kpiValueOrange : styles.kpiValueMuted}`}>
-                {totalLeads} <span style={{ fontSize: '1rem', color: '#6B7280', fontWeight: 500 }}>/ {teamActual}</span>
-              </div>
-              <div className={styles.kpiSub}>Auto: {totalAuto} · Manual: {totalManual}</div>
-            </div>
+      <div className="la-kpi-row">
+        {/* LEADS ALLOTTED */}
+        <div className="la-kpi-card" style={{ flex: 1.5, padding: '16px 20px', gridColumn: showHourlyView ? '1 / -1' : undefined, transition: 'all 0.3s ease' }}>
+          <div className="la-kpi-bar" style={{ background: '#F4631E' }} />
+          
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>Leads Allotted</div>
             {totalLeads > 0 && (
               <button
                 onClick={() => setShowHourlyView(!showHourlyView)}
@@ -682,14 +677,31 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
                   border: `1px solid ${showHourlyView ? 'rgba(244,99,30,0.4)' : 'rgba(255,255,255,0.1)'}`,
                   color: showHourlyView ? '#F4631E' : '#6B7280',
                   borderRadius: '6px', padding: '3px 8px', fontSize: '0.6rem', fontWeight: 600,
-                  cursor: 'pointer', fontFamily: 'inherit', marginTop: '2px', whiteSpace: 'nowrap',
+                  cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
                   transition: 'all 0.2s ease',
                 }}
               >
-                {showHourlyView ? '↑ hide' : '↓ hourly'}
+                {showHourlyView ? '↑ HIDE' : '↓ HOURLY'}
               </button>
             )}
           </div>
+          
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{totalLeads}</span>
+            <span style={{ fontSize: '1rem', color: '#71717A', fontWeight: 500 }}>/ {teamActual}</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Auto</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#E5E7EB' }}>{totalAuto}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Manual</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#9CA3AF' }}>{totalManual}</span>
+            </div>
+          </div>
+
           {showHourlyView && (() => {
             let cumLeads = 0;
             const hourRows = HOUR_SLOTS.map(hour => {
@@ -700,7 +712,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
             });
             const maxCount = Math.max(...hourRows.map(r => r.count), 1);
             return (
-              <div style={{ marginTop: '14px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
+              <div style={{ marginTop: '14px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px', textAlign: 'left' }}>
                 <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Hourly breakdown · {teamActual > 0 ? `Target = ${teamActual} leads` : 'Target not set'}
                 </div>
@@ -740,17 +752,36 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
           })()}
         </div>
 
-
-
-        {/* Sellers No Leads */}
-        <div className={styles.kpiTile} style={{ cursor: noLeadsCount > 0 ? 'pointer' : 'default' }} onClick={() => { if (noLeadsCount > 0) setShowNoLeadsModal(true); }}>
-          <div className={styles.kpiLabel}>Sellers No Leads {noLeadsCount > 0 && <span style={{ textTransform: 'none', fontStyle: 'italic', fontWeight: 400, color: '#6B7280' }}>· tap</span>}</div>
-          <div className={`${styles.kpiValue} ${noLeadsCount > 0 ? styles.kpiValueRed : styles.kpiValueMuted}`}>{noLeadsCount}</div>
+        {/* SELLERS NO LEADS */}
+        <div
+          className="la-kpi-card"
+          style={{ flex: 1, padding: '16px 20px', cursor: noLeadsCount > 0 ? 'pointer' : 'default', display: 'flex', flexDirection: 'column' }}
+          onClick={() => { if (noLeadsCount > 0) setShowNoLeadsModal(true); }}
+        >
+          <div className="la-kpi-bar" style={{ background: '#EF4444' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.07em' }}>No Leads</div>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{noLeadsCount}</div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+            <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Action</span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: noLeadsCount > 0 ? '#EF4444' : '#6B7280' }}>Tap to view ▸</span>
+          </div>
         </div>
 
-        {/* MHE Trend */}
-        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setShowMheTrendModal(true)}>
-          <div className={styles.kpiLabel}>MHE Trend</div>
+        {/* MHE TREND */}
+        <div
+          className="la-kpi-card clickable"
+          style={{ padding: '16px 20px', flex: 1 }}
+          onClick={() => setShowMheTrendModal(true)}
+        >
+          <div className="la-kpi-bar" style={{ background: '#22C55E' }} />
+          
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>MHE Trend</div>
+          </div>
+          
           {(() => {
             const dayMap: Record<string, any> = {}
             enrichedMembers.forEach((m: any) => {
@@ -764,31 +795,37 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
               })
             })
             const targetDay = date || todayStr();
-            const latestAvg = dayMap[targetDay] ? parseFloat((dayMap[targetDay].sum / dayMap[targetDay].count).toFixed(1)) : 0;
+            const latestAvg = dayMap[targetDay] && dayMap[targetDay].count > 0 ? parseFloat((dayMap[targetDay].sum / dayMap[targetDay].count).toFixed(1)) : 0;
             const isGood = latestAvg <= 20
+            
             return (
-              <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
-                <div className={styles.kpiSplitSide}>
-                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Current</div>
-                  <div className={styles.kpiValue} style={{ color: isGood ? '#22C55E' : '#EF4444' }}>
-                    {latestAvg}%
-                  </div>
+              <>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{latestAvg}</span>
+                  <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#F9FAFB', lineHeight: 1 }}>%</span>
                 </div>
-                <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
-                <div className={styles.kpiSplitSide}>
-                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Target</div>
-                  <div className={styles.kpiValue} style={{ color: '#22C55E' }}>
-                    20%
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+                  <span style={{ fontSize: '0.65rem', color: '#71717A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#22C55E' }}>20%</span>
                 </div>
-              </div>
+              </>
             )
           })()}
         </div>
 
-        {/* Goal vs SHB */}
-        <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setShowGoalShbTrendModal(true)}>
-          <div className={styles.kpiLabel}>Goal vs SHB</div>
+        {/* GOAL VS SHB */}
+        <div
+          className="la-kpi-card clickable"
+          style={{ padding: '16px 20px', flex: 1.2 }}
+          onClick={() => setShowGoalShbTrendModal(true)}
+        >
+          <div className="la-kpi-bar" style={{ background: '#378ADD' }} />
+          
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>Goal vs SHB</div>
+            <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Tap to view ▸</span>
+          </div>
+          
           {(() => {
             const targetDay = date || todayStr();
             const dayMap: Record<string, any> = {}
@@ -806,23 +843,29 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
             })
             const latestAvgGoal = dayMap[targetDay] && dayMap[targetDay].count > 0 ? parseFloat((dayMap[targetDay].goalSum / dayMap[targetDay].count).toFixed(0)) : 0
             const latestAvgShb = dayMap[targetDay] && dayMap[targetDay].count > 0 ? parseFloat((dayMap[targetDay].shbSum / dayMap[targetDay].count).toFixed(0)) : 0
-            const goalColor = latestAvgGoal >= latestAvgShb ? '#22C55E' : (latestAvgShb - latestAvgGoal <= 10) ? '#EAB308' : '#EF4444';
+            
             return (
-              <div className={styles.kpiSplitFlex} style={{ marginTop: '2px' }}>
-                <div className={styles.kpiSplitSide}>
-                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>Goal</div>
-                  <div className={styles.kpiValue} style={{ color: goalColor }}>
-                    {latestAvgGoal}%
+              <>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', marginBottom: '16px' }}>
+                  <div>
+                    <span style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{latestAvgGoal}</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#F9FAFB', lineHeight: 1 }}>%</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#F9FAFB', lineHeight: 1 }}>{latestAvgShb}</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#F9FAFB', lineHeight: 1 }}>%</span>
                   </div>
                 </div>
-                <div className={styles.kpiSplitDivider} style={{ margin: '8px 0' }} />
-                <div className={styles.kpiSplitSide}>
-                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '2px' }}>SHB</div>
-                  <div className={styles.kpiValue} style={{ color: '#F0EDE8' }}>
-                    {latestAvgShb}%
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '28px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px', marginTop: 'auto' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.65rem', color: '#378ADD', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Goal</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.65rem', color: '#EAB308', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>SHB</span>
                   </div>
                 </div>
-              </div>
+              </>
             )
           })()}
         </div>

@@ -1851,6 +1851,8 @@ function MheTrendModal({ hierarchy, dateFrom, onClose }: { hierarchy: any[], dat
   const dotChartInstance = useRef<any>(null);
   const allotmentChartInstance = useRef<any>(null);
   const paxChartInstance = useRef<any>(null);
+  const lostChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lostChartInstance = useRef<any>(null);
 
 
 
@@ -2117,6 +2119,8 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
   const dotChartInstance = useRef<any>(null);
   const allotmentChartInstance = useRef<any>(null);
   const paxChartInstance = useRef<any>(null);
+  const lostChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lostChartInstance = useRef<any>(null);
   const flatTls = hierarchy.flatMap(cat => cat.tls.map((tl: any) => ({ ...tl, category_name: cat.category_name, key: `${cat.category_name}-${tl.tl_name}` })))
   const allMembers = flatTls.flatMap(tl => tl.sellers)
 
@@ -2172,6 +2176,23 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
     { label: '4-pax', value: totalPax4, color: '#0EA5E9' },
     { label: '4+ pax', value: totalPax4Plus, color: '#0369A1' },
   ]
+
+  // ── Lost Reasons ──
+  const lostReasonCounts: Record<string, number> = {}
+  allMembers.forEach((m: any) => {
+    (m.monthly_lost_reasons || []).forEach((r: any) => {
+      const reason = r.lost_reason_details || 'Unknown'
+      lostReasonCounts[reason] = (lostReasonCounts[reason] || 0) + 1
+    })
+  })
+  const totalLost = Object.values(lostReasonCounts).reduce((a, b) => a + b, 0)
+  const lostReasonRows = Object.entries(lostReasonCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, value], i) => ({
+      label,
+      value,
+      color: ['#F59E0B', '#3B82F6', '#10B981', '#EC4899', '#8B5CF6', '#F43F5E'][i % 6]
+    }))
 
   // DOT Chart
   useEffect(() => {
@@ -2280,6 +2301,38 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
     return () => { active = false; if (paxChartInstance.current) paxChartInstance.current.destroy(); }
   }, [JSON.stringify(paxRows)])
 
+  // Lost Reason Chart
+  useEffect(() => {
+    if (!lostChartCanvasRef.current) return;
+    let active = true;
+    import('chart.js/auto').then(mod => {
+      if (!active) return;
+      const Chart = mod.default || mod;
+      if (lostChartInstance.current) lostChartInstance.current.destroy();
+      lostChartInstance.current = new Chart(lostChartCanvasRef.current!, {
+        type: 'doughnut',
+        data: { labels: lostReasonRows.map((d: any) => d.label), datasets: [{ data: lostReasonRows.map((d: any) => d.value), backgroundColor: lostReasonRows.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '65%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111', titleColor: '#FFFFFF', bodyColor: '#E5E7EB', borderColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const pctVal = totalLost > 0 ? ((val / totalLost) * 100).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                }
+              }
+            }
+          }
+        }
+      })
+    })
+    return () => { active = false; if (lostChartInstance.current) lostChartInstance.current.destroy(); }
+  }, [JSON.stringify(lostReasonRows)])
+
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const monthStr = `${monthNames[new Date().getMonth()]} ${new Date().getFullYear()}`
 
@@ -2288,7 +2341,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
   return (
     <div style={{ marginBottom: '32px' }}>
       <div className="la-section-title">Monthly Breakdown · {monthStr}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '14px', marginBottom: '24px' }}>
 
         {/* ── DOT Bar Chart (Horizontal) ── */}
         <div style={cardBase} onClick={() => { setActiveCard(activeCard === 'dot' ? null : 'dot'); setExpandedTlKey(null) }}>
@@ -2383,6 +2436,31 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.68rem', color: '#8A8278' }}>Avg C→A Time</span><span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#E5E7EB' }}>{avgCA != null ? `${avgCA}m` : '—'}</span></div>
           </div>
         </div>
+
+        {/* ── Lost Reason ── */}
+        <div style={cardBase} onClick={() => { setActiveCard(activeCard === 'lost' ? null : 'lost'); setExpandedTlKey(null) }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lost Reasons</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Why leads were lost</div>
+          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={lostChartCanvasRef} /></div>
+
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
+            {lostReasonRows.map((p, i) => {
+              const lostPct = totalLost > 0 ? Math.round((p.value / totalLost) * 100) : 0;
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                    <span style={{ color: '#8A8278', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80px' }}>{p.label}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <span style={{ fontWeight: 700, color: p.value > 0 ? '#F0EDE8' : '#3A3A3A' }}>{p.value}</span>
+                    <span style={{ color: p.value > 0 ? p.color : '#3A3A3A', width: '24px', textAlign: 'right' }}>{lostPct}%</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
       
       {activeCard && (
@@ -2390,7 +2468,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
           <div className="la-modal-card wide" onClick={e => e.stopPropagation()}>
             <button className="la-modal-close" onClick={() => { setActiveCard(null); setExpandedCatKey(null); setExpandedTlKey(null) }}>✕</button>
             <div className="la-modal-title" style={{ marginBottom: '20px' }}>
-              {activeCard === 'dot' ? 'DOT Distribution' : activeCard === 'allotment' ? 'Allotment Breakdown' : activeCard === 'ca' ? 'Appetite & C→A Time' : 'Leads by Group Size'}
+              {activeCard === 'dot' ? 'DOT Distribution' : activeCard === 'allotment' ? 'Allotment Breakdown' : activeCard === 'ca' ? 'Appetite & C→A Time' : activeCard === 'lost' ? 'Lost Reasons' : 'Leads by Group Size'}
               <span style={{ fontSize: '0.75rem', color: '#8A8278', marginLeft: '8px', fontWeight: 400 }}>· Team Drill-down</span>
             </div>
             <div className="la-table-wrap">
@@ -2401,7 +2479,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                     {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => <th key={mo.key}>{mo.label}</th>)}<th>6+ Months</th></>)
                       : activeCard === 'allotment' ? (<><th>Auto</th><th>Manual</th><th>RTG</th><th>Non-RTG</th></>)
                       : activeCard === 'ca' ? (<><th>Leads Allotted</th><th>Appetite</th><th>Overallocation</th><th>Fulfillment %</th><th>Avg C→A</th></>)
-                      : (<><th>1-pax</th><th>2-pax</th><th>3-pax</th><th>4-pax</th><th>4+ pax</th></>)}
+                      : activeCard === 'lost' ? (<>{lostReasonRows.slice(0, 5).map((r: any) => <th key={r.label} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px' }} title={r.label}>{r.label}</th>)}</>) : (<><th>1-pax</th><th>2-pax</th><th>3-pax</th><th>4-pax</th><th>4+ pax</th></>)}
                   </tr>
                 </thead>
                                 <tbody>
@@ -2429,6 +2507,15 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                 const cOverallocation = Math.max(0, cAllotted - cAppetite)
                                 return (<><td>{cAllotted}</td><td>{cAppetite}</td><td style={{ color: cOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{cOverallocation}</td><td style={{ color: cFulf >= 90 ? '#22C55E' : cFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{cFulf}%</td><td>{cAvgCa != null ? `${cAvgCa}m` : '—'}</td></>)
                               })()
+                            : activeCard === 'lost' ? (<>{ lostReasonRows.slice(0, 5).map((r: any) => {
+                                let count = 0;
+                                catSellers.forEach((m: any) => {
+                                  (m.monthly_lost_reasons || []).forEach((lr: any) => {
+                                    if ((lr.lost_reason_details || 'Unknown') === r.label) count++;
+                                  })
+                                })
+                                return <td key={r.label}>{count}</td>
+                              })}</>) 
                             : (<><td>{sumField(catSellers, 'pax_1')}</td><td>{sumField(catSellers, 'pax_2')}</td><td>{sumField(catSellers, 'pax_3')}</td><td>{sumField(catSellers, 'pax_4')}</td><td>{sumField(catSellers, 'pax_4_plus')}</td></>)}
                         </tr>
                         {expandedCatKey === catKey && cat.tls.map((tl: any) => {
@@ -2453,6 +2540,15 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                       const tOverallocation = Math.max(0, tAllotted - tAppetite)
                                       return (<><td>{tAllotted}</td><td>{tAppetite}</td><td style={{ color: tOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{tOverallocation}</td><td style={{ color: tFulf >= 90 ? '#22C55E' : tFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{tFulf}%</td><td>{tAvgCa != null ? `${tAvgCa}m` : '—'}</td></>)
                                     })()
+                                  : activeCard === 'lost' ? (<>{ lostReasonRows.slice(0, 5).map((r: any) => {
+                                      let count = 0;
+                                      tl.sellers.forEach((m: any) => {
+                                        (m.monthly_lost_reasons || []).forEach((lr: any) => {
+                                          if ((lr.lost_reason_details || 'Unknown') === r.label) count++;
+                                        })
+                                      })
+                                      return <td key={r.label}>{count}</td>
+                                    })}</>) 
                                   : (<><td>{sumField(tl.sellers, 'pax_1')}</td><td>{sumField(tl.sellers, 'pax_2')}</td><td>{sumField(tl.sellers, 'pax_3')}</td><td>{sumField(tl.sellers, 'pax_4')}</td><td>{sumField(tl.sellers, 'pax_4_plus')}</td></>)}
                               </tr>
                               {expandedTlKey === tlKey && tl.sellers.map((s: any) => {
@@ -2473,6 +2569,15 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                           const sOverallocation = Math.max(0, sAllotted - sAppetite)
                                           return (<><td>{sAllotted}</td><td>{sAppetite}</td><td style={{ color: sOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{sOverallocation}</td><td style={{ color: sFulf >= 90 ? '#22C55E' : sFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{`${sFulf}%`}</td><td>{(sAvgCa != null ? `${sAvgCa}m` : '—')}</td></>)
                                         })()
+                                      : activeCard === 'lost' ? (<>{ lostReasonRows.slice(0, 5).map((r: any) => {
+                                          let count = 0;
+                                          [s].forEach((m: any) => {
+                                            (m.monthly_lost_reasons || []).forEach((lr: any) => {
+                                              if ((lr.lost_reason_details || 'Unknown') === r.label) count++;
+                                            })
+                                          })
+                                          return <td key={r.label}>{count}</td>
+                                        })}</>) 
                                       : (<><td>{sumField([s], 'pax_1')}</td><td>{sumField([s], 'pax_2')}</td><td>{sumField([s], 'pax_3')}</td><td>{sumField([s], 'pax_4')}</td><td>{sumField([s], 'pax_4_plus')}</td></>)}
                                   </tr>
                                 )

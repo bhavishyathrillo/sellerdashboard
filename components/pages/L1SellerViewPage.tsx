@@ -497,6 +497,23 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   const sumCta = allCAMonthlyRows.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0);
   const sumCtaLeads = allCAMonthlyRows.reduce((s: number, r: any) => s + r.total_leads_allotted, 0);
   const cmMonthlyAvgCA = sumCtaLeads > 0 ? Math.round(sumCta / sumCtaLeads) : null;
+  // ── Lost Reasons ──
+  const cmLostReasonCounts: Record<string, number> = {}
+  allMembers.forEach((m: any) => {
+    (m.monthly_lost_reasons || []).forEach((r: any) => {
+      const reason = r.lost_reason_details || 'Unknown'
+      cmLostReasonCounts[reason] = (cmLostReasonCounts[reason] || 0) + 1
+    })
+  })
+  const cmTotalLost = Object.values(cmLostReasonCounts).reduce((a, b) => a + b, 0)
+  const cmLostReasonRows = Object.entries(cmLostReasonCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, value], i) => ({
+      label,
+      value,
+      color: ['#F59E0B', '#3B82F6', '#10B981', '#EC4899', '#8B5CF6', '#F43F5E'][i % 6]
+    }))
+
   const cmMonthlyCaRows = [
     { label: 'Leads Allotted', value: cmMonthlyTotalLeads, color: '#E5E7EB' },
     { label: 'Appetite (LTA)', value: cmMonthlyAppetite, color: '#F4631E' },
@@ -571,6 +588,8 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   const dotChartInstance = useRef<any>(null);
   const allotmentChartInstance = useRef<any>(null);
   const paxChartInstance = useRef<any>(null);
+  const lostChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lostChartInstance = useRef<any>(null);
 
   // DOT Chart
   useEffect(() => {
@@ -695,6 +714,45 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
     });
     return () => { active = false; if (paxChartInstance.current) paxChartInstance.current.destroy(); }
   }, [cmPaxRows]);
+
+  // LOST Reason Chart
+  useEffect(() => {
+    if (!lostChartCanvasRef.current) return;
+    let active = true;
+    import('chart.js/auto').then(mod => {
+      if (!active) return;
+      const Chart = mod.default || mod;
+      if (lostChartInstance.current) lostChartInstance.current.destroy();
+      lostChartInstance.current = new Chart(lostChartCanvasRef.current!, {
+        type: 'doughnut',
+        data: { labels: cmLostReasonRows.map((d: any) => d.label), datasets: [{ data: cmLostReasonRows.map((d: any) => d.value), backgroundColor: cmLostReasonRows.map((d: any) => d.color), borderWidth: 1.5, borderColor: '#111111' }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111111',
+              titleColor: '#FFFFFF',
+              bodyColor: '#E5E7EB',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              borderWidth: 1,
+              cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const val = ctx.raw || 0
+                  const total = cmLostReasonRows.reduce((s: number, v: any) => s + v.value, 0)
+                  const pctVal = total > 0 ? ((val / total) * 100).toFixed(0) : '0'
+                  return ` ${val} (${pctVal}%)`
+                }
+              }
+            }
+          },
+          cutout: '65%'
+        }
+      });
+    });
+    return () => { active = false; if (lostChartInstance.current) lostChartInstance.current.destroy(); }
+  }, [JSON.stringify(cmLostReasonRows)]);
 
   if (loading) return <Loader text="Loading CM dashboard..." />
 
@@ -924,7 +982,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         <span style={{ fontSize: '1rem', fontWeight: 600, color: '#F4631E', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monthly Breakdown · {monthStr}</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '14px', marginBottom: '24px' }}>
 
         {/* ── DOT Bar Chart (Horizontal) ── */}
         <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px', cursor: 'pointer' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'dot' ? null : 'dot'); setBreakdownDrillSeller(null); setBreakdownExpandedTl(null); }}>
@@ -1044,6 +1102,31 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
               <span style={{ fontSize: '0.68rem', color: '#8A8278' }}>Avg C→A Time</span>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#E5E7EB' }}>{cmMonthlyAvgCA != null ? `${cmMonthlyAvgCA}m` : '—'}</span>
             </div>
+          </div>
+        </div>
+
+        {/* ── Lost Reason ── */}
+        <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px', cursor: 'pointer' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'lost' ? null : 'lost'); setBreakdownExpandedTl(null) }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lost Reasons</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Why leads were lost</div>
+          <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={lostChartCanvasRef} /></div>
+
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
+            {cmLostReasonRows.map((p, i) => {
+              const lostPct = cmTotalLost > 0 ? Math.round((p.value / cmTotalLost) * 100) : 0;
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                    <span style={{ color: '#8A8278', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80px' }}>{p.label}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <span style={{ fontWeight: 700, color: p.value > 0 ? '#F0EDE8' : '#3A3A3A' }}>{p.value}</span>
+                    <span style={{ color: p.value > 0 ? p.color : '#3A3A3A', width: '24px', textAlign: 'right' }}>{lostPct}%</span>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
