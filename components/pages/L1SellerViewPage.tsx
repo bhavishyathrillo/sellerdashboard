@@ -497,26 +497,27 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   const sumCta = allCAMonthlyRows.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0);
   const sumCtaLeads = allCAMonthlyRows.reduce((s: number, r: any) => s + r.total_leads_allotted, 0);
   const cmMonthlyAvgCA = sumCtaLeads > 0 ? Math.round(sumCta / sumCtaLeads) : null;
-  // ── Lost Reasons ──
-  const cmLostReasonCounts: Record<string, number> = {}
+  // ── Lost Reasons (5 fixed buckets) ──
+  const cmLostReasonCounts: Record<string, number> = { 'Just Checking': 0, 'Customer Never Responded': 0, 'Not Interested': 0, 'Budget Issue': 0, 'Others': 0 }
   allMembers.forEach((m: any) => {
     (m.monthly_lost_reasons || []).forEach((r: any) => {
-      const raw = r.lost_reason_details || 'Unknown'
-      // Split by comma, trim, deduplicate, then count lead in each unique reason
-      const reasons = [...new Set((raw as string).split(',').map((s: string) => s.trim()).filter(Boolean))]
-      reasons.forEach((reason: string) => {
-        cmLostReasonCounts[reason] = (cmLostReasonCounts[reason] || 0) + 1
-      })
+      const raw = (r.lost_reason_details || '').toLowerCase()
+      let matched = false
+      if (raw.includes('just checking')) { cmLostReasonCounts['Just Checking']++; matched = true }
+      if (raw.includes('customer never responded')) { cmLostReasonCounts['Customer Never Responded']++; matched = true }
+      if (raw.includes('not interested')) { cmLostReasonCounts['Not Interested']++; matched = true }
+      if (raw.includes('budget issue')) { cmLostReasonCounts['Budget Issue']++; matched = true }
+      if (!matched) cmLostReasonCounts['Others']++
     })
   })
   const cmTotalLost = Object.values(cmLostReasonCounts).reduce((a, b) => a + b, 0)
-  const cmLostReasonRows = Object.entries(cmLostReasonCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([label, value], i) => ({
-      label,
-      value,
-      color: ['#F59E0B', '#3B82F6', '#10B981', '#EC4899', '#8B5CF6', '#F43F5E'][i % 6]
-    }))
+  const cmLostReasonRows = [
+    { label: 'Just Checking', value: cmLostReasonCounts['Just Checking'], color: '#F59E0B' },
+    { label: 'Customer Never Responded', value: cmLostReasonCounts['Customer Never Responded'], color: '#3B82F6' },
+    { label: 'Not Interested', value: cmLostReasonCounts['Not Interested'], color: '#10B981' },
+    { label: 'Budget Issue', value: cmLostReasonCounts['Budget Issue'], color: '#EC4899' },
+    { label: 'Others', value: cmLostReasonCounts['Others'], color: '#8B5CF6' },
+  ]
 
   const cmMonthlyCaRows = [
     { label: 'Leads Allotted', value: cmMonthlyTotalLeads, color: '#E5E7EB' },

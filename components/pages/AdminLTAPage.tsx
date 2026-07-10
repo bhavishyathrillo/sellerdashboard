@@ -2177,26 +2177,27 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
     { label: '4+ pax', value: totalPax4Plus, color: '#0369A1' },
   ]
 
-  // ── Lost Reasons ──
-  const lostReasonCounts: Record<string, number> = {}
+  // ── Lost Reasons (5 fixed buckets) ──
+  const lostReasonCounts: Record<string, number> = { 'Just Checking': 0, 'Customer Never Responded': 0, 'Not Interested': 0, 'Budget Issue': 0, 'Others': 0 }
   allMembers.forEach((m: any) => {
     (m.monthly_lost_reasons || []).forEach((r: any) => {
-      const raw = r.lost_reason_details || 'Unknown'
-      // Split by comma, trim, deduplicate, then count lead in each unique reason
-      const reasons = [...new Set((raw as string).split(',').map((s: string) => s.trim()).filter(Boolean))]
-      reasons.forEach((reason: string) => {
-        lostReasonCounts[reason] = (lostReasonCounts[reason] || 0) + 1
-      })
+      const raw = (r.lost_reason_details || '').toLowerCase()
+      let matched = false
+      if (raw.includes('just checking')) { lostReasonCounts['Just Checking']++; matched = true }
+      if (raw.includes('customer never responded')) { lostReasonCounts['Customer Never Responded']++; matched = true }
+      if (raw.includes('not interested')) { lostReasonCounts['Not Interested']++; matched = true }
+      if (raw.includes('budget issue')) { lostReasonCounts['Budget Issue']++; matched = true }
+      if (!matched) lostReasonCounts['Others']++
     })
   })
   const totalLost = Object.values(lostReasonCounts).reduce((a, b) => a + b, 0)
-  const lostReasonRows = Object.entries(lostReasonCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([label, value], i) => ({
-      label,
-      value,
-      color: ['#F59E0B', '#3B82F6', '#10B981', '#EC4899', '#8B5CF6', '#F43F5E'][i % 6]
-    }))
+  const lostReasonRows = [
+    { label: 'Just Checking', value: lostReasonCounts['Just Checking'], color: '#F59E0B' },
+    { label: 'Customer Never Responded', value: lostReasonCounts['Customer Never Responded'], color: '#3B82F6' },
+    { label: 'Not Interested', value: lostReasonCounts['Not Interested'], color: '#10B981' },
+    { label: 'Budget Issue', value: lostReasonCounts['Budget Issue'], color: '#EC4899' },
+    { label: 'Others', value: lostReasonCounts['Others'], color: '#8B5CF6' },
+  ]
 
   // DOT Chart
   useEffect(() => {
@@ -2483,7 +2484,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                     {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => <th key={mo.key}>{mo.label}</th>)}<th>6+ Months</th></>)
                       : activeCard === 'allotment' ? (<><th>Auto</th><th>Manual</th><th>RTG</th><th>Non-RTG</th></>)
                       : activeCard === 'ca' ? (<><th>Leads Allotted</th><th>Appetite</th><th>Overallocation</th><th>Fulfillment %</th><th>Avg C→A</th></>)
-                      : activeCard === 'lost' ? (<>{lostReasonRows.slice(0, 5).map((r: any) => <th key={r.label} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px' }} title={r.label}>{r.label}</th>)}</>) : (<><th>1-pax</th><th>2-pax</th><th>3-pax</th><th>4-pax</th><th>4+ pax</th></>)}
+                      : activeCard === 'lost' ? (<>{lostReasonRows.map((r: any) => <th key={r.label} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px' }} title={r.label}>{r.label}</th>)}</>) : (<><th>1-pax</th><th>2-pax</th><th>3-pax</th><th>4-pax</th><th>4+ pax</th></>)}
                   </tr>
                 </thead>
                                 <tbody>
@@ -2511,15 +2512,21 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                 const cOverallocation = Math.max(0, cAllotted - cAppetite)
                                 return (<><td>{cAllotted}</td><td>{cAppetite}</td><td style={{ color: cOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{cOverallocation}</td><td style={{ color: cFulf >= 90 ? '#22C55E' : cFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{cFulf}%</td><td>{cAvgCa != null ? `${cAvgCa}m` : '—'}</td></>)
                               })()
-                            : activeCard === 'lost' ? (<>{ lostReasonRows.slice(0, 5).map((r: any) => {
+                            : activeCard === 'lost' ? (<>{ lostReasonRows.map((r: any) => {
                                 let count = 0;
                                 catSellers.forEach((m: any) => {
                                   (m.monthly_lost_reasons || []).forEach((lr: any) => {
-                                    const reasons = [...new Set(((lr.lost_reason_details || 'Unknown') as string).split(',').map((s: string) => s.trim()).filter(Boolean))]; if (reasons.includes(r.label)) count++;
+                                    const raw = (lr.lost_reason_details || '').toLowerCase();
+                                    let matched = false;
+                                    if (raw.includes('just checking')) { if (r.label === 'Just Checking') count++; matched = true; }
+                                    if (raw.includes('customer never responded')) { if (r.label === 'Customer Never Responded') count++; matched = true; }
+                                    if (raw.includes('not interested')) { if (r.label === 'Not Interested') count++; matched = true; }
+                                    if (raw.includes('budget issue')) { if (r.label === 'Budget Issue') count++; matched = true; }
+                                    if (!matched && r.label === 'Others') count++;
                                   })
                                 })
                                 return <td key={r.label}>{count}</td>
-                              })}</>) 
+                              })})</>) 
                             : (<><td>{sumField(catSellers, 'pax_1')}</td><td>{sumField(catSellers, 'pax_2')}</td><td>{sumField(catSellers, 'pax_3')}</td><td>{sumField(catSellers, 'pax_4')}</td><td>{sumField(catSellers, 'pax_4_plus')}</td></>)}
                         </tr>
                         {expandedCatKey === catKey && cat.tls.map((tl: any) => {
@@ -2544,15 +2551,21 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                       const tOverallocation = Math.max(0, tAllotted - tAppetite)
                                       return (<><td>{tAllotted}</td><td>{tAppetite}</td><td style={{ color: tOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{tOverallocation}</td><td style={{ color: tFulf >= 90 ? '#22C55E' : tFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{tFulf}%</td><td>{tAvgCa != null ? `${tAvgCa}m` : '—'}</td></>)
                                     })()
-                                  : activeCard === 'lost' ? (<>{ lostReasonRows.slice(0, 5).map((r: any) => {
-                                      let count = 0;
-                                      tl.sellers.forEach((m: any) => {
-                                        (m.monthly_lost_reasons || []).forEach((lr: any) => {
-                                          const reasons = [...new Set(((lr.lost_reason_details || 'Unknown') as string).split(',').map((s: string) => s.trim()).filter(Boolean))]; if (reasons.includes(r.label)) count++;
-                                        })
-                                      })
-                                      return <td key={r.label}>{count}</td>
-                                    })}</>) 
+                                  : activeCard === 'lost' ? (<>{ lostReasonRows.map((r: any) => {
+                                let count = 0;
+                                tl.sellers.forEach((m: any) => {
+                                  (m.monthly_lost_reasons || []).forEach((lr: any) => {
+                                    const raw = (lr.lost_reason_details || '').toLowerCase();
+                                    let matched = false;
+                                    if (raw.includes('just checking')) { if (r.label === 'Just Checking') count++; matched = true; }
+                                    if (raw.includes('customer never responded')) { if (r.label === 'Customer Never Responded') count++; matched = true; }
+                                    if (raw.includes('not interested')) { if (r.label === 'Not Interested') count++; matched = true; }
+                                    if (raw.includes('budget issue')) { if (r.label === 'Budget Issue') count++; matched = true; }
+                                    if (!matched && r.label === 'Others') count++;
+                                  })
+                                })
+                                return <td key={r.label}>{count}</td>
+                              })})</>) 
                                   : (<><td>{sumField(tl.sellers, 'pax_1')}</td><td>{sumField(tl.sellers, 'pax_2')}</td><td>{sumField(tl.sellers, 'pax_3')}</td><td>{sumField(tl.sellers, 'pax_4')}</td><td>{sumField(tl.sellers, 'pax_4_plus')}</td></>)}
                               </tr>
                               {expandedTlKey === tlKey && tl.sellers.map((s: any) => {
@@ -2573,15 +2586,21 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                           const sOverallocation = Math.max(0, sAllotted - sAppetite)
                                           return (<><td>{sAllotted}</td><td>{sAppetite}</td><td style={{ color: sOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{sOverallocation}</td><td style={{ color: sFulf >= 90 ? '#22C55E' : sFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{`${sFulf}%`}</td><td>{(sAvgCa != null ? `${sAvgCa}m` : '—')}</td></>)
                                         })()
-                                      : activeCard === 'lost' ? (<>{ lostReasonRows.slice(0, 5).map((r: any) => {
-                                          let count = 0;
-                                          [s].forEach((m: any) => {
-                                            (m.monthly_lost_reasons || []).forEach((lr: any) => {
-                                              const reasons = [...new Set(((lr.lost_reason_details || 'Unknown') as string).split(',').map((s: string) => s.trim()).filter(Boolean))]; if (reasons.includes(r.label)) count++;
-                                            })
-                                          })
-                                          return <td key={r.label}>{count}</td>
-                                        })}</>) 
+                                      : activeCard === 'lost' ? (<>{ lostReasonRows.map((r: any) => {
+                                let count = 0;
+                                [s].forEach((m: any) => {
+                                  (m.monthly_lost_reasons || []).forEach((lr: any) => {
+                                    const raw = (lr.lost_reason_details || '').toLowerCase();
+                                    let matched = false;
+                                    if (raw.includes('just checking')) { if (r.label === 'Just Checking') count++; matched = true; }
+                                    if (raw.includes('customer never responded')) { if (r.label === 'Customer Never Responded') count++; matched = true; }
+                                    if (raw.includes('not interested')) { if (r.label === 'Not Interested') count++; matched = true; }
+                                    if (raw.includes('budget issue')) { if (r.label === 'Budget Issue') count++; matched = true; }
+                                    if (!matched && r.label === 'Others') count++;
+                                  })
+                                })
+                                return <td key={r.label}>{count}</td>
+                              })})</>) 
                                       : (<><td>{sumField([s], 'pax_1')}</td><td>{sumField([s], 'pax_2')}</td><td>{sumField([s], 'pax_3')}</td><td>{sumField([s], 'pax_4')}</td><td>{sumField([s], 'pax_4_plus')}</td></>)}
                                   </tr>
                                 )
