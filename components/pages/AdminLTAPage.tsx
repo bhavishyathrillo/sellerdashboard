@@ -2181,8 +2181,12 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
   const lostReasonCounts: Record<string, number> = {}
   allMembers.forEach((m: any) => {
     (m.monthly_lost_reasons || []).forEach((r: any) => {
-      const reason = r.lost_reason_details || 'Unknown'
-      lostReasonCounts[reason] = (lostReasonCounts[reason] || 0) + 1
+      const raw = r.lost_reason_details || 'Unknown'
+      // Split by comma, trim, deduplicate, then count lead in each unique reason
+      const reasons = [...new Set((raw as string).split(',').map((s: string) => s.trim()).filter(Boolean))]
+      reasons.forEach((reason: string) => {
+        lostReasonCounts[reason] = (lostReasonCounts[reason] || 0) + 1
+      })
     })
   })
   const totalLost = Object.values(lostReasonCounts).reduce((a, b) => a + b, 0)
@@ -2511,7 +2515,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                 let count = 0;
                                 catSellers.forEach((m: any) => {
                                   (m.monthly_lost_reasons || []).forEach((lr: any) => {
-                                    if ((lr.lost_reason_details || 'Unknown') === r.label) count++;
+                                    const reasons = [...new Set(((lr.lost_reason_details || 'Unknown') as string).split(',').map((s: string) => s.trim()).filter(Boolean))]; if (reasons.includes(r.label)) count++;
                                   })
                                 })
                                 return <td key={r.label}>{count}</td>
@@ -2544,7 +2548,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                       let count = 0;
                                       tl.sellers.forEach((m: any) => {
                                         (m.monthly_lost_reasons || []).forEach((lr: any) => {
-                                          if ((lr.lost_reason_details || 'Unknown') === r.label) count++;
+                                          const reasons = [...new Set(((lr.lost_reason_details || 'Unknown') as string).split(',').map((s: string) => s.trim()).filter(Boolean))]; if (reasons.includes(r.label)) count++;
                                         })
                                       })
                                       return <td key={r.label}>{count}</td>
@@ -2573,7 +2577,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                           let count = 0;
                                           [s].forEach((m: any) => {
                                             (m.monthly_lost_reasons || []).forEach((lr: any) => {
-                                              if ((lr.lost_reason_details || 'Unknown') === r.label) count++;
+                                              const reasons = [...new Set(((lr.lost_reason_details || 'Unknown') as string).split(',').map((s: string) => s.trim()).filter(Boolean))]; if (reasons.includes(r.label)) count++;
                                             })
                                           })
                                           return <td key={r.label}>{count}</td>

@@ -501,8 +501,12 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   const cmLostReasonCounts: Record<string, number> = {}
   allMembers.forEach((m: any) => {
     (m.monthly_lost_reasons || []).forEach((r: any) => {
-      const reason = r.lost_reason_details || 'Unknown'
-      cmLostReasonCounts[reason] = (cmLostReasonCounts[reason] || 0) + 1
+      const raw = r.lost_reason_details || 'Unknown'
+      // Split by comma, trim, deduplicate, then count lead in each unique reason
+      const reasons = [...new Set((raw as string).split(',').map((s: string) => s.trim()).filter(Boolean))]
+      reasons.forEach((reason: string) => {
+        cmLostReasonCounts[reason] = (cmLostReasonCounts[reason] || 0) + 1
+      })
     })
   })
   const cmTotalLost = Object.values(cmLostReasonCounts).reduce((a, b) => a + b, 0)
