@@ -31,11 +31,30 @@ async function fetchAllPages(baseQuery: any, idCol: string = 'id', pageSize = 10
 export async function GET() {
   try {
     // ── Fetch SRS hierarchy ─────────────────────────────────────────────
-    const { data: srsData } = await supabase
+    // Fetch today's availability
+    const todayStr = new Date(Date.now() + 19800000).toISOString().split('T')[0]
+    const { data: mhlDailyRaw } = await supabase.schema('seller_day_to_day').from('mhl_daily')
+      .select('seller_email, available_today')
+      .eq('activity_date', todayStr)
+      .limit(1000)
+
+    const absentSellers = new Set((mhlDailyRaw || [])
+      .filter((r: any) => r.available_today === false || r.available_today === 'false')
+      .map((r: any) => cleanEmail(r.seller_email)))
+      
+    const isSunday = new Date(Date.now() + 19800000).getDay() === 0
+
+    let { data: srsData } = await supabase
       .from('srs_raw')
       .select('seller_email, seller_name, l1_email, l1_name, l2_email, l2_name')
       
     if (!srsData) return NextResponse.json({ l1_data: [] })
+
+    if (isSunday) {
+      srsData = []
+    } else {
+      srsData = srsData.filter(row => !absentSellers.has(cleanEmail(row.seller_email || '')))
+    }
 
     // ── 1) Paginate mishandled leads (mhl_mho = 'Mishandled') ──────────
     const allLeads = await fetchAllPages(
