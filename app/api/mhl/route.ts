@@ -25,6 +25,26 @@ export async function GET(req: Request) {
       const { data } = await supabase.from('srs_raw').select('seller_email').eq('l2_email', email)
       scopeEmails = (data || []).map(s => s.seller_email).filter(e => e.toLowerCase() !== email.toLowerCase())
     }
+
+    if (scopeEmails) {
+      const todayStr = new Date(Date.now() + 19800000).toISOString().split('T')[0]
+      const { data: mhlDailyRaw } = await supabase.schema('seller_day_to_day').from('mhl_daily')
+        .select('seller_email, available_today')
+        .eq('activity_date', todayStr)
+        .limit(1000)
+
+      const absentSellers = new Set((mhlDailyRaw || [])
+        .filter((r: any) => r.available_today === false || r.available_today === 'false')
+        .map((r: any) => (r.seller_email || '').toLowerCase().trim()))
+        
+      const isSunday = new Date(Date.now() + 19800000).getDay() === 0
+      
+      if (isSunday) {
+        scopeEmails = []
+      } else {
+        scopeEmails = scopeEmails.filter(e => !absentSellers.has(e.toLowerCase().trim()))
+      }
+    }
   }
 
   // ── Scope helper ────────────────────────────────────────────────────
