@@ -723,10 +723,15 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
       const config = {
         type: 'bar' as const,
         data: {
-          labels: cmAllotmentRows.map((d: any) => d.label),
+          labels: ['Auto', 'Manual', 'RTG', 'Non-RTG'],
           datasets: [{
-            data: cmAllotmentRows.map((d: any) => d.value),
-            backgroundColor: cmAllotmentRows.map((d: any) => d.color),
+            data: [
+              cmMonthlyTotalLeads > 0 ? (cmMonthlyAutoAllotted / cmMonthlyTotalLeads) * 100 : 0,
+              cmMonthlyTotalLeads > 0 ? (cmMonthlyManualAllotted / cmMonthlyTotalLeads) * 100 : 0,
+              cmMonthlyTotalLeads > 0 ? (cmMonthlyRtgLeads / cmMonthlyTotalLeads) * 100 : 0,
+              cmMonthlyTotalLeads > 0 ? (cmMonthlyNonRtgLeads / cmMonthlyTotalLeads) * 100 : 0
+            ],
+            backgroundColor: ['#6366F1', '#A855F7', '#F97316', '#10B981'],
             borderRadius: 4,
             barThickness: 12
           }]
@@ -737,15 +742,29 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: '#111111', titleColor: '#FFFFFF', bodyColor: '#E5E7EB', borderColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, cornerRadius: 6
+              backgroundColor: '#111111', titleColor: '#FFFFFF', bodyColor: '#E5E7EB', borderColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const rawVals = [cmMonthlyAutoAllotted, cmMonthlyManualAllotted, cmMonthlyRtgLeads, cmMonthlyNonRtgLeads]
+                  const val = rawVals[ctx.dataIndex] || 0
+                  const pctVal = ctx.raw ? Number(ctx.raw).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} (${pctVal}%)`
+                }
+              }
             }
           },
           scales: {
             x: { display: false },
             y: { 
               display: true, 
+              max: 100,
               grid: { color: '#1e1e1e' },
-              ticks: { color: '#8A8278', font: { size: 10 }, maxTicksLimit: 6 },
+              ticks: { 
+                color: '#8A8278', font: { size: 10 }, maxTicksLimit: 6,
+                callback: function(value: any) {
+                  return value + '%';
+                }
+              },
               border: { display: false }
             }
           }

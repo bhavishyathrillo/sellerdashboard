@@ -2333,10 +2333,15 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
       const config = {
         type: 'bar' as const,
         data: {
-          labels: allotmentRows.map((d: any) => d.label),
+          labels: ['Auto', 'Manual', 'RTG', 'Non-RTG'],
           datasets: [{
-            data: allotmentRows.map((d: any) => d.value),
-            backgroundColor: allotmentRows.map((d: any) => d.color),
+            data: [
+              totalLeads > 0 ? (totalAuto / totalLeads) * 100 : 0,
+              totalLeads > 0 ? (totalManual / totalLeads) * 100 : 0,
+              totalLeads > 0 ? (totalRtg / totalLeads) * 100 : 0,
+              totalLeads > 0 ? (totalNonRtg / totalLeads) * 100 : 0
+            ],
+            backgroundColor: ['#6366F1', '#A855F7', '#F4631E', '#10B981'],
             borderRadius: 4,
             barThickness: 12
           }]
@@ -2347,12 +2352,29 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: '#111111', titleColor: '#FFFFFF', bodyColor: '#E5E7EB', borderColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, cornerRadius: 6
+              backgroundColor: '#111111', titleColor: '#FFFFFF', bodyColor: '#E5E7EB', borderColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const rawVals = [totalAuto, totalManual, totalRtg, totalNonRtg]
+                  const val = rawVals[ctx.dataIndex] || 0
+                  const pctVal = ctx.raw ? Number(ctx.raw).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} (${pctVal}%)`
+                }
+              }
             }
           },
           scales: {
             x: { ticks: { display: false }, grid: { display: false } },
-            y: { ticks: { color: '#8A8278', font: { size: 9 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.03)' } }
+            y: { 
+              max: 100,
+              ticks: { 
+                color: '#8A8278', font: { size: 9 },
+                callback: function(value: any) {
+                  return value + '%';
+                }
+              }, 
+              grid: { color: 'rgba(255,255,255,0.03)' } 
+            }
           }
         }
       };

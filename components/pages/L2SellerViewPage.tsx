@@ -534,14 +534,16 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
       const Chart = mod.default || mod;
       if (allotmentChartInstance.current) allotmentChartInstance.current.destroy();
       
-      if (allotmentChartInstance.current) allotmentChartInstance.current.destroy();
       const config = {
         type: 'bar' as const,
         data: {
-          labels: teamAllotmentRows.map((d: any) => d.label),
+          labels: ['Auto', 'Manual'],
           datasets: [{
-            data: teamAllotmentRows.map((d: any) => d.value),
-            backgroundColor: teamAllotmentRows.map((d: any) => d.color),
+            data: [
+              teamMonthlyTotalLeads > 0 ? (teamMonthlyAutoAllotted / teamMonthlyTotalLeads) * 100 : 0,
+              teamMonthlyTotalLeads > 0 ? (teamMonthlyManualAllotted / teamMonthlyTotalLeads) * 100 : 0
+            ],
+            backgroundColor: ['#E5E7EB', '#9CA3AF'],
             borderRadius: 4,
             barThickness: 40
           }]
@@ -552,12 +554,29 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: '#111111', titleColor: '#FFFFFF', bodyColor: '#E5E7EB', borderColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, cornerRadius: 6
+              backgroundColor: '#111111', titleColor: '#FFFFFF', bodyColor: '#E5E7EB', borderColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, cornerRadius: 6,
+              callbacks: {
+                label: (ctx: any) => {
+                  const rawVals = [teamMonthlyAutoAllotted, teamMonthlyManualAllotted]
+                  const val = rawVals[ctx.dataIndex] || 0
+                  const pctVal = ctx.raw ? Number(ctx.raw).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} (${pctVal}%)`
+                }
+              }
             }
           },
           scales: {
             x: { ticks: { display: false }, grid: { display: false } },
-            y: { ticks: { color: '#8A8278', font: { size: 9 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.03)' } }
+            y: { 
+              max: 100,
+              ticks: { 
+                color: '#8A8278', font: { size: 9 },
+                callback: function(value: any) {
+                  return value + '%';
+                }
+              }, 
+              grid: { color: 'rgba(255,255,255,0.03)' } 
+            }
           }
         }
       };

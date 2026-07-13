@@ -706,7 +706,10 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         data: {
           labels: ['Auto', 'Manual'],
           datasets: [{
-            data: [autoVal, manualVal],
+            data: [
+              monthTotalLeads > 0 ? (autoVal/monthTotalLeads)*100 : 0,
+              monthTotalLeads > 0 ? (manualVal/monthTotalLeads)*100 : 0
+            ],
             backgroundColor: ['#3B82F6', '#8B5CF6'],
             borderRadius: 4,
             barThickness: 40
@@ -722,17 +725,27 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
               cornerRadius: 6,
               callbacks: {
                 label: (ctx: any) => {
-                  const val = ctx.raw || 0
-                  const total = monthTotalLeads
-                  const pctVal = total > 0 ? ((val / total) * 100).toFixed(0) : '0'
-                  return ` ${ctx.label}: ${val} leads (${pctVal}%)`
+                  const rawVals = [autoVal, manualVal]
+                  const val = rawVals[ctx.dataIndex] || 0
+                  const pctVal = ctx.raw ? Number(ctx.raw).toFixed(0) : '0'
+                  return ` ${ctx.label}: ${val} (${pctVal}%)`
                 }
               }
             }
           },
           scales: {
-            x: { ticks: { color: '#8A8278', font: { size: 9 } }, grid: { display: false } },
-            y: { ticks: { color: '#8A8278', font: { size: 9 }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.03)' } }
+            x: { ticks: { color: '#8A8278', font: { size: 9 }, display: false }, grid: { display: false } },
+            y: { 
+              max: 100,
+              ticks: { 
+                color: '#8A8278', 
+                font: { size: 9 }, 
+                callback: function(value: any) {
+                  return value + '%';
+                }
+              }, 
+              grid: { color: 'rgba(255,255,255,0.03)' } 
+            }
           }
         }
       })
