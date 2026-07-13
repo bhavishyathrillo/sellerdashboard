@@ -93,6 +93,7 @@ export default function DashboardLayout({
                   if (item.isExternal && item.url) {
                     window.open(item.url, '_blank')
                   } else {
+                    sessionStorage.clear()
                     onNavigate(item.id)
                   }
                 }}
