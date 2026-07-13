@@ -1,18 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Fragment } from 'react'
 import styles from './PipelinePage.module.css'
 import Loader from '@/components/ui/Loader'
 import { useStickyState } from '@/components/hooks/useStickyState'
 
-interface PipelineSubmission {
-  id: number
-  date: string
-  seller_email: string
-  pipeline_value: number
-  required_daily: number
-  submitted_at: string
-  status: string
+interface PNRData {
+  pnr_number: string
+  topline_value: number
+  bottomline_value: number
 }
 
 function fmt(n: number) { 
@@ -27,9 +23,6 @@ function fmtDate(d: string) {
     return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) 
   } catch { return d } 
 }
-
-function ChevronDown() { return (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>) }
-function ChevronRight() { return (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>) }
 
 function PopupModal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
   return (
@@ -46,7 +39,6 @@ function PopupModal({ children, onClose, title }: { children: React.ReactNode; o
   )
 }
 
-// Parse date from input value (YYYY-MM-DD format)
 function parseDateInput(str: string): Date | null {
   if (!str) return null
   try {
@@ -55,6 +47,10 @@ function parseDateInput(str: string): Date | null {
   } catch {
     return null
   }
+}
+
+const calcTotal = (pnrs: PNRData[], is_bottomline: boolean) => {
+  return (pnrs || []).reduce((sum, p) => sum + (is_bottomline ? (Number(p.bottomline_value)||0) : (Number(p.topline_value)||0)), 0)
 }
 
 export default function AdminPipelinePage() {
@@ -68,6 +64,10 @@ export default function AdminPipelinePage() {
   const [dateFrom, setDateFrom] = useStickyState('', 'AdminPipeline_dateFrom')
   const [dateTo, setDateTo] = useStickyState('', 'AdminPipeline_dateTo')
   const [filteredResults, setFilteredResults] = useState<any[]>([])
+  
+  // State for expanded rows
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({})
+  const [expandedModalRows, setExpandedModalRows] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
     fetch('/api/admin/pipeline')
@@ -79,38 +79,27 @@ export default function AdminPipelinePage() {
       .catch(err => { console.error('Error loading pipeline:', err); setLoading(false) })
   }, [])
 
-  // Filter submissions by date
   const filterByDate = (submissions: any[]) => {
     if (!submissions || submissions.length === 0) return []
-    
-    // If custom date range is set, use it
     if (dateFrom || dateTo) {
-      // If From > To, swap them automatically
       let effectiveFrom = dateFrom
       let effectiveTo = dateTo
-      
       if (dateFrom && dateTo && dateFrom > dateTo) {
         effectiveFrom = dateTo
         effectiveTo = dateFrom
       }
-      
       const fromDate = effectiveFrom ? parseDateInput(effectiveFrom) : null
       const toDate = effectiveTo ? parseDateInput(effectiveTo) : null
-      
       const from = fromDate ? new Date(fromDate) : new Date(2000, 0, 1)
       const to = toDate ? new Date(toDate) : new Date(2100, 11, 31)
-      
       from.setHours(0, 0, 0, 0)
       to.setHours(23, 59, 59, 999)
-      
       return submissions.filter((s: any) => {
         const d = new Date(s.date)
         d.setHours(0, 0, 0, 0)
         return d >= from && d <= to
       })
     }
-    
-    // Use preset filters
     if (dateFilter === 'all') return submissions
     const now = new Date(); now.setHours(0,0,0,0)
     let cutoff = new Date(now)
@@ -120,7 +109,6 @@ export default function AdminPipelinePage() {
     return submissions.filter((s: any) => new Date(s.date) >= cutoff)
   }
 
-  // Search function - hierarchical with date support
   useEffect(() => {
     if (!search.trim() && !dateFrom && !dateTo && dateFilter === 'all') { 
       setFilteredResults([]); 
@@ -130,13 +118,8 @@ export default function AdminPipelinePage() {
     const results: any[] = []
     
     l1Data.forEach((l1: any) => {
-      const l1Match = l1.l1_name?.toLowerCase().includes(q)
-      
       l1.l2_groups?.forEach((l2: any) => {
-        const l2Match = l2.l2_name?.toLowerCase().includes(q)
         let filteredSubs = filterByDate(l2.submissions || [])
-        
-        // Apply search filter (seller name)
         if (q) {
           filteredSubs = filteredSubs.filter((s: any) => 
             s.seller_email?.toLowerCase().includes(q) || 
@@ -144,7 +127,6 @@ export default function AdminPipelinePage() {
             l1.l1_name?.toLowerCase().includes(q)
           )
         }
-        
         filteredSubs.forEach((sub: any) => {
           results.push({ 
             ...sub, 
@@ -160,7 +142,6 @@ export default function AdminPipelinePage() {
     setFilteredResults(results.filter(r => { const k = r.id; if (seen.has(k)) return false; seen.add(k); return true }))
   }, [search, l1Data, dateFilter, dateFrom, dateTo])
 
-  // Clear date range
   const clearDateRange = () => {
     setDateFrom('')
     setDateTo('')
@@ -169,13 +150,10 @@ export default function AdminPipelinePage() {
 
   if (loading) return <Loader text="Loading..." />
 
-  // Calculate totals from filtered data
   const getFilteredL1Data = () => {
     return l1Data.map((l1: any) => {
       const filteredL2 = (l1.l2_groups || []).map((l2: any) => {
         let filteredSubs = filterByDate(l2.submissions || [])
-        
-        // Apply search filter
         if (search.trim()) {
           const q = search.toLowerCase().trim()
           filteredSubs = filteredSubs.filter((s: any) => 
@@ -189,18 +167,28 @@ export default function AdminPipelinePage() {
       
       const totalSubs = filteredL2.reduce((s: number, l2: any) => s + l2.filtered_count, 0)
       const totalPipeline = filteredL2.reduce((s: number, l2: any) => {
-        return s + l2.submissions.reduce((sum: number, sub: any) => sum + (sub.pipeline_value || 0), 0)
+        return s + l2.submissions.reduce((sum: number, sub: any) => sum + calcTotal(sub.pnrs, sub.is_bottomline_focus), 0)
       }, 0)
+      
+      const totalTopline = filteredL2.reduce((s: number, l2: any) => {
+        return s + l2.submissions.reduce((sum: number, sub: any) => sum + (sub.pnrs||[]).reduce((ts:number,p:any)=>ts+(Number(p.topline_value)||0),0), 0)
+      }, 0)
+      const totalBottomline = filteredL2.reduce((s: number, l2: any) => {
+        return s + l2.submissions.reduce((sum: number, sub: any) => sum + (sub.pnrs||[]).reduce((ts:number,p:any)=>ts+(Number(p.bottomline_value)||0),0), 0)
+      }, 0)
+      
       const greenCount = filteredL2.reduce((s: number, l2: any) => {
         return s + l2.submissions.filter((sub: any) => sub.status === 'GREEN').length
       }, 0)
       
-      return { ...l1, l2_groups: filteredL2, total_submissions: totalSubs, total_pipeline: totalPipeline, green_count: greenCount }
+      return { ...l1, l2_groups: filteredL2, total_submissions: totalSubs, total_pipeline: totalPipeline, total_topline: totalTopline, total_bottomline: totalBottomline, green_count: greenCount }
     }).filter((l1: any) => l1.total_submissions > 0)
   }
 
   const filteredL1Data = getFilteredL1Data()
   const totalPipeline = filteredL1Data.reduce((s: number, l1: any) => s + l1.total_pipeline, 0)
+  const totalTopline = filteredL1Data.reduce((s: number, l1: any) => s + l1.total_topline, 0)
+  const totalBottomline = filteredL1Data.reduce((s: number, l1: any) => s + l1.total_bottomline, 0)
   const totalSubmissions = filteredL1Data.reduce((s: number, l1: any) => s + l1.total_submissions, 0)
   const totalGreen = filteredL1Data.reduce((s: number, l1: any) => s + l1.green_count, 0)
 
@@ -210,10 +198,9 @@ export default function AdminPipelinePage() {
         {[...Array(10)].map((_, i) => (<div key={i} className={styles.particle} style={{left:`${Math.random()*100}%`,fontSize:`${0.5+Math.random()*0.7}rem`,animationDuration:`${5+Math.random()*6}s`,animationDelay:`${Math.random()*6}s`}}>{['✦','◈','◇','◆'][Math.floor(Math.random()*4)]}</div>))}
       </div>
 
-      {/* Header */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px',flexWrap:'wrap',gap:'10px'}}>
         <div>
-          <h1 style={{fontSize:'1.4rem',fontWeight:700,color:'#C9A84C'}}>Pipeline</h1>
+          <h1 style={{fontSize:'1.4rem',fontWeight:700,color:'#C9A84C'}}>PNR Pipeline</h1>
           <p style={{fontSize:'0.7rem',color:'#8A8278'}}>{filteredL1Data.length} Category Managers</p>
         </div>
         <div style={{display:'flex',gap:'10px',alignItems:'center',flexWrap:'wrap'}}>
@@ -224,85 +211,26 @@ export default function AdminPipelinePage() {
         </div>
       </div>
 
-      {/* Search & Filter Row */}
       <div style={{display:'flex',flexWrap:'wrap',gap:'10px',marginBottom:'16px',alignItems:'center'}}>
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search by seller, Category Manager, or L1 Manager..."
-          style={{
-            flex:1,minWidth:'200px',padding:'10px 14px',background:'#141414',
-            border:'1px solid #232323',borderRadius:'10px',color:'#F0EDE8',
-            fontSize:'0.8rem',outline:'none'
-          }}
-        />
-        
+        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by seller, Category Manager, or L1 Manager..." style={{ flex:1,minWidth:'200px',padding:'10px 14px',background:'#141414', border:'1px solid #232323',borderRadius:'10px',color:'#F0EDE8', fontSize:'0.8rem',outline:'none' }} />
         <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
           <span style={{fontSize:'0.65rem',color:'#8A8278'}}>From:</span>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={e => setDateFrom(e.target.value)}
-            style={{
-              padding:'8px 10px',background:'#141414',border:'1px solid #232323',
-              borderRadius:'8px',color:'#F0EDE8',fontSize:'0.7rem',outline:'none',
-              width:'130px'
-            }}
-          />
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ padding:'8px 10px',background:'#141414',border:'1px solid #232323', borderRadius:'8px',color:'#F0EDE8',fontSize:'0.7rem',outline:'none', width:'130px' }} />
         </div>
-        
         <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
           <span style={{fontSize:'0.65rem',color:'#8A8278'}}>To:</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={e => {
-              // If To is before From, swap them
-              if (dateFrom && e.target.value && dateFrom > e.target.value) {
-                setDateFrom(e.target.value)
-                setDateTo(dateFrom)
-              } else {
-                setDateTo(e.target.value)
-              }
-            }}
-            style={{
-              padding:'8px 10px',background:'#141414',border:'1px solid #232323',
-              borderRadius:'8px',color:'#F0EDE8',fontSize:'0.7rem',outline:'none',
-              width:'130px'
-            }}
-          />
+          <input type="date" value={dateTo} onChange={e => { if (dateFrom && e.target.value && dateFrom > e.target.value) { setDateFrom(e.target.value); setDateTo(dateFrom) } else { setDateTo(e.target.value) } }} style={{ padding:'8px 10px',background:'#141414',border:'1px solid #232323', borderRadius:'8px',color:'#F0EDE8',fontSize:'0.7rem',outline:'none', width:'130px' }} />
         </div>
-        
         {(dateFrom || dateTo) && (
-          <button onClick={clearDateRange} style={{
-            padding:'6px 12px',background:'rgba(239,68,68,0.12)',color:'#EF4444',
-            border:'1px solid rgba(239,68,68,0.2)',borderRadius:'8px',cursor:'pointer',
-            fontSize:'0.65rem',fontWeight:600
-          }}>
-            Clear Dates
-          </button>
+          <button onClick={clearDateRange} style={{ padding:'6px 12px',background:'rgba(239,68,68,0.12)',color:'#EF4444', border:'1px solid rgba(239,68,68,0.2)',borderRadius:'8px',cursor:'pointer', fontSize:'0.65rem',fontWeight:600 }}>Clear Dates</button>
         )}
-        
         <div style={{display:'flex',gap:'3px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'7px',padding:'2px'}}>
           {[{k:'today',l:'Today'},{k:'5days',l:'5 Days'},{k:'15days',l:'15 Days'},{k:'all',l:'All'}].map(f => (
-            <button 
-              key={f.k} 
-              onClick={() => { setDateFilter(f.k as any); setDateFrom(''); setDateTo('') }} 
-              style={{
-                padding:'5px 10px',border:'none',borderRadius:'5px',
-                background: dateFilter===f.k && !dateFrom && !dateTo ? 'rgba(244,99,30,0.15)' : 'transparent',
-                color: dateFilter===f.k && !dateFrom && !dateTo ? '#F4631E' : '#8A8278',
-                cursor:'pointer',fontSize:'0.65rem',fontWeight:600,transition:'all 0.15s'
-              }}
-            >
-              {f.l}
-            </button>
+            <button key={f.k} onClick={() => { setDateFilter(f.k as any); setDateFrom(''); setDateTo('') }} style={{ padding:'5px 10px',border:'none',borderRadius:'5px', background: dateFilter===f.k && !dateFrom && !dateTo ? 'rgba(244,99,30,0.15)' : 'transparent', color: dateFilter===f.k && !dateFrom && !dateTo ? '#F4631E' : '#8A8278', cursor:'pointer',fontSize:'0.65rem',fontWeight:600,transition:'all 0.15s' }}>{f.l}</button>
           ))}
         </div>
       </div>
 
-      {/* Stats Row */}
       <div className={styles.kpiGrid}>
         <div className={styles.kpiCard}>
           <div className={styles.kpiBar} style={{ background: '#F0EDE8' }} />
@@ -310,29 +238,26 @@ export default function AdminPipelinePage() {
           <div className={styles.kpiValue} style={{color:'#F4631E'}}>{totalSubmissions}</div>
         </div>
         <div className={styles.kpiCard}>
-          <div className={styles.kpiBar} style={{ background: '#C9A84C' }} />
-          <div className={styles.kpiLabel}>Total Pipeline</div>
-          <div className={styles.kpiValue} style={{color:'#C9A84C'}}>{fmt(totalPipeline)}</div>
+          <div className={styles.kpiBar} style={{ background: '#3B82F6' }} />
+          <div className={styles.kpiLabel}>Total Topline</div>
+          <div className={styles.kpiValue} style={{color:'#3B82F6'}}>{fmt(totalTopline)}</div>
+        </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#8B5CF6' }} />
+          <div className={styles.kpiLabel}>Total Bottomline</div>
+          <div className={styles.kpiValue} style={{color:'#8B5CF6'}}>{fmt(totalBottomline)}</div>
         </div>
         <div className={styles.kpiCard}>
           <div className={styles.kpiBar} style={{ background: '#22C55E' }} />
-          <div className={styles.kpiLabel}>Green</div>
-          <div className={styles.kpiValue} style={{color:'#22C55E'}}>{totalGreen}</div>
-        </div>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiBar} style={{ background: '#C9A84C' }} />
           <div className={styles.kpiLabel}>Green Rate</div>
-          <div className={styles.kpiValue} style={{color:'#C9A84C'}}>{totalSubmissions > 0 ? ((totalGreen / totalSubmissions) * 100).toFixed(0) : 0}%</div>
+          <div className={styles.kpiValue} style={{color:'#22C55E'}}>{totalSubmissions > 0 ? ((totalGreen / totalSubmissions) * 100).toFixed(0) : 0}%</div>
         </div>
       </div>
 
-      {/* TABLE VIEW */}
       {(viewMode === 'table' || search.trim() || dateFrom || dateTo) && (
         <div className={styles.tableWrap}>
           <table className={styles.table}>
-            <thead><tr>
-              <th>Date</th><th>Seller</th><th>Category Mgr</th><th>L1 Manager</th><th>Pipeline</th><th>Required</th><th>Status</th>
-            </tr></thead>
+            <thead><tr><th>Date</th><th>Seller</th><th>Category Mgr</th><th>L1 Manager</th><th>Pipeline</th><th>Required</th><th>Status</th><th>Details</th></tr></thead>
             <tbody>
               {(() => {
                 let allRows: any[] = []
@@ -347,33 +272,60 @@ export default function AdminPipelinePage() {
                     })
                   })
                 }
-                return allRows.slice(0, 300).map((row: any) => (
-                  <tr key={row.id} className={styles.row}>
-                    <td className={styles.dateCell}>{fmtDate(row.date)}</td>
-                    <td className={styles.sellerCell}>{row.seller_email}</td>
-                    <td style={{fontSize:'0.7rem',color:'#C9A84C'}}>{row.l1_name}</td>
-                    <td style={{fontSize:'0.7rem',color:'#8A8278'}}>{row.l2_name}</td>
-                    <td className={styles.valueCell}>{fmt(row.pipeline_value)}</td>
-                    <td className={styles.reqCell}>{fmt(row.required_daily)}</td>
-                    <td><span className={`${styles.badge} ${row.status==='GREEN'?styles.badgeGreen:styles.badgeRed}`}>{row.status}</span></td>
-                  </tr>
-                ))
+                return allRows.slice(0, 300).map((row: any) => {
+                  const total = calcTotal(row.pnrs, row.is_bottomline_focus)
+                  const isExpanded = !!expandedRows[row.id]
+                  return (
+                    <Fragment key={row.id}>
+                      <tr className={styles.row}>
+                        <td className={styles.dateCell}>{fmtDate(row.date)}</td>
+                        <td className={styles.sellerCell}>{row.seller_email}</td>
+                        <td style={{fontSize:'0.7rem',color:'#C9A84C'}}>{row.l1_name}</td>
+                        <td style={{fontSize:'0.7rem',color:'#8A8278'}}>{row.l2_name}</td>
+                        <td className={styles.valueCell}>{fmt(total)}</td>
+                        <td className={styles.reqCell}>{fmt(row.required_daily)}</td>
+                        <td><span className={`${styles.badge} ${row.status==='GREEN'?styles.badgeGreen:styles.badgeRed}`}>{row.status}</span></td>
+                        <td>
+                          <button onClick={() => setExpandedRows(prev => ({ ...prev, [row.id]: !prev[row.id] }))} style={{ background: '#333', border: 'none', color: '#FFF', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem' }}>
+                            {isExpanded ? 'Hide' : `View ${row.pnrs?.length || 0}`}
+                          </button>
+                        </td>
+                      </tr>
+                      {isExpanded && row.pnrs && row.pnrs.length > 0 && (
+                        <tr style={{ background: '#111' }}>
+                          <td colSpan={8} style={{ padding: '16px' }}>
+                            <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                              {row.pnrs.map((p: any, idx: number) => (
+                                <div key={idx} style={{ background: '#1a1a1a', padding: '12px', borderRadius: '8px', border: '1px solid #333' }}>
+                                  <div style={{ color: '#C9A84C', fontWeight: 'bold', marginBottom: '8px' }}>#{p.pnr_number}</div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#AAA', marginBottom: '4px' }}>
+                                    <span>Topline:</span> <span style={{ color: '#FFF' }}>{fmt(p.topline_value)}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#AAA' }}>
+                                    <span>Bottomline:</span> <span style={{ color: '#FFF' }}>{fmt(p.bottomline_value)}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })
               })()}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* CARDS VIEW */}
       {viewMode === 'cards' && !search.trim() && !dateFrom && !dateTo && (
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'12px'}}>
           {filteredL1Data.map((l1: any) => {
             const green = l1.green_count || 0
             const total = l1.total_submissions || 0
             return (
-              <div key={l1.l1_email} onClick={() => setSelectedL1(l1)} style={{
-                background:'#141414',border:'1px solid #232323',borderRadius:'14px',padding:'16px',cursor:'pointer',transition:'all 0.3s'
-              }}>
+              <div key={l1.l1_email} onClick={() => setSelectedL1(l1)} style={{ background:'#141414',border:'1px solid #232323',borderRadius:'14px',padding:'16px',cursor:'pointer',transition:'all 0.3s' }}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
                   <div><div style={{fontWeight:700,fontSize:'0.9rem'}}>{l1.l1_name}</div><div style={{fontSize:'0.62rem',color:'#8A8278'}}>{l1.l2_groups.length} L1 Managers</div></div>
                   <div style={{textAlign:'right'}}>
@@ -395,7 +347,6 @@ export default function AdminPipelinePage() {
         </div>
       )}
 
-      {/* L1 Popup → L2 Cards */}
       {selectedL1 && (
         <PopupModal title={`${selectedL1.l1_name} — L1 Managers`} onClose={() => setSelectedL1(null)}>
           <div style={{marginBottom:'12px',display:'flex',gap:'12px',fontSize:'0.7rem',color:'#8A8278'}}>
@@ -407,11 +358,9 @@ export default function AdminPipelinePage() {
             {selectedL1.l2_groups.map((l2: any) => {
               const l2Green = l2.submissions.filter((s:any) => s.status === 'GREEN').length
               const l2Total = l2.submissions.length
-              const l2Pipeline = l2.submissions.reduce((s: number, sub: any) => s + (sub.pipeline_value || 0), 0)
+              const l2Pipeline = l2.submissions.reduce((s: number, sub: any) => s + calcTotal(sub.pnrs, sub.is_bottomline_focus), 0)
               return (
-                <div key={l2.l2_email} onClick={(e) => { e.stopPropagation(); setSelectedL2(l2) }} style={{
-                  background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'14px',cursor:'pointer'
-                }}>
+                <div key={l2.l2_email} onClick={(e) => { e.stopPropagation(); setSelectedL2(l2) }} style={{ background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'14px',cursor:'pointer' }}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                     <div><div style={{fontWeight:600,fontSize:'0.82rem'}}>{l2.l2_name}</div><div style={{fontSize:'0.6rem',color:'#8A8278'}}>{l2Total} submissions</div></div>
                     <div style={{textAlign:'right'}}>
@@ -430,7 +379,6 @@ export default function AdminPipelinePage() {
         </PopupModal>
       )}
 
-      {/* L2 Popup → Submissions Table */}
       {selectedL2 && (
         <PopupModal title={`${selectedL2.l2_name} — Submissions`} onClose={() => setSelectedL2(null)}>
           {selectedL2.submissions.length === 0 ? (
@@ -438,17 +386,47 @@ export default function AdminPipelinePage() {
           ) : (
             <div className={styles.tableWrap}>
               <table className={styles.table}>
-                <thead><tr><th>Date</th><th>Seller</th><th>Pipeline</th><th>Required</th><th>Status</th></tr></thead>
+                <thead><tr><th>Date</th><th>Seller</th><th>Pipeline</th><th>Required</th><th>Status</th><th>Details</th></tr></thead>
                 <tbody>
-                  {selectedL2.submissions.map((row: any) => (
-                    <tr key={row.id} className={styles.row}>
-                      <td className={styles.dateCell}>{fmtDate(row.date)}</td>
-                      <td className={styles.sellerCell}>{row.seller_email}</td>
-                      <td className={styles.valueCell}>{fmt(row.pipeline_value)}</td>
-                      <td className={styles.reqCell}>{fmt(row.required_daily)}</td>
-                      <td><span className={`${styles.badge} ${row.status==='GREEN'?styles.badgeGreen:styles.badgeRed}`}>{row.status}</span></td>
-                    </tr>
-                  ))}
+                  {selectedL2.submissions.map((row: any) => {
+                    const total = calcTotal(row.pnrs, row.is_bottomline_focus)
+                    const isExpanded = !!expandedModalRows[row.id]
+                    return (
+                      <Fragment key={row.id}>
+                        <tr className={styles.row}>
+                          <td className={styles.dateCell}>{fmtDate(row.date)}</td>
+                          <td className={styles.sellerCell}>{row.seller_email}</td>
+                          <td className={styles.valueCell}>{fmt(total)}</td>
+                          <td className={styles.reqCell}>{fmt(row.required_daily)}</td>
+                          <td><span className={`${styles.badge} ${row.status==='GREEN'?styles.badgeGreen:styles.badgeRed}`}>{row.status}</span></td>
+                          <td>
+                            <button onClick={() => setExpandedModalRows(prev => ({ ...prev, [row.id]: !prev[row.id] }))} style={{ background: '#333', border: 'none', color: '#FFF', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem' }}>
+                              {isExpanded ? 'Hide' : `View ${row.pnrs?.length || 0}`}
+                            </button>
+                          </td>
+                        </tr>
+                        {isExpanded && row.pnrs && row.pnrs.length > 0 && (
+                          <tr style={{ background: '#111' }}>
+                            <td colSpan={6} style={{ padding: '16px' }}>
+                              <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                                {row.pnrs.map((p: any, idx: number) => (
+                                  <div key={idx} style={{ background: '#1a1a1a', padding: '12px', borderRadius: '8px', border: '1px solid #333' }}>
+                                    <div style={{ color: '#C9A84C', fontWeight: 'bold', marginBottom: '8px' }}>#{p.pnr_number}</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#AAA', marginBottom: '4px' }}>
+                                      <span>Topline:</span> <span style={{ color: '#FFF' }}>{fmt(p.topline_value)}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#AAA' }}>
+                                      <span>Bottomline:</span> <span style={{ color: '#FFF' }}>{fmt(p.bottomline_value)}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

@@ -17,14 +17,15 @@ export async function GET(req: Request) {
   // Add 5.5 hours (19800000 ms) to get IST date string
   const today = new Date(Date.now() + 19800000).toISOString().split('T')[0]
 
-  // Get seller's required daily from srs_raw
-const { data: srsData } = await supabase
-  .from('srs_raw')
-  .select('required_daily_monthly, bottomline_goal_monthly, should_have_been_monthly, actual_achieved_monthly, goal_achieved_percent')
-  .eq('seller_email', email.toLowerCase())
-  .maybeSingle()
+  // Get seller's required daily and defined goal from srs_raw
+  const { data: srsData } = await supabase
+    .from('srs_raw')
+    .select('required_daily_monthly, bottomline_goal_monthly, should_have_been_monthly, actual_achieved_monthly, goal_achieved_percent, defined_goal')
+    .eq('seller_email', email.toLowerCase())
+    .maybeSingle()
 
   const required = srsData?.required_daily_monthly || 0
+  const is_bottomline_focus_srs = (srsData?.defined_goal === 'Bottomline')
 
   // Get settings for deadline
   const { data: settings } = await supabase
@@ -40,7 +41,7 @@ const { data: srsData } = await supabase
 
   // Check today's submission
 const { data: todayRow } = await supabase
-  .from('pipeline_submissions')
+  .from('pnr_pipeline_submissions')
   .select('*')
   .eq('seller_email', email.toLowerCase())
   .eq('date', today)
@@ -48,9 +49,10 @@ const { data: todayRow } = await supabase
 
   const todayStatus = {
     submitted: !!todayRow,
-    pipeline_value: todayRow?.pipeline_value,
+    pnrs: todayRow?.pnrs || [],
+    is_bottomline_focus: is_bottomline_focus_srs,
     status: todayRow?.status,
-    submitted_at: todayRow?.submitted_at,
+    submitted_at: todayRow?.created_at,
     required_daily: required,
     deadline,
     past_deadline
@@ -58,7 +60,7 @@ const { data: todayRow } = await supabase
 
   // Get history
   let query = supabase
-    .from('pipeline_submissions')
+    .from('pnr_pipeline_submissions')
     .select('*')
     .order('date', { ascending: false })
     .limit(60)
@@ -87,14 +89,19 @@ const { data: todayRow } = await supabase
 
   const { data: history } = await query
 
-  return NextResponse.json({ today: todayStatus, history: history || [] })
+  const mappedHistory = (history || []).map(h => ({
+    ...h,
+    required_daily: h.daily_required
+  }))
+
+  return NextResponse.json({ today: todayStatus, history: mappedHistory })
 }
 
 export async function POST(req: Request) {
-  const { email, pipeline_value } = await req.json()
+  const { email, pnrs } = await req.json()
 
-  if (!email || !pipeline_value) {
-    return NextResponse.json({ error: 'Email and value required' }, { status: 400 })
+  if (!email || !pnrs || !Array.isArray(pnrs)) {
+    return NextResponse.json({ error: 'Email and PNR array required' }, { status: 400 })
   }
 
   // Add 5.5 hours (19800000 ms) to get IST date string
@@ -102,7 +109,7 @@ export async function POST(req: Request) {
 
   // Check already submitted
   const { data: existing } = await supabase
-    .from('pipeline_submissions')
+    .from('pnr_pipeline_submissions')
     .select('id')
     .eq('seller_email', email.toLowerCase())
     .eq('date', today)
@@ -115,27 +122,36 @@ export async function POST(req: Request) {
     )
   }
 
-  // Get required daily
-const { data: srsData } = await supabase
-  .from('srs_raw')
-  .select('required_daily_monthly, bottomline_goal_monthly, should_have_been_monthly, actual_achieved_monthly, goal_achieved_percent')
-  .eq('seller_email', email.toLowerCase())
-  .single()
+  // Get required daily and defined goal
+  const { data: srsData } = await supabase
+    .from('srs_raw')
+    .select('required_daily_monthly, defined_goal')
+    .eq('seller_email', email.toLowerCase())
+    .single()
 
   const required = srsData?.required_daily_monthly || 0
-  const status = pipeline_value >= required ? 'GREEN' : 'RED'
+  const is_bottomline_focus = srsData?.defined_goal === 'Bottomline'
+  
+  // Calculate total to determine status
+  let total_pipeline = 0;
+  for (const p of pnrs) {
+      total_pipeline += is_bottomline_focus ? (Number(p.bottomline_value) || 0) : (Number(p.topline_value) || 0);
+  }
+  
+  const status = total_pipeline >= required ? 'GREEN' : 'RED'
 
   // Insert
   const { error } = await supabase
-    .from('pipeline_submissions')
-    .insert({
-      date: today,
+    .from('pnr_pipeline_submissions')
+    .upsert({
       seller_email: email.toLowerCase(),
-      pipeline_value,
-      required_daily: required,
+      date: today,
+      pnrs,
+      daily_required: Math.round(required),
+      is_bottomline_focus,
       status,
-      submitted_at: new Date().toISOString()
-    })
+      created_at: new Date().toISOString()
+    }, { onConflict: 'seller_email, date' })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -145,9 +161,9 @@ const { data: srsData } = await supabase
   await supabase.from('user_action_logs').insert({
     user_email: email,
     action_type: 'PIPELINE_SUBMIT',
-    metadata: { pipeline_value, status, required },
+    metadata: { is_bottomline_focus, total_pipeline, status, required, pnrs_count: pnrs.length },
     created_at: new Date().toISOString()
   })
 
-return NextResponse.json({ success: true, status, required })
+  return NextResponse.json({ success: true, status, required })
 }

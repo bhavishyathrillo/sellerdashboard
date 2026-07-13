@@ -6,19 +6,27 @@ import styles from './PipelinePage.module.css'
 import Loader from '@/components/ui/Loader'
 import { useStickyState } from '@/components/hooks/useStickyState'
 
+interface PNRData {
+  pnr_number: string
+  topline_value: number
+  bottomline_value: number
+}
+
 interface PipelineSubmission {
   id: number
   date: string
   seller_email: string
-  pipeline_value: number
+  is_bottomline_focus: boolean
+  pnrs: PNRData[]
   required_daily: number
-  submitted_at: string
+  created_at: string
   status: string
 }
 
 interface TodayStatus {
   submitted: boolean
-  pipeline_value?: number
+  pnrs: PNRData[]
+  is_bottomline_focus: boolean
   status?: string
   submitted_at?: string
   required_daily: number
@@ -45,7 +53,6 @@ function fmtDate(d: string) {
   } catch { return d }
 }
 
-// Parse date from input value (YYYY-MM-DD format)
 function parseDateInput(str: string): Date | null {
   if (!str) return null
   try {
@@ -56,14 +63,20 @@ function parseDateInput(str: string): Date | null {
   }
 }
 
+const calcTotal = (pnrs: PNRData[], is_bottomline: boolean) => {
+  return pnrs.reduce((sum, p) => sum + (is_bottomline ? (Number(p.bottomline_value)||0) : (Number(p.topline_value)||0)), 0)
+}
+
 export default function PipelinePage({ session }: PipelinePageProps) {
   const [todayStatus, setTodayStatus] = useState<TodayStatus | null>(null)
   const [history, setHistory] = useState<PipelineSubmission[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [value, setValue] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  // New form state
+  const [pnrInputs, setPnrInputs] = useState([{ pnr_number: '', topline_value: '', bottomline_value: '' }])
 
   const [view, setView] = useStickyState<'mine' | 'team'>(
     session.role === 'L1' ? 'team' : 'mine', 'PipelinePage_view'
@@ -73,6 +86,7 @@ export default function PipelinePage({ session }: PipelinePageProps) {
   const [dateFrom, setDateFrom] = useStickyState('', 'PipelinePage_dateFrom')
   const [dateTo, setDateTo] = useStickyState('', 'PipelinePage_dateTo')
   const [filteredHistory, setFilteredHistory] = useState<PipelineSubmission[]>([])
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({})
 
   const isManager = ['L1', 'L2', 'ADMIN', 'MODERATOR'].includes(session.role)
   const isL1 = session.role === 'L1'
@@ -102,83 +116,86 @@ export default function PipelinePage({ session }: PipelinePageProps) {
     load() 
   }, [session.email, session.role, view])
 
-  // Filter history whenever dependencies change
   useEffect(() => {
     let filtered = [...history]
-    
-    // If no filters, show all
     if (dateFilter === 'all' && !dateFrom && !dateTo && !search.trim()) {
       setFilteredHistory(filtered)
       return
     }
-    
-    // Apply preset date filter (Today, 5 Days, 15 Days)
     if (dateFilter !== 'all' && !dateFrom && !dateTo) {
       const now = new Date()
       now.setHours(0, 0, 0, 0)
       let cutoff = new Date(now)
-      
-      if (dateFilter === 'today') {
-        cutoff = now
-      } else if (dateFilter === '5days') {
-        cutoff.setDate(cutoff.getDate() - 4)
-      } else if (dateFilter === '15days') {
-        cutoff.setDate(cutoff.getDate() - 14)
-      }
-      
+      if (dateFilter === 'today') cutoff = now
+      else if (dateFilter === '5days') cutoff.setDate(cutoff.getDate() - 4)
+      else if (dateFilter === '15days') cutoff.setDate(cutoff.getDate() - 14)
       filtered = filtered.filter(h => {
         const hDate = new Date(h.date)
         hDate.setHours(0, 0, 0, 0)
         return hDate >= cutoff
       })
     }
-    
-    // Apply custom date range (FROM - TO) - INCLUSIVE
     if (dateFrom || dateTo) {
       const fromDate = dateFrom ? parseDateInput(dateFrom) : null
       const toDate = dateTo ? parseDateInput(dateTo) : null
-      
-      // If From is empty, use a very early date
-      // If To is empty, use a very late date
       const effectiveFrom = fromDate || new Date(2000, 0, 1)
       const effectiveTo = toDate || new Date(2100, 11, 31)
-      
-      // Normalize to start of day for From and end of day for To
       const from = new Date(effectiveFrom)
       from.setHours(0, 0, 0, 0)
-      
       const to = new Date(effectiveTo)
       to.setHours(23, 59, 59, 999)
-      
       filtered = filtered.filter(h => {
         const hDate = new Date(h.date)
         hDate.setHours(0, 0, 0, 0)
         return hDate >= from && hDate <= to
       })
     }
-    
-    // Apply search filter (seller name)
     if (search.trim()) {
       const q = search.toLowerCase().trim()
-      filtered = filtered.filter(h => 
-        h.seller_email?.toLowerCase().includes(q)
-      )
+      filtered = filtered.filter(h => h.seller_email?.toLowerCase().includes(q))
     }
-    
     setFilteredHistory(filtered)
   }, [history, dateFilter, search, dateFrom, dateTo])
 
-  // Clear date range
   const clearDateRange = () => {
     setDateFrom('')
     setDateTo('')
     setDateFilter('all')
   }
 
+  const addPnrRow = () => {
+    setPnrInputs([...pnrInputs, { pnr_number: '', topline_value: '', bottomline_value: '' }])
+  }
+
+  const removePnrRow = (idx: number) => {
+    setPnrInputs(pnrInputs.filter((_, i) => i !== idx))
+  }
+
+  const updatePnr = (idx: number, field: string, val: string) => {
+    const newInputs = [...pnrInputs]
+    newInputs[idx] = { ...newInputs[idx], [field]: val }
+    setPnrInputs(newInputs)
+  }
+
+  const toggleRow = (id: number) => {
+    setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const num = parseFloat(value.replace(/,/g, ''))
-    if (!num || num <= 0) { setError('Enter a valid pipeline value'); return }
+    
+    // Validate
+    const parsedPnrs = pnrInputs.map(p => ({
+      pnr_number: p.pnr_number.trim(),
+      topline_value: parseFloat(p.topline_value.replace(/,/g, '')) || 0,
+      bottomline_value: parseFloat(p.bottomline_value.replace(/,/g, '')) || 0,
+    })).filter(p => p.pnr_number && (p.topline_value > 0 || p.bottomline_value > 0))
+
+    if (parsedPnrs.length === 0) {
+      setError('Please enter at least one valid PNR with an amount.')
+      return
+    }
+
     setSubmitting(true)
     setError('')
     setSuccess('')
@@ -186,12 +203,15 @@ export default function PipelinePage({ session }: PipelinePageProps) {
       const res = await fetch('/api/pipeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: session.email, pipeline_value: num })
+        body: JSON.stringify({ 
+          email: session.email, 
+          pnrs: parsedPnrs
+        })
       })
       const json = await res.json()
       if (!res.ok) { setError(json.error || 'Submission failed'); return }
       setSuccess(`Submitted! Status: ${json.status}`)
-      setValue('')
+      setPnrInputs([{ pnr_number: '', topline_value: '', bottomline_value: '' }])
       load()
     } catch {
       setError('Submission failed')
@@ -202,22 +222,18 @@ export default function PipelinePage({ session }: PipelinePageProps) {
 
   if (loading) return <Loader text="Loading..." />
 
-  // Use filteredHistory for display
   const displayHistory = filteredHistory
   const greenCount = displayHistory.filter(h => h.status === 'GREEN').length
-  const redCount = displayHistory.filter(h => h.status === 'RED').length
-  const totalPipeline = displayHistory.reduce((sum, h) => sum + (h.pipeline_value || 0), 0)
+  const totalPipeline = displayHistory.reduce((sum, h) => sum + calcTotal(h.pnrs || [], h.is_bottomline_focus), 0)
+  
+  const totalTopline = displayHistory.reduce((sum, h) => sum + (h.pnrs || []).reduce((s, p) => s + (Number(p.topline_value) || 0), 0), 0)
+  const totalBottomline = displayHistory.reduce((sum, h) => sum + (h.pnrs || []).reduce((s, p) => s + (Number(p.bottomline_value) || 0), 0), 0)
 
   return (
     <div className={styles.page}>
       <div className={styles.particles}>
         {[...Array(10)].map((_, i) => (
-          <div key={i} className={styles.particle} style={{
-            left: `${Math.random()*100}%`,
-            fontSize: `${0.5+Math.random()*0.7}rem`,
-            animationDuration: `${5+Math.random()*6}s`,
-            animationDelay: `${Math.random()*6}s`
-          }}>
+          <div key={i} className={styles.particle} style={{ left: `${Math.random()*100}%`, fontSize: `${0.5+Math.random()*0.7}rem`, animationDuration: `${5+Math.random()*6}s`, animationDelay: `${Math.random()*6}s`}}>
             {['✦','◈','◇','◆'][Math.floor(Math.random()*4)]}
           </div>
         ))}
@@ -228,7 +244,7 @@ export default function PipelinePage({ session }: PipelinePageProps) {
           <div className={`${styles.submitCard} ${todayStatus.submitted ? (todayStatus.status === 'GREEN' ? styles.cardGreen : styles.cardRed) : styles.cardPending}`}>
             <div className={styles.cardHeader}>
               <div>
-                <div className={styles.cardTitle}>Today's Pipeline</div>
+                <div className={styles.cardTitle}>Today's PNR Pipeline</div>
                 <div className={styles.cardDate}>
                   {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </div>
@@ -246,11 +262,13 @@ export default function PipelinePage({ session }: PipelinePageProps) {
 
             {todayStatus.submitted ? (
               <div className={styles.submittedState}>
-                <div className={styles.submittedAmount}>{fmt(todayStatus.pipeline_value || 0)}</div>
+                <div className={styles.submittedAmount}>{fmt(calcTotal(todayStatus.pnrs, todayStatus.is_bottomline_focus))}</div>
                 <div className={styles.submittedMeta}>
                   <span>Submitted at {todayStatus.submitted_at ? new Date(todayStatus.submitted_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                   <span className={styles.dot}>·</span>
                   <span>Required: {fmt(todayStatus.required_daily)}</span>
+                  <span className={styles.dot}>·</span>
+                  <span>Focus: {todayStatus.is_bottomline_focus ? 'Bottomline' : 'Topline'}</span>
                 </div>
               </div>
             ) : (
@@ -260,24 +278,34 @@ export default function PipelinePage({ session }: PipelinePageProps) {
                   <span className={styles.requiredValue}>{fmt(todayStatus.required_daily)}</span>
                 </div>
                 <form onSubmit={handleSubmit} className={styles.form}>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Pipeline Value</label>
-                    <div className={styles.inputWrap}>
-                      <span className={styles.rupeeSign}>₹</span>
-                      <input
-                        type="number"
-                        className={styles.input}
-                        placeholder="Enter pipeline value"
-                        value={value}
-                        onChange={e => { setValue(e.target.value); setError('') }}
-                        disabled={submitting}
-                        min="0"
-                      />
-                    </div>
+                  
+                  {/* PNR Rows */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {pnrInputs.map((p, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <div style={{ flex: 1 }}>
+                          <input type="text" placeholder="PNR #" value={p.pnr_number} onChange={e => updatePnr(idx, 'pnr_number', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #333', background: '#111', color: '#FFF' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <input type="number" placeholder="Topline ₹" value={p.topline_value} onChange={e => updatePnr(idx, 'topline_value', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #333', background: '#111', color: '#FFF' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <input type="number" placeholder="Bottomline ₹" value={p.bottomline_value} onChange={e => updatePnr(idx, 'bottomline_value', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #333', background: '#111', color: '#FFF' }} />
+                        </div>
+                        {pnrInputs.length > 1 && (
+                          <button type="button" onClick={() => removePnrRow(idx)} style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}>✕</button>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  {error && <p className={styles.errorMsg}>{error}</p>}
-                  {success && <p className={styles.successMsg}>{success}</p>}
-                  <button type="submit" className={styles.submitBtn} disabled={submitting}>
+
+                  <button type="button" onClick={addPnrRow} style={{ marginTop: '12px', background: 'transparent', border: '1px dashed #444', color: '#C9A84C', padding: '8px', borderRadius: '8px', cursor: 'pointer', width: '100%' }}>
+                    + Add More PNR
+                  </button>
+
+                  {error && <p className={styles.errorMsg} style={{ marginTop: '16px' }}>{error}</p>}
+                  {success && <p className={styles.successMsg} style={{ marginTop: '16px' }}>{success}</p>}
+                  <button type="submit" className={styles.submitBtn} disabled={submitting} style={{ marginTop: '16px' }}>
                     {submitting ? <span className={styles.btnSpinner} /> : 'Submit Pipeline'}
                   </button>
                 </form>
@@ -319,7 +347,6 @@ export default function PipelinePage({ session }: PipelinePageProps) {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className={styles.kpiGrid}>
         <div className={styles.kpiCard}>
           <div className={styles.kpiBar} style={{ background: '#F0EDE8' }} />
@@ -327,23 +354,22 @@ export default function PipelinePage({ session }: PipelinePageProps) {
           <div className={styles.kpiValue}>{displayHistory.length}</div>
         </div>
         <div className={styles.kpiCard}>
-          <div className={styles.kpiBar} style={{ background: '#C9A84C' }} />
-          <div className={styles.kpiLabel}>Total Pipeline</div>
-          <div className={styles.kpiValue} style={{color:'#C9A84C'}}>{fmt(totalPipeline)}</div>
+          <div className={styles.kpiBar} style={{ background: '#3B82F6' }} />
+          <div className={styles.kpiLabel}>Total Topline</div>
+          <div className={styles.kpiValue} style={{color:'#3B82F6'}}>{fmt(totalTopline)}</div>
+        </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiBar} style={{ background: '#8B5CF6' }} />
+          <div className={styles.kpiLabel}>Total Bottomline</div>
+          <div className={styles.kpiValue} style={{color:'#8B5CF6'}}>{fmt(totalBottomline)}</div>
         </div>
         <div className={styles.kpiCard}>
           <div className={styles.kpiBar} style={{ background: '#22C55E' }} />
-          <div className={styles.kpiLabel}>Green</div>
-          <div className={styles.kpiValue} style={{color:'#22C55E'}}>{greenCount}</div>
-        </div>
-        <div className={styles.kpiCard}>
-          <div className={styles.kpiBar} style={{ background: '#C9A84C' }} />
           <div className={styles.kpiLabel}>Green Rate</div>
-          <div className={styles.kpiValue} style={{color:'#C9A84C'}}>{displayHistory.length>0?((greenCount/displayHistory.length)*100).toFixed(0):0}%</div>
+          <div className={styles.kpiValue} style={{color:'#22C55E'}}>{displayHistory.length>0?((greenCount/displayHistory.length)*100).toFixed(0):0}%</div>
         </div>
       </div>
 
-      {/* History */}
       <div className={styles.historySection}>
         <div className={styles.historyHeader}>
           <div style={{display:'flex',alignItems:'center',gap:'12px',flexWrap:'wrap'}}>
@@ -363,72 +389,22 @@ export default function PipelinePage({ session }: PipelinePageProps) {
           )}
         </div>
 
-        {/* Filters Row: Search + Date */}
         <div style={{display:'flex',flexWrap:'wrap',gap:'8px',marginBottom:'12px',alignItems:'center'}}>
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search seller..."
-            style={{
-              flex:1,minWidth:'150px',padding:'8px 12px',background:'#141414',
-              border:'1px solid #232323',borderRadius:'8px',color:'#F0EDE8',
-              fontSize:'0.75rem',outline:'none'
-            }}
-          />
-          
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search seller..." style={{ flex:1,minWidth:'150px',padding:'8px 12px',background:'#141414', border:'1px solid #232323',borderRadius:'8px',color:'#F0EDE8', fontSize:'0.75rem',outline:'none' }} />
           <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
             <span style={{fontSize:'0.6rem',color:'#8A8278'}}>From:</span>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={e => setDateFrom(e.target.value)}
-              style={{
-                padding:'6px 8px',background:'#141414',border:'1px solid #232323',
-                borderRadius:'6px',color:'#F0EDE8',fontSize:'0.7rem',outline:'none',
-                width:'120px'
-              }}
-            />
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ padding:'6px 8px',background:'#141414',border:'1px solid #232323', borderRadius:'6px',color:'#F0EDE8',fontSize:'0.7rem',outline:'none', width:'120px' }} />
           </div>
-          
           <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
             <span style={{fontSize:'0.6rem',color:'#8A8278'}}>To:</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={e => setDateTo(e.target.value)}
-              style={{
-                padding:'6px 8px',background:'#141414',border:'1px solid #232323',
-                borderRadius:'6px',color:'#F0EDE8',fontSize:'0.7rem',outline:'none',
-                width:'120px'
-              }}
-            />
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ padding:'6px 8px',background:'#141414',border:'1px solid #232323', borderRadius:'6px',color:'#F0EDE8',fontSize:'0.7rem',outline:'none', width:'120px' }} />
           </div>
-          
           {(dateFrom || dateTo) && (
-            <button onClick={clearDateRange} style={{
-              padding:'4px 10px',background:'rgba(239,68,68,0.1)',color:'#EF4444',
-              border:'1px solid rgba(239,68,68,0.15)',borderRadius:'6px',cursor:'pointer',
-              fontSize:'0.6rem',fontWeight:600
-            }}>
-              Clear Dates
-            </button>
+            <button onClick={clearDateRange} style={{ padding:'4px 10px',background:'rgba(239,68,68,0.1)',color:'#EF4444', border:'1px solid rgba(239,68,68,0.15)',borderRadius:'6px',cursor:'pointer', fontSize:'0.6rem',fontWeight:600 }}>Clear Dates</button>
           )}
-          
           <div style={{display:'flex',gap:'3px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'6px',padding:'2px'}}>
             {[{k:'today',l:'Today'},{k:'5days',l:'5 Days'},{k:'15days',l:'15 Days'},{k:'all',l:'All'}].map(f => (
-              <button 
-                key={f.k} 
-                onClick={() => { setDateFilter(f.k as any); setDateFrom(''); setDateTo('') }} 
-                style={{
-                  padding:'4px 8px',border:'none',borderRadius:'4px',
-                  background: dateFilter===f.k && !dateFrom && !dateTo ? 'rgba(244,99,30,0.15)' : 'transparent',
-                  color: dateFilter===f.k && !dateFrom && !dateTo ? '#F4631E' : '#8A8278',
-                  cursor:'pointer',fontSize:'0.6rem',fontWeight:600,transition:'all 0.15s'
-                }}
-              >
-                {f.l}
-              </button>
+              <button key={f.k} onClick={() => { setDateFilter(f.k as any); setDateFrom(''); setDateTo('') }} style={{ padding:'4px 8px',border:'none',borderRadius:'4px', background: dateFilter===f.k && !dateFrom && !dateTo ? 'rgba(244,99,30,0.15)' : 'transparent', color: dateFilter===f.k && !dateFrom && !dateTo ? '#F4631E' : '#8A8278', cursor:'pointer',fontSize:'0.6rem',fontWeight:600,transition:'all 0.15s' }}>{f.l}</button>
             ))}
           </div>
         </div>
@@ -436,9 +412,6 @@ export default function PipelinePage({ session }: PipelinePageProps) {
         {displayHistory.length === 0 ? (
           <div className={styles.emptyWrap}>
             <p>No submissions found</p>
-            <p style={{fontSize:'0.7rem',color:'#8A8278',marginTop:'4px'}}>
-              Try adjusting your search or date filters
-            </p>
           </div>
         ) : (
           <div className={styles.tableWrap}>
@@ -447,27 +420,58 @@ export default function PipelinePage({ session }: PipelinePageProps) {
                 <tr>
                   <th>Date</th>
                   {(view === 'team' || isL1) && <th>Seller</th>}
-                  <th>Pipeline</th>
+                  <th>Total Pipeline</th>
                   <th>Required</th>
-                  <th>vs Required</th>
+                  <th>Focus</th>
                   <th>Status</th>
-                  <th>Submitted At</th>
+                  <th>Details</th>
                 </tr>
               </thead>
               <tbody>
                 {displayHistory.map(row => {
-                  const diff = (row.pipeline_value || 0) - (row.required_daily || 0)
+                  const total = calcTotal(row.pnrs || [], row.is_bottomline_focus)
+                  const diff = total - (row.required_daily || 0)
                   const above = diff >= 0
+                  const isExpanded = !!expandedRows[row.id]
                   return (
-                    <tr key={row.id} className={styles.row}>
-                      <td className={styles.dateCell}>{fmtDate(row.date)}</td>
-                      {(view === 'team' || isL1) && <td className={styles.sellerCell}>{row.seller_email}</td>}
-                      <td className={styles.valueCell}>{fmt(row.pipeline_value)}</td>
-                      <td className={styles.reqCell}>{fmt(row.required_daily)}</td>
-                      <td><span style={{ color: above ? '#22C55E' : '#EF4444', fontSize: '0.75rem', fontWeight: 500 }}>{above ? '↑' : '↓'} {fmt(Math.abs(diff))}</span></td>
-                      <td><span className={`${styles.badge} ${row.status === 'GREEN' ? styles.badgeGreen : styles.badgeRed}`}>{row.status}</span></td>
-                      <td className={styles.timeCell}>{row.submitted_at ? new Date(row.submitted_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-                    </tr>
+                    <>
+                      <tr key={row.id} className={styles.row}>
+                        <td className={styles.dateCell}>{fmtDate(row.date)}</td>
+                        {(view === 'team' || isL1) && <td className={styles.sellerCell}>{row.seller_email}</td>}
+                        <td className={styles.valueCell}>{fmt(total)}</td>
+                        <td className={styles.reqCell}>{fmt(row.required_daily)}</td>
+                        <td>
+                          <span style={{ background: '#222', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', color: '#AAA' }}>
+                            {row.is_bottomline_focus ? 'Bottomline' : 'Topline'}
+                          </span>
+                        </td>
+                        <td><span className={`${styles.badge} ${row.status === 'GREEN' ? styles.badgeGreen : styles.badgeRed}`}>{row.status}</span></td>
+                        <td>
+                          <button onClick={() => toggleRow(row.id)} style={{ background: '#333', border: 'none', color: '#FFF', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem' }}>
+                            {isExpanded ? 'Hide PNRs' : `View ${row.pnrs?.length || 0} PNRs`}
+                          </button>
+                        </td>
+                      </tr>
+                      {isExpanded && row.pnrs && row.pnrs.length > 0 && (
+                        <tr key={`${row.id}-details`} style={{ background: '#111' }}>
+                          <td colSpan={view === 'team' || isL1 ? 7 : 6} style={{ padding: '16px' }}>
+                            <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                              {row.pnrs.map((p, idx) => (
+                                <div key={idx} style={{ background: '#1a1a1a', padding: '12px', borderRadius: '8px', border: '1px solid #333' }}>
+                                  <div style={{ color: '#C9A84C', fontWeight: 'bold', marginBottom: '8px' }}>#{p.pnr_number}</div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#AAA', marginBottom: '4px' }}>
+                                    <span>Topline:</span> <span style={{ color: '#FFF' }}>{fmt(p.topline_value)}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#AAA' }}>
+                                    <span>Bottomline:</span> <span style={{ color: '#FFF' }}>{fmt(p.bottomline_value)}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   )
                 })}
               </tbody>

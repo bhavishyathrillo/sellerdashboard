@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   }
 
   const { data } = await supabase
-    .from('pipeline_submissions')
+    .from('pnr_pipeline_submissions')
     .select('id')
     .eq('seller_email', email.toLowerCase())
     .eq('date', date)
