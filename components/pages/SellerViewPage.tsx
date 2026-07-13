@@ -1404,7 +1404,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                 value: plannedLtaVal,
                 color: '#3B82F6',
                 drop: dropPlannedToDynamic,
-                dropLabel: dropPlannedToDynamic > 0 ? 'Late login / inactive' : dropPlannedToDynamic < 0 ? 'Bonus added' : null,
+                dropLabel: dropPlannedToDynamic > 0 ? 'Overallocation' : dropPlannedToDynamic < 0 ? 'Bonus added' : null,
               },
               {
                 id: 'dynamic',
@@ -1413,20 +1413,20 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
                 value: dynamicLtaVal,
                 color: '#EAB308',
                 drop: dropDynamicToHygiene,
-                dropLabel: dropDynamicToHygiene > 0 ? 'Hygiene penalty' : dropDynamicToHygiene < 0 ? 'Bonus added' : null,
+                dropLabel: dropDynamicToHygiene > 0 ? 'MHE penalty' : dropDynamicToHygiene < 0 ? 'Bonus added' : null,
               },
               {
                 id: 'hygiene',
-                label: 'After hygiene',
+                label: 'After MHE',
                 sublabel: 'Based on mishandled',
                 value: hygieneLtaVal,
                 color: '#F97316',
                 drop: dropHygieneToGoal,
-                dropLabel: dropHygieneToGoal > 0 ? 'Goal correction' : dropHygieneToGoal < 0 ? 'Bonus added' : null,
+                dropLabel: dropHygieneToGoal > 0 ? 'Goal completion' : dropHygieneToGoal < 0 ? 'Bonus added' : null,
               },
               {
                 id: 'goalComplete',
-                label: 'After goal check',
+                label: 'After Goal Completion',
                 sublabel: 'Adjusted for goal completion',
                 value: goalCompleteLtaVal,
                 color: '#8B5CF6',
@@ -1455,9 +1455,9 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
               const dropValue = step.value - nextStep.value;
               let dropLabel = null;
               if (dropValue > 0) {
-                if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
-                else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
-                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                if (nextStep.id === 'dynamic') dropLabel = 'Overallocation';
+                else if (nextStep.id === 'hygiene') dropLabel = 'MHE penalty';
+                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal completion';
                 else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
               } else if (dropValue < 0) {
                 dropLabel = 'Bonus added';

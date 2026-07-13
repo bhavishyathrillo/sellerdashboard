@@ -1440,10 +1440,10 @@ function LTASection({ hierarchy, kalpit, onFunnelClick }: { hierarchy: any[]; ka
                   const tlRev2Lost = tlRev1Lta - tlActual
 
                   const tlSteps = [
-                    { id: 'planned', label: 'Base target', sublabel: 'Monthly goal ÷ working days', value: tlPlanned, color: '#3B82F6', drop: tlDynLost, dropLabel: tlDynLost > 0 ? 'Late login / inactive' : tlDynLost < 0 ? 'Bonus' : null },
-                    { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: tlDynLta, color: '#EAB308', drop: tlHygLost, dropLabel: tlHygLost > 0 ? 'Hygiene penalty' : tlHygLost < 0 ? 'Bonus' : null },
-                    { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: tlHygLta, color: '#F97316', drop: tlRev1Lost, dropLabel: tlRev1Lost > 0 ? 'Goal correction' : tlRev1Lost < 0 ? 'Bonus' : null },
-                    { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: tlRev1Lta, color: '#8B5CF6', drop: tlRev2Lost, dropLabel: tlRev2Lost > 0 ? 'Final adjustment' : tlRev2Lost < 0 ? 'Bonus' : null },
+                    { id: 'planned', label: 'Base target', sublabel: 'Monthly goal ÷ working days', value: tlPlanned, color: '#3B82F6', drop: tlDynLost, dropLabel: tlDynLost > 0 ? 'Overallocation' : tlDynLost < 0 ? 'Bonus' : null },
+                    { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for overalloc/underalloc', value: tlDynLta, color: '#EAB308', drop: tlHygLost, dropLabel: tlHygLost > 0 ? 'MHE penalty' : tlHygLost < 0 ? 'Bonus' : null },
+                    { id: 'hygiene', label: 'After MHE', sublabel: 'Based on MHE', value: tlHygLta, color: '#F97316', drop: tlRev1Lost, dropLabel: tlRev1Lost > 0 ? 'Goal completion' : tlRev1Lost < 0 ? 'Bonus' : null },
+                    { id: 'goalComplete', label: 'After Goal Completion', sublabel: 'Adjusted for goal completion', value: tlRev1Lta, color: '#8B5CF6', drop: tlRev2Lost, dropLabel: tlRev2Lost > 0 ? 'Final adjustment' : tlRev2Lost < 0 ? 'Bonus' : null },
                     { id: 'final', label: "Team's final LTA", sublabel: 'Total team lead appetite', value: tlActual, color: '#22C55E', drop: null, dropLabel: null },
                   ]
 
@@ -1504,9 +1504,9 @@ function LTASection({ hierarchy, kalpit, onFunnelClick }: { hierarchy: any[]; ka
                                 const dropValue = step.value - nextStep.value;
                                 let dropLabel = null;
                                 if (dropValue > 0) {
-                                  if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
-                                  else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
-                                  else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                                  if (nextStep.id === 'dynamic') dropLabel = 'Overallocation';
+                                  else if (nextStep.id === 'hygiene') dropLabel = 'MHE penalty';
+                                  else if (nextStep.id === 'goalComplete') dropLabel = 'Goal completion';
                                   else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
                                 } else if (dropValue < 0) {
                                   dropLabel = 'Bonus added';
@@ -1758,18 +1758,18 @@ function FunnelModal({ title, funnel, kalpit, onClose }: { title: string, funnel
   const stages = [
     { 
       id: 'planned', label: 'Base target', sublabel: 'Planned LTA', value: funnel.planned, color: '#3B82F6', 
-      drop: funnel.dynLost, dropLabel: funnel.dynLost > 0 ? 'Late login / inactive' : funnel.dynLost < 0 ? 'Bonus added' : null
+      drop: funnel.dynLost, dropLabel: funnel.dynLost > 0 ? 'Overallocation' : funnel.dynLost < 0 ? 'Bonus added' : null
     },
     { 
       id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online time', value: funnel.dynLta, color: '#EAB308', 
-      drop: funnel.hygLost, dropLabel: funnel.hygLost > 0 ? 'Hygiene penalty' : funnel.hygLost < 0 ? 'Bonus added' : null
+      drop: funnel.hygLost, dropLabel: funnel.hygLost > 0 ? 'MHE penalty' : funnel.hygLost < 0 ? 'Bonus added' : null
     },
     { 
-      id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled', value: funnel.hygLta, color: '#F97316', 
-      drop: funnel.rev1Lost, dropLabel: funnel.rev1Lost > 0 ? 'Goal correction' : funnel.rev1Lost < 0 ? 'Bonus added' : null
+      id: 'hygiene', label: 'After MHE', sublabel: 'Based on mishandled', value: funnel.hygLta, color: '#F97316', 
+      drop: funnel.rev1Lost, dropLabel: funnel.rev1Lost > 0 ? 'Goal completion' : funnel.rev1Lost < 0 ? 'Bonus added' : null
     },
     { 
-      id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: funnel.rev1Lta, color: '#8B5CF6', 
+      id: 'goalComplete', label: 'After Goal Completion', sublabel: 'Adjusted for goal completion', value: funnel.rev1Lta, color: '#8B5CF6', 
       drop: funnel.rev2Lost, dropLabel: funnel.rev2Lost > 0 ? 'Final adjustment' : funnel.rev2Lost < 0 ? 'Bonus added' : null
     },
     { 
@@ -1799,9 +1799,9 @@ function FunnelModal({ title, funnel, kalpit, onClose }: { title: string, funnel
               const dropValue = step.value - nextStep.value;
               let dropLabel = null;
               if (dropValue > 0) {
-                if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
-                else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
-                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                if (nextStep.id === 'dynamic') dropLabel = 'Overallocation';
+                else if (nextStep.id === 'hygiene') dropLabel = 'MHE penalty';
+                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal completion';
                 else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
               } else if (dropValue < 0) {
                 dropLabel = 'Bonus added';

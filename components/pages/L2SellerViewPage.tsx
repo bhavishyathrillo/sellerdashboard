@@ -1075,10 +1075,10 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
             <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', paddingBottom: '4px' }}>
               {(() => {
                 const steps = [
-                  { id: 'planned', label: 'Base target', sublabel: 'Monthly goal ÷ working days', value: teamPlanned, color: '#3B82F6', drop: teamDynLost, dropLabel: teamDynLost > 0 ? 'Late login / inactive' : teamDynLost < 0 ? 'Bonus added' : null },
-                  { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: teamDynLta, color: '#EAB308', drop: teamHygLost, dropLabel: teamHygLost > 0 ? 'Hygiene penalty' : teamHygLost < 0 ? 'Bonus added' : null },
-                  { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: teamHygLta, color: '#F97316', drop: teamRev1Lost, dropLabel: teamRev1Lost > 0 ? 'Goal correction' : teamRev1Lost < 0 ? 'Bonus added' : null },
-                  { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: teamRev1Lta, color: '#8B5CF6', drop: teamRev2Lost, dropLabel: teamRev2Lost > 0 ? 'Final adjustment' : teamRev2Lost < 0 ? 'Bonus added' : null },
+                  { id: 'planned', label: 'Base target', sublabel: 'Monthly goal ÷ working days', value: teamPlanned, color: '#3B82F6', drop: teamDynLost, dropLabel: teamDynLost > 0 ? 'Overallocation' : teamDynLost < 0 ? 'Bonus added' : null },
+                  { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for overalloc/underalloc', value: teamDynLta, color: '#EAB308', drop: teamHygLost, dropLabel: teamHygLost > 0 ? 'MHE penalty' : teamHygLost < 0 ? 'Bonus added' : null },
+                  { id: 'hygiene', label: 'After MHE', sublabel: 'Based on MHE', value: teamHygLta, color: '#F97316', drop: teamRev1Lost, dropLabel: teamRev1Lost > 0 ? 'Goal completion' : teamRev1Lost < 0 ? 'Bonus added' : null },
+                  { id: 'goalComplete', label: 'After Goal Completion', sublabel: 'Adjusted for goal completion', value: teamRev1Lta, color: '#8B5CF6', drop: teamRev2Lost, dropLabel: teamRev2Lost > 0 ? 'Final adjustment' : teamRev2Lost < 0 ? 'Bonus added' : null },
                   { id: 'final', label: "Team's final target", sublabel: 'Total team lead appetite', value: teamActual, color: '#22C55E', drop: null, dropLabel: null },
                 ]
                 const usedSteps = steps.filter((step) => {
@@ -1093,9 +1093,9 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
               const dropValue = step.value - nextStep.value;
               let dropLabel = null;
               if (dropValue > 0) {
-                if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
-                else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
-                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                if (nextStep.id === 'dynamic') dropLabel = 'Overallocation';
+                else if (nextStep.id === 'hygiene') dropLabel = 'MHE penalty';
+                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal completion';
                 else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
               } else if (dropValue < 0) {
                 dropLabel = 'Bonus added';
@@ -1978,10 +1978,10 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
               {(() => {
                 const lta = drillSellerS7.lta;
                 const steps = [
-                  { id: 'planned', label: 'Base target', sublabel: 'Base planned target goal', value: lta.planned, color: '#3B82F6', drop: lta.dynLost, dropLabel: lta.dynLost > 0 ? 'Late login / inactive' : null },
-                  { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: lta.dynLta, color: '#EAB308', drop: lta.hygLost, dropLabel: lta.hygLost > 0 ? 'Hygiene penalty' : null },
-                  { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: lta.hygLta, color: '#F97316', drop: lta.rev1Lost, dropLabel: lta.rev1Lost > 0 ? 'Goal correction' : null },
-                  { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: lta.rev1Lta, color: '#8B5CF6', drop: lta.rev2Lost, dropLabel: lta.rev2Lost > 0 ? 'Final adjustment' : null },
+                  { id: 'planned', label: 'Base target', sublabel: 'Base planned target goal', value: lta.planned, color: '#3B82F6', drop: lta.dynLost, dropLabel: lta.dynLost > 0 ? 'Overallocation' : null },
+                  { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for overalloc/underalloc', value: lta.dynLta, color: '#EAB308', drop: lta.hygLost, dropLabel: lta.hygLost > 0 ? 'MHE penalty' : null },
+                  { id: 'hygiene', label: 'After MHE', sublabel: 'Based on MHE', value: lta.hygLta, color: '#F97316', drop: lta.rev1Lost, dropLabel: lta.rev1Lost > 0 ? 'Goal completion' : null },
+                  { id: 'goalComplete', label: 'After Goal Completion', sublabel: 'Adjusted for goal completion', value: lta.rev1Lta, color: '#8B5CF6', drop: lta.rev2Lost, dropLabel: lta.rev2Lost > 0 ? 'Final adjustment' : null },
                   { id: 'final', label: "Today's final target", sublabel: 'Final lead appetite target', value: lta.actual, color: '#22C55E', drop: null, dropLabel: null },
                 ]
 
@@ -1997,9 +1997,9 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
               const dropValue = step.value - nextStep.value;
               let dropLabel = null;
               if (dropValue > 0) {
-                if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
-                else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
-                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                if (nextStep.id === 'dynamic') dropLabel = 'Overallocation';
+                else if (nextStep.id === 'hygiene') dropLabel = 'MHE penalty';
+                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal completion';
                 else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
               } else if (dropValue < 0) {
                 dropLabel = 'Bonus added';
@@ -2067,10 +2067,10 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
             <div style={{ display: 'flex', alignItems: 'stretch', gap: '0', overflowX: 'auto', padding: '10px 4px 20px' }}>
               {(() => {
                 const steps = [
-                  { id: 'planned', label: 'Base target', sublabel: 'Team cumulative base goal', value: teamPlanned, color: '#3B82F6', drop: teamDynLost, dropLabel: teamDynLost > 0 ? 'Late login / inactive' : null },
-                  { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for online presence', value: teamDynLta, color: '#EAB308', drop: teamHygLost, dropLabel: teamHygLost > 0 ? 'Hygiene penalty' : null },
-                  { id: 'hygiene', label: 'After hygiene', sublabel: 'Based on mishandled leads', value: teamHygLta, color: '#F97316', drop: teamRev1Lost, dropLabel: teamRev1Lost > 0 ? 'Goal correction' : null },
-                  { id: 'goalComplete', label: 'After goal check', sublabel: 'Adjusted for goal completion', value: teamRev1Lta, color: '#8B5CF6', drop: teamRev2Lost, dropLabel: teamRev2Lost > 0 ? 'Final adjustment' : null },
+                  { id: 'planned', label: 'Base target', sublabel: 'Team cumulative base goal', value: teamPlanned, color: '#3B82F6', drop: teamDynLost, dropLabel: teamDynLost > 0 ? 'Overallocation' : null },
+                  { id: 'dynamic', label: 'Dynamic LTA', sublabel: 'Adjusted for overalloc/underalloc', value: teamDynLta, color: '#EAB308', drop: teamHygLost, dropLabel: teamHygLost > 0 ? 'MHE penalty' : null },
+                  { id: 'hygiene', label: 'After MHE', sublabel: 'Based on MHE', value: teamHygLta, color: '#F97316', drop: teamRev1Lost, dropLabel: teamRev1Lost > 0 ? 'Goal completion' : null },
+                  { id: 'goalComplete', label: 'After Goal Completion', sublabel: 'Adjusted for goal completion', value: teamRev1Lta, color: '#8B5CF6', drop: teamRev2Lost, dropLabel: teamRev2Lost > 0 ? 'Final adjustment' : null },
                   { id: 'final', label: "Team final target", sublabel: 'Total team lead appetite', value: teamActual, color: '#22C55E', drop: null, dropLabel: null },
                 ]
 
@@ -2086,9 +2086,9 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
               const dropValue = step.value - nextStep.value;
               let dropLabel = null;
               if (dropValue > 0) {
-                if (nextStep.id === 'dynamic') dropLabel = 'Late login / inactive';
-                else if (nextStep.id === 'hygiene') dropLabel = 'Hygiene penalty';
-                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal correction';
+                if (nextStep.id === 'dynamic') dropLabel = 'Overallocation';
+                else if (nextStep.id === 'hygiene') dropLabel = 'MHE penalty';
+                else if (nextStep.id === 'goalComplete') dropLabel = 'Goal completion';
                 else if (nextStep.id === 'final') dropLabel = 'Final adjustment';
               } else if (dropValue < 0) {
                 dropLabel = 'Bonus added';
