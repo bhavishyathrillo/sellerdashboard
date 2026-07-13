@@ -58,7 +58,7 @@ export default function AdminPipelinePage() {
   const [loading, setLoading] = useState(true)
   const [selectedL1, setSelectedL1] = useState<any>(null)
   const [selectedL2, setSelectedL2] = useState<any>(null)
-  const [dateFilter, setDateFilter] = useStickyState<'today' | '5days' | '15days' | 'all'>('all', 'AdminPipeline_dateFilter')
+  const [dateFilter, setDateFilter] = useStickyState<'today' | '5days' | '15days' | 'this_month'>('today', 'AdminPipeline_dateFilter')
   const [viewMode, setViewMode] = useStickyState<'cards' | 'table'>('cards', 'AdminPipeline_viewMode')
   const [search, setSearch] = useStickyState('', 'AdminPipeline_search')
   const [dateFrom, setDateFrom] = useStickyState('', 'AdminPipeline_dateFrom')
@@ -100,7 +100,13 @@ export default function AdminPipelinePage() {
         return d >= from && d <= to
       })
     }
-    if (dateFilter === 'all') return submissions
+    if (dateFilter === 'this_month') {
+      const now = new Date()
+      return submissions.filter((s: any) => {
+        const d = new Date(s.date)
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+      })
+    }
     const now = new Date(); now.setHours(0,0,0,0)
     let cutoff = new Date(now)
     if (dateFilter === 'today') cutoff = now
@@ -145,7 +151,7 @@ export default function AdminPipelinePage() {
   const clearDateRange = () => {
     setDateFrom('')
     setDateTo('')
-    setDateFilter('all')
+    setDateFilter('this_month')
   }
 
   if (loading) return <Loader text="Loading..." />
@@ -200,7 +206,7 @@ export default function AdminPipelinePage() {
 
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px',flexWrap:'wrap',gap:'10px'}}>
         <div>
-          <h1 style={{fontSize:'1.4rem',fontWeight:700,color:'#C9A84C'}}>PNR Pipeline</h1>
+          <h1 style={{fontSize:'1.4rem',fontWeight:700,color:'#C9A84C'}}>Enquiry Pipeline</h1>
           <p style={{fontSize:'0.7rem',color:'#8A8278'}}>{filteredL1Data.length} Category Managers</p>
         </div>
         <div style={{display:'flex',gap:'10px',alignItems:'center',flexWrap:'wrap'}}>
@@ -224,11 +230,11 @@ export default function AdminPipelinePage() {
         {(dateFrom || dateTo) && (
           <button onClick={clearDateRange} style={{ padding:'6px 12px',background:'rgba(239,68,68,0.12)',color:'#EF4444', border:'1px solid rgba(239,68,68,0.2)',borderRadius:'8px',cursor:'pointer', fontSize:'0.65rem',fontWeight:600 }}>Clear Dates</button>
         )}
-        <div style={{display:'flex',gap:'3px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'7px',padding:'2px'}}>
-          {[{k:'today',l:'Today'},{k:'5days',l:'5 Days'},{k:'15days',l:'15 Days'},{k:'all',l:'All'}].map(f => (
-            <button key={f.k} onClick={() => { setDateFilter(f.k as any); setDateFrom(''); setDateTo('') }} style={{ padding:'5px 10px',border:'none',borderRadius:'5px', background: dateFilter===f.k && !dateFrom && !dateTo ? 'rgba(244,99,30,0.15)' : 'transparent', color: dateFilter===f.k && !dateFrom && !dateTo ? '#F4631E' : '#8A8278', cursor:'pointer',fontSize:'0.65rem',fontWeight:600,transition:'all 0.15s' }}>{f.l}</button>
-          ))}
-        </div>
+          <div style={{display:'flex',gap:'4px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'8px',padding:'3px'}}>
+            {[{k:'today',l:'Today'},{k:'5days',l:'5 Days'},{k:'15days',l:'15 Days'},{k:'this_month',l:'This Month'}].map(f => (
+              <button key={f.k} onClick={() => { setDateFilter(f.k as any); setDateFrom(''); setDateTo('') }} style={{ padding:'6px 12px',border:'none',borderRadius:'6px', background: dateFilter===f.k && !dateFrom && !dateTo ? 'rgba(244,99,30,0.15)' : 'transparent', color: dateFilter===f.k && !dateFrom && !dateTo ? '#F4631E' : '#8A8278', cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.15s' }}>{f.l}</button>
+            ))}
+          </div>
       </div>
 
       <div className={styles.kpiGrid}>
@@ -297,7 +303,7 @@ export default function AdminPipelinePage() {
                             <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                               {row.pnrs.map((p: any, idx: number) => (
                                 <div key={idx} style={{ background: '#1a1a1a', padding: '12px', borderRadius: '8px', border: '1px solid #333' }}>
-                                  <div style={{ color: '#C9A84C', fontWeight: 'bold', marginBottom: '8px' }}>#{p.pnr_number}</div>
+                                  <div style={{ color: '#C9A84C', fontWeight: 'bold', marginBottom: '8px' }}>Enquiry #{p.pnr_number}</div>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#AAA', marginBottom: '4px' }}>
                                     <span>Topline:</span> <span style={{ color: '#FFF' }}>{fmt(p.topline_value)}</span>
                                   </div>
@@ -411,7 +417,7 @@ export default function AdminPipelinePage() {
                               <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                                 {row.pnrs.map((p: any, idx: number) => (
                                   <div key={idx} style={{ background: '#1a1a1a', padding: '12px', borderRadius: '8px', border: '1px solid #333' }}>
-                                    <div style={{ color: '#C9A84C', fontWeight: 'bold', marginBottom: '8px' }}>#{p.pnr_number}</div>
+                                    <div style={{ color: '#C9A84C', fontWeight: 'bold', marginBottom: '8px' }}>Enquiry #{p.pnr_number}</div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#AAA', marginBottom: '4px' }}>
                                       <span>Topline:</span> <span style={{ color: '#FFF' }}>{fmt(p.topline_value)}</span>
                                     </div>

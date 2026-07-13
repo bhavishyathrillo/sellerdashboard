@@ -172,3 +172,14 @@ html {
   box-shadow: 0 12px 30px rgba(0,0,0,0.4);
   border-color: rgba(244,99,30,0.3);
 }
+
+/* Hide number input spinners globally */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}

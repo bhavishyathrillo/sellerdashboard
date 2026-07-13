@@ -81,7 +81,7 @@ export default function PipelinePage({ session }: PipelinePageProps) {
   const [view, setView] = useStickyState<'mine' | 'team'>(
     session.role === 'L1' ? 'team' : 'mine', 'PipelinePage_view'
   )
-  const [dateFilter, setDateFilter] = useStickyState<'today' | '5days' | '15days' | 'all'>('all', 'PipelinePage_dateFilter')
+  const [dateFilter, setDateFilter] = useStickyState<'today' | '5days' | '15days' | 'this_month'>('today', 'Pipeline_dateFilter')
   const [search, setSearch] = useStickyState('', 'PipelinePage_search')
   const [dateFrom, setDateFrom] = useStickyState('', 'PipelinePage_dateFrom')
   const [dateTo, setDateTo] = useStickyState('', 'PipelinePage_dateTo')
@@ -118,17 +118,24 @@ export default function PipelinePage({ session }: PipelinePageProps) {
 
   useEffect(() => {
     let filtered = [...history]
-    if (dateFilter === 'all' && !dateFrom && !dateTo && !search.trim()) {
+    if (dateFilter === 'this_month' && !dateFrom && !dateTo && !search.trim()) {
+      const now = new Date()
+      filtered = filtered.filter(h => {
+        const hDate = new Date(h.date)
+        return hDate.getMonth() === now.getMonth() && hDate.getFullYear() === now.getFullYear()
+      })
       setFilteredHistory(filtered)
       return
     }
-    if (dateFilter !== 'all' && !dateFrom && !dateTo) {
+    
+    if (dateFilter !== 'this_month' && !dateFrom && !dateTo) {
       const now = new Date()
       now.setHours(0, 0, 0, 0)
       let cutoff = new Date(now)
       if (dateFilter === 'today') cutoff = now
       else if (dateFilter === '5days') cutoff.setDate(cutoff.getDate() - 4)
       else if (dateFilter === '15days') cutoff.setDate(cutoff.getDate() - 14)
+      
       filtered = filtered.filter(h => {
         const hDate = new Date(h.date)
         hDate.setHours(0, 0, 0, 0)
@@ -160,7 +167,7 @@ export default function PipelinePage({ session }: PipelinePageProps) {
   const clearDateRange = () => {
     setDateFrom('')
     setDateTo('')
-    setDateFilter('all')
+    setDateFilter('this_month')
   }
 
   const addPnrRow = () => {
@@ -279,28 +286,28 @@ export default function PipelinePage({ session }: PipelinePageProps) {
                 </div>
                 <form onSubmit={handleSubmit} className={styles.form}>
                   
-                  {/* PNR Rows */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Enquiry Rows */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     {pnrInputs.map((p, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <div style={{ flex: 1 }}>
-                          <input type="text" placeholder="PNR #" value={p.pnr_number} onChange={e => updatePnr(idx, 'pnr_number', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #333', background: '#111', color: '#FFF' }} />
+                      <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', transition: 'all 0.3s ease' }}>
+                        <div style={{ flex: 1.2 }}>
+                          <input type="text" placeholder="Enquiry ID" value={p.pnr_number} onChange={e => updatePnr(idx, 'pnr_number', e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '1px solid transparent', background: 'rgba(0,0,0,0.3)', color: '#FFF', outline: 'none', transition: 'all 0.2s', fontSize: '0.85rem' }} onFocus={e=>e.target.style.borderColor='rgba(201,168,76,0.4)'} onBlur={e=>e.target.style.borderColor='transparent'} />
                         </div>
                         <div style={{ flex: 1 }}>
-                          <input type="number" placeholder="Topline ₹" value={p.topline_value} onChange={e => updatePnr(idx, 'topline_value', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #333', background: '#111', color: '#FFF' }} />
+                          <input type="number" placeholder="Topline ₹" value={p.topline_value} onChange={e => updatePnr(idx, 'topline_value', e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '1px solid transparent', background: 'rgba(0,0,0,0.3)', color: '#FFF', outline: 'none', transition: 'all 0.2s', fontSize: '0.85rem' }} onFocus={e=>e.target.style.borderColor='rgba(201,168,76,0.4)'} onBlur={e=>e.target.style.borderColor='transparent'} />
                         </div>
                         <div style={{ flex: 1 }}>
-                          <input type="number" placeholder="Bottomline ₹" value={p.bottomline_value} onChange={e => updatePnr(idx, 'bottomline_value', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #333', background: '#111', color: '#FFF' }} />
+                          <input type="number" placeholder="Btmline ₹" value={p.bottomline_value} onChange={e => updatePnr(idx, 'bottomline_value', e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '1px solid transparent', background: 'rgba(0,0,0,0.3)', color: '#FFF', outline: 'none', transition: 'all 0.2s', fontSize: '0.85rem' }} onFocus={e=>e.target.style.borderColor='rgba(201,168,76,0.4)'} onBlur={e=>e.target.style.borderColor='transparent'} />
                         </div>
                         {pnrInputs.length > 1 && (
-                          <button type="button" onClick={() => removePnrRow(idx)} style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}>✕</button>
+                          <button type="button" onClick={() => removePnrRow(idx)} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', color: '#EF4444', cursor: 'pointer', padding: '10px 12px', fontSize: '1rem', transition: 'all 0.2s' }} onMouseOver={e=>e.currentTarget.style.background='rgba(239,68,68,0.2)'} onMouseOut={e=>e.currentTarget.style.background='rgba(239,68,68,0.1)'}>✕</button>
                         )}
                       </div>
                     ))}
                   </div>
 
-                  <button type="button" onClick={addPnrRow} style={{ marginTop: '12px', background: 'transparent', border: '1px dashed #444', color: '#C9A84C', padding: '8px', borderRadius: '8px', cursor: 'pointer', width: '100%' }}>
-                    + Add More PNR
+                  <button type="button" onClick={addPnrRow} style={{ marginTop: '16px', background: 'rgba(201,168,76,0.05)', border: '1px dashed rgba(201,168,76,0.3)', color: '#C9A84C', padding: '12px', borderRadius: '12px', cursor: 'pointer', width: '100%', fontWeight: 600, transition: 'all 0.2s', fontSize: '0.85rem' }} onMouseOver={e=>{e.currentTarget.style.background='rgba(201,168,76,0.1)';e.currentTarget.style.borderColor='rgba(201,168,76,0.6)'}} onMouseOut={e=>{e.currentTarget.style.background='rgba(201,168,76,0.05)';e.currentTarget.style.borderColor='rgba(201,168,76,0.3)'}}>
+                    + Add Enquiry
                   </button>
 
                   {error && <p className={styles.errorMsg} style={{ marginTop: '16px' }}>{error}</p>}
@@ -402,9 +409,9 @@ export default function PipelinePage({ session }: PipelinePageProps) {
           {(dateFrom || dateTo) && (
             <button onClick={clearDateRange} style={{ padding:'4px 10px',background:'rgba(239,68,68,0.1)',color:'#EF4444', border:'1px solid rgba(239,68,68,0.15)',borderRadius:'6px',cursor:'pointer', fontSize:'0.6rem',fontWeight:600 }}>Clear Dates</button>
           )}
-          <div style={{display:'flex',gap:'3px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'6px',padding:'2px'}}>
-            {[{k:'today',l:'Today'},{k:'5days',l:'5 Days'},{k:'15days',l:'15 Days'},{k:'all',l:'All'}].map(f => (
-              <button key={f.k} onClick={() => { setDateFilter(f.k as any); setDateFrom(''); setDateTo('') }} style={{ padding:'4px 8px',border:'none',borderRadius:'4px', background: dateFilter===f.k && !dateFrom && !dateTo ? 'rgba(244,99,30,0.15)' : 'transparent', color: dateFilter===f.k && !dateFrom && !dateTo ? '#F4631E' : '#8A8278', cursor:'pointer',fontSize:'0.6rem',fontWeight:600,transition:'all 0.15s' }}>{f.l}</button>
+          <div style={{display:'flex',gap:'4px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'8px',padding:'3px'}}>
+            {[{k:'today',l:'Today'},{k:'5days',l:'5 Days'},{k:'15days',l:'15 Days'},{k:'this_month',l:'This Month'}].map(f => (
+              <button key={f.k} onClick={() => { setDateFilter(f.k as any); setDateFrom(''); setDateTo('') }} style={{ padding:'6px 12px',border:'none',borderRadius:'6px', background: dateFilter===f.k && !dateFrom && !dateTo ? 'rgba(244,99,30,0.15)' : 'transparent', color: dateFilter===f.k && !dateFrom && !dateTo ? '#F4631E' : '#8A8278', cursor:'pointer',fontSize:'0.7rem',fontWeight:600,transition:'all 0.15s' }}>{f.l}</button>
             ))}
           </div>
         </div>
@@ -458,7 +465,7 @@ export default function PipelinePage({ session }: PipelinePageProps) {
                             <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                               {row.pnrs.map((p, idx) => (
                                 <div key={idx} style={{ background: '#1a1a1a', padding: '12px', borderRadius: '8px', border: '1px solid #333' }}>
-                                  <div style={{ color: '#C9A84C', fontWeight: 'bold', marginBottom: '8px' }}>#{p.pnr_number}</div>
+                                  <div style={{ color: '#C9A84C', fontWeight: 'bold', marginBottom: '8px' }}>Enquiry #{p.pnr_number}</div>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#AAA', marginBottom: '4px' }}>
                                     <span>Topline:</span> <span style={{ color: '#FFF' }}>{fmt(p.topline_value)}</span>
                                   </div>

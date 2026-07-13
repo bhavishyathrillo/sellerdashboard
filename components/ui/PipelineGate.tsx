@@ -102,28 +102,28 @@ export default function PipelineGate({ session, onSubmitted, onLogout }: Pipelin
         {/* Form */}
         <form onSubmit={handleSubmit} className={styles.form}>
           {/* PNR Rows */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8A8278', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PNR Details</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8A8278', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enquiry Details</label>
             {pnrInputs.map((p, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', transition: 'all 0.3s ease' }}>
                 <div style={{ flex: 1.2 }}>
-                  <input type="text" placeholder="PNR #" value={p.pnr_number} onChange={e => updatePnr(idx, 'pnr_number', e.target.value)} style={{ width: '100%', padding: '12px 10px', borderRadius: '10px', border: '1px solid #333', background: '#111', color: '#FFF', outline: 'none' }} />
+                  <input type="text" placeholder="Enquiry ID" value={p.pnr_number} onChange={e => updatePnr(idx, 'pnr_number', e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '1px solid transparent', background: 'rgba(0,0,0,0.3)', color: '#FFF', outline: 'none', transition: 'all 0.2s', fontSize: '0.85rem' }} onFocus={e=>e.target.style.borderColor='rgba(201,168,76,0.4)'} onBlur={e=>e.target.style.borderColor='transparent'} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <input type="number" placeholder="Topline ₹" value={p.topline_value} onChange={e => updatePnr(idx, 'topline_value', e.target.value)} style={{ width: '100%', padding: '12px 10px', borderRadius: '10px', border: '1px solid #333', background: '#111', color: '#FFF', outline: 'none' }} />
+                  <input type="number" placeholder="Topline ₹" value={p.topline_value} onChange={e => updatePnr(idx, 'topline_value', e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '1px solid transparent', background: 'rgba(0,0,0,0.3)', color: '#FFF', outline: 'none', transition: 'all 0.2s', fontSize: '0.85rem' }} onFocus={e=>e.target.style.borderColor='rgba(201,168,76,0.4)'} onBlur={e=>e.target.style.borderColor='transparent'} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <input type="number" placeholder="Btmline ₹" value={p.bottomline_value} onChange={e => updatePnr(idx, 'bottomline_value', e.target.value)} style={{ width: '100%', padding: '12px 10px', borderRadius: '10px', border: '1px solid #333', background: '#111', color: '#FFF', outline: 'none' }} />
+                  <input type="number" placeholder="Btmline ₹" value={p.bottomline_value} onChange={e => updatePnr(idx, 'bottomline_value', e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', border: '1px solid transparent', background: 'rgba(0,0,0,0.3)', color: '#FFF', outline: 'none', transition: 'all 0.2s', fontSize: '0.85rem' }} onFocus={e=>e.target.style.borderColor='rgba(201,168,76,0.4)'} onBlur={e=>e.target.style.borderColor='transparent'} />
                 </div>
                 {pnrInputs.length > 1 && (
-                  <button type="button" onClick={() => removePnrRow(idx)} style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px', fontSize: '1rem' }}>✕</button>
+                  <button type="button" onClick={() => removePnrRow(idx)} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', color: '#EF4444', cursor: 'pointer', padding: '10px 12px', fontSize: '1rem', transition: 'all 0.2s' }} onMouseOver={e=>e.currentTarget.style.background='rgba(239,68,68,0.2)'} onMouseOut={e=>e.currentTarget.style.background='rgba(239,68,68,0.1)'}>✕</button>
                 )}
               </div>
             ))}
           </div>
 
-          <button type="button" onClick={addPnrRow} style={{ marginTop: '12px', background: 'transparent', border: '1px dashed #444', color: '#C9A84C', padding: '10px', borderRadius: '10px', cursor: 'pointer', width: '100%', fontWeight: 600, transition: 'all 0.2s' }}>
-            + Add More PNR
+          <button type="button" onClick={addPnrRow} style={{ marginTop: '16px', background: 'rgba(201,168,76,0.05)', border: '1px dashed rgba(201,168,76,0.3)', color: '#C9A84C', padding: '12px', borderRadius: '12px', cursor: 'pointer', width: '100%', fontWeight: 600, transition: 'all 0.2s', fontSize: '0.85rem' }} onMouseOver={e=>{e.currentTarget.style.background='rgba(201,168,76,0.1)';e.currentTarget.style.borderColor='rgba(201,168,76,0.6)'}} onMouseOut={e=>{e.currentTarget.style.background='rgba(201,168,76,0.05)';e.currentTarget.style.borderColor='rgba(201,168,76,0.3)'}}>
+            + Add Enquiry
           </button>
 
           {error && <p className={styles.errorMsg} style={{ marginTop: '16px' }}>{error}</p>}
