@@ -3,6 +3,26 @@ import { useEffect, useRef } from 'react';
 // Flush interval: Every 60 seconds we send data to backend
 const FLUSH_INTERVAL_MS = 60000;
 
+const TAB_LABELS: Record<string, string> = {
+  'home': 'Overview',
+  'seller-view': 'LTA',
+  'l1-home': 'LTA',
+  'l2-home': 'LTA',
+  'priority': 'Priority/QB Stats',
+  'leaderboard': 'Leaderboard',
+  'performance': 'Performance',
+  'rewards': 'Rewards',
+  'mhl': 'MHL / MHO',
+  'pipeline': 'Pipeline',
+  'roadmap': 'Roadmap',
+  'hygiene': 'Hygiene',
+  'kpi_view': 'KPI View',
+  'selectPersona': 'Select Persona',
+  'team': 'Team View',
+  'ttk': 'TTK',
+  'calendar': 'Calendar',
+}
+
 export function useSessionTracker(email: string | null | undefined, activeTab: string | null) {
   // Accumulated time per tab since last flush
   const accumulatedTimeRef = useRef<Record<string, number>>({});
@@ -20,13 +40,20 @@ export function useSessionTracker(email: string | null | undefined, activeTab: s
     const hasData = Object.values(timeSnapshot).some((sec) => sec > 0);
     if (!hasData) return;
 
+    // Map internal IDs to beautiful labels
+    const mappedSnapshot: Record<string, number> = {};
+    for (const [key, value] of Object.entries(timeSnapshot)) {
+      const label = TAB_LABELS[key] || key;
+      mappedSnapshot[label] = (mappedSnapshot[label] || 0) + value;
+    }
+
     // Reset local accumulated time immediately
     accumulatedTimeRef.current = {};
 
     const payload = {
       email,
       date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }), // YYYY-MM-DD
-      tabs: timeSnapshot
+      tabs: mappedSnapshot
     };
 
     // Use sendBeacon if possible (good for background/unload), fallback to fetch
