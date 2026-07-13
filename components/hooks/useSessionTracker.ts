@@ -56,18 +56,12 @@ export function useSessionTracker(email: string | null | undefined, activeTab: s
       tabs: mappedSnapshot
     };
 
-    // Use sendBeacon if possible (good for background/unload), fallback to fetch
-    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon('/api/track-session', blob);
-    } else {
-      fetch('/api/track-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        keepalive: true,
-      }).catch(err => console.error('Error tracking session', err));
-    }
+    fetch('/api/track-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(err => console.error('Error tracking session', err));
   };
 
   // Helper to commit current elapsed time into the accumulator

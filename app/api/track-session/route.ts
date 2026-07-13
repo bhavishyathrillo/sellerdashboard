@@ -14,21 +14,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // tabs is an object like { 'lta': 45, 'pipeline': 30 }
-    // We will call the RPC function for each tab to increment the time
-    for (const [tabName, seconds] of Object.entries(tabs)) {
-      if (typeof seconds !== 'number' || seconds <= 0) continue;
-
-      const { error } = await supabase.rpc('increment_session_time', {
-        p_email: email,
-        p_date: date,
-        p_tab: tabName,
-        p_seconds: Math.floor(seconds)
-      });
-
-      if (error) {
-        console.error('Error tracking session for tab:', tabName, error);
+    // tabs is an object like { 'lta': 45.123, 'pipeline': 30 }
+    // Round floats to integers for Postgres compatibility
+    const roundedTabs: Record<string, number> = {};
+    for (const [key, val] of Object.entries(tabs)) {
+      if (typeof val === 'number') {
+        roundedTabs[key] = Math.round(val);
       }
+    }
+
+    // We will call the RPC function
+    const { error } = await supabase.rpc('update_session_time', {
+      p_email: email,
+      p_date: date,
+      p_tabs: roundedTabs
+    });
+
+    if (error) {
+      console.error('Error updating session times:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
