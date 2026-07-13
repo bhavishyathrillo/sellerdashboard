@@ -17,6 +17,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Users,
 } from 'lucide-react'
 import { UserSession } from '@/lib/session'
 import styles from './DashboardLayout.module.css'
@@ -61,7 +62,10 @@ export default function DashboardLayout({
 
   const allNavItems: any[] = [
     ...filteredNavItems,
-    ...(isAdmin || session.role === 'L1' ? [{ id: 'selectPersona', label: 'Select Persona', Icon: UserCircle2 }] : []),
+    ...(isAdmin || session.role === 'L1' ? [
+      { id: 'adoption', label: 'Adoption', Icon: Users },
+      { id: 'selectPersona', label: 'Select Persona', Icon: UserCircle2 }
+    ] : []),
   ]
 
   const getRoleLabel = (role: string) => {

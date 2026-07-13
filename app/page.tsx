@@ -36,6 +36,7 @@ import SellerViewPage from '@/components/pages/SellerViewPage'
 import L2SellerViewPage from '@/components/pages/L2SellerViewPage'
 import L1SellerViewPage from '@/components/pages/L1SellerViewPage'
 import KPITab from '@/components/kpi/KPITab'
+import AdoptionPage from '@/components/pages/AdoptionPage'
 
 type AppState = 'intro' | 'login' | 'pipeline_gate' | 'dashboard'
 
@@ -158,6 +159,10 @@ export default function Home() {
           )}
           {activePage === 'selectPersona' && session.role === 'L1' && (
             <CMSelectPersonaPage session={session} />
+          )}
+
+          {activePage === 'adoption' && (isAdmin || session.role === 'L1') && (
+            <AdoptionPage session={session} />
           )}
 
           {activePage === 'mhl' && isAdmin && (

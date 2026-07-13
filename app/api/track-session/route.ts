@@ -23,7 +23,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // We will call the RPC function
+    // 1. Cleanup old data (keep only current month)
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    await supabase
+      .from('user_session_logs')
+      .delete()
+      .lt('date', startOfMonth);
+
+    // 2. We will call the RPC function
     const { error } = await supabase.rpc('update_session_time', {
       p_email: email,
       p_date: date,
