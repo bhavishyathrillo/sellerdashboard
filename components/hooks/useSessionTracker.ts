@@ -1,0 +1,119 @@
+import { useEffect, useRef } from 'react';
+
+// Flush interval: Every 60 seconds we send data to backend
+const FLUSH_INTERVAL_MS = 60000;
+
+export function useSessionTracker(email: string | null | undefined, activeTab: string | null) {
+  // Accumulated time per tab since last flush
+  const accumulatedTimeRef = useRef<Record<string, number>>({});
+  
+  // High resolution timestamp when we last started timing the active tab
+  const lastStartTimeRef = useRef<number | null>(null);
+
+  // Sync to database
+  const flushToBackend = () => {
+    if (!email) return;
+
+    const timeSnapshot = { ...accumulatedTimeRef.current };
+    
+    // Check if there's actually any time to send
+    const hasData = Object.values(timeSnapshot).some((sec) => sec > 0);
+    if (!hasData) return;
+
+    // Reset local accumulated time immediately
+    accumulatedTimeRef.current = {};
+
+    const payload = {
+      email,
+      date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }), // YYYY-MM-DD
+      tabs: timeSnapshot
+    };
+
+    // Use sendBeacon if possible (good for background/unload), fallback to fetch
+    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/track-session', blob);
+    } else {
+      fetch('/api/track-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      }).catch(err => console.error('Error tracking session', err));
+    }
+  };
+
+  // Helper to commit current elapsed time into the accumulator
+  const commitCurrentTime = () => {
+    if (lastStartTimeRef.current !== null && activeTab) {
+      const elapsedSec = (performance.now() - lastStartTimeRef.current) / 1000;
+      if (elapsedSec > 0) {
+        accumulatedTimeRef.current[activeTab] = (accumulatedTimeRef.current[activeTab] || 0) + elapsedSec;
+      }
+    }
+    // Update start time to now
+    lastStartTimeRef.current = performance.now();
+  };
+
+  // Handle activeTab changes
+  useEffect(() => {
+    // If we changed tabs, commit the time for the old tab
+    commitCurrentTime();
+
+    if (!activeTab || document.visibilityState !== 'visible') {
+      lastStartTimeRef.current = null;
+    } else {
+      lastStartTimeRef.current = performance.now();
+    }
+
+    // When the component unmounts entirely
+    return () => {
+      commitCurrentTime();
+    };
+  }, [activeTab]);
+
+  // Handle visibility changes (user switches browser tabs or minimizes window)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Resumed looking at the page
+        if (activeTab) {
+          lastStartTimeRef.current = performance.now();
+        }
+      } else {
+        // Tab hidden
+        commitCurrentTime();
+        lastStartTimeRef.current = null;
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      commitCurrentTime();
+      flushToBackend();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [activeTab, email]);
+
+  // Set up periodic flush interval
+  useEffect(() => {
+    const interval = setInterval(() => {
+      commitCurrentTime();
+      flushToBackend();
+    }, FLUSH_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [activeTab, email]);
+}
+
+export function SessionTracker({ email, activeTab }: { email: string | null | undefined, activeTab: string | null }) {
+  useSessionTracker(email, activeTab);
+  return null;
+}
+

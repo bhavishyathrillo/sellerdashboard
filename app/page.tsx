@@ -9,6 +9,8 @@ import ThrillNews from '@/components/ui/ThrillNews'
 import AutoRefresh from '@/components/ui/AutoRefresh'
 import { getSession, saveSession, clearSession, UserSession } from '@/lib/session'
 
+import { SessionTracker } from '@/components/hooks/useSessionTracker'
+
 import HomePage from '@/components/pages/HomePage'
 import L1HomePage from '@/components/pages/L1HomePage'
 import AdminOverviewPage from '@/components/pages/AdminOverviewPage'
@@ -142,6 +144,7 @@ export default function Home() {
           activePage={activePage}
           onNavigate={handleNavigate}
         >
+          <SessionTracker email={session.email} activeTab={activePage} />
           {!isAdmin && <ThrillNews email={session.email} role={session.role} />}
           <AutoRefresh interval={300000} />
 
