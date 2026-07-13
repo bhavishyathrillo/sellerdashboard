@@ -141,11 +141,11 @@ const { data: srsData } = await supabase
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Audit log
-  await supabase.from('audit_log').insert({
-    email,
-    action: 'SUBMIT_PIPELINE',
-    detail: `${pipeline_value} (${status})`,
+  // Action tracking
+  await supabase.from('user_action_logs').insert({
+    user_email: email,
+    action_type: 'PIPELINE_SUBMIT',
+    metadata: { pipeline_value, status, required },
     created_at: new Date().toISOString()
   })
 

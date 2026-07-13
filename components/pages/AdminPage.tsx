@@ -8,26 +8,18 @@ interface Props { session: UserSession }
 
 export default function AdminPage({ session }: Props) {
   const [roles, setRoles] = useState<any[]>([])
-  const [auditLogs, setAuditLogs] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState<'roles' | 'audit' | 'settings'>('roles')
+  const [activeTab, setActiveTab] = useState<'roles' | 'settings'>('roles')
   const [newEmail, setNewEmail] = useState('')
   const [newRole, setNewRole] = useState('SELLER')
 
   useEffect(() => {
-    if (activeTab === 'roles') loadRoles()
-    if (activeTab === 'audit') loadAudit()
-  }, [activeTab])
+    loadRoles()
+  }, [])
 
   async function loadRoles() {
     const res = await fetch('/api/admin/roles')
     const data = await res.json()
     if (res.ok) setRoles(data || [])
-  }
-
-  async function loadAudit() {
-    const res = await fetch('/api/admin/audit')
-    const data = await res.json()
-    if (res.ok) setAuditLogs(data || [])
   }
 
   async function addRole(e: React.FormEvent) {
@@ -56,8 +48,7 @@ export default function AdminPage({ session }: Props) {
       <h1 className={styles.title}>⊛ Admin Panel</h1>
 
       <div className={styles.tabs}>
-        <button className={`${styles.tab} ${activeTab === 'roles' ? styles.tabActive : ''}`} onClick={() => setActiveTab('roles')}>Roles</button>
-        <button className={`${styles.tab} ${activeTab === 'audit' ? styles.tabActive : ''}`} onClick={() => setActiveTab('audit')}>Audit Log</button>
+        <button className={`${styles.tab} ${activeTab === 'roles' ? styles.tabActive : ''}`} onClick={() => setActiveTab('roles')}>User Roles</button>
         <button className={`${styles.tab} ${activeTab === 'settings' ? styles.tabActive : ''}`} onClick={() => setActiveTab('settings')}>Settings</button>
       </div>
 
@@ -86,19 +77,6 @@ export default function AdminPage({ session }: Props) {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
-
-      {activeTab === 'audit' && (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead><tr><th>Time</th><th>Email</th><th>Action</th><th>Detail</th></tr></thead>
-            <tbody>
-              {auditLogs.map((l: any) => (
-                <tr key={l.id}><td>{new Date(l.created_at).toLocaleString()}</td><td>{l.email}</td><td>{l.action}</td><td>{l.detail}</td></tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
 

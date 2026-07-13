@@ -199,7 +199,12 @@ export default function RewardsPage({ session }: Props) {
         const ease = 1 - Math.pow(1 - progress, 4)
         drawWheel(startAngle + (targetAngle - startAngle) * ease)
         if (progress < 1) requestAnimationFrame(animate)
-        else { setWheelAngle(targetAngle % (2 * Math.PI)); setResult(`🎉 You won: ${data.result}!`); setShowConfetti(true); setTimeout(() => setShowConfetti(false), 4000); setSpinning(false); loadRewards() }
+        else {
+          import('@/lib/trackAction').then(({ trackAction }) => {
+            trackAction(session.email, 'SPIN_WHEEL', { spinType: selectedWheel, result: data.result })
+          })
+          setWheelAngle(targetAngle % (2 * Math.PI)); setResult(`🎉 You won: ${data.result}!`); setShowConfetti(true); setTimeout(() => setShowConfetti(false), 4000); setSpinning(false); loadRewards()
+        }
       }
       requestAnimationFrame(animate)
     } catch { setResult('❌ Spin failed'); setSpinning(false) }

@@ -90,6 +90,11 @@ export default function Home() {
     setSession(s)
     localStorage.setItem('activeTab', 'home')
     setActivePage('home')
+    
+    import('@/lib/trackAction').then(({ trackAction }) => {
+      trackAction(email, 'LOGIN', { name, role })
+    })
+
     if (GATED_ROLES.includes(role) && !['ADMIN', 'SUPERADMIN'].includes(role)) {
       await checkPipelineAndRoute(s!)
     } else {
