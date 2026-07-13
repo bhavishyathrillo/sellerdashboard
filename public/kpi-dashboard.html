@@ -347,17 +347,17 @@ input[type="text"], input[type="email"], select { background: var(--bg-main) !im
 
 /* ─── Compare Panel (one per person) ─── */
 .cmp-panel{
-  background:linear-gradient(170deg,#181818 0%,#111111 100%);
-  border:1px solid rgba(255,255,255,0.08);border-radius:20px;
-  overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.4);
+  background:#141414;
+  border:1px solid rgba(255,255,255,0.05);border-radius:24px;
+  overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);
 }
 
 /* ─── Panel Header ─── */
 .cmp-panel-head{
-  padding:20px 22px 16px;
-  background:rgba(255,255,255,0.02);
-  border-bottom:1px solid rgba(255,255,255,0.06);
-  display:flex;align-items:center;gap:16px;
+  padding:24px 28px 20px;
+  background:rgba(255,255,255,0.01);
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  display:flex;align-items:center;gap:18px;
 }
 .cmp-ring-wrap{position:relative;width:68px;height:68px;flex-shrink:0}
 .cmp-ring-wrap svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
@@ -383,19 +383,19 @@ input[type="text"], input[type="email"], select { background: var(--bg-main) !im
 .cmp-section-score{font-size:14px;font-weight:800;color:var(--text-primary)}
 
 .cmp-metric{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 22px;border-top:1px solid rgba(255,255,255,0.04);
+  display:flex;align-items:center;gap:12px;
+  padding:14px 28px;border-top:1px solid rgba(255,255,255,0.03);
   transition:background .12s;
 }
 .cmp-metric:hover{background:rgba(255,255,255,0.02)}
-.cmp-metric.winner{background:rgba(74,222,128,0.04);border-left:3px solid rgba(74,222,128,0.4)}
-.cmp-metric.loser{opacity:0.6}
+.cmp-metric.winner{background:linear-gradient(90deg, rgba(74,222,128,0.06) 0%, transparent 100%);border-left:3px solid #4ADE80;padding-left:25px}
+.cmp-metric.loser{opacity:0.75}
 .cmp-metric-info{flex:1;min-width:0}
-.cmp-metric-label{font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:2px}
-.cmp-metric-detail{font-size:10px;color:var(--text-muted);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cmp-metric-bar-wrap{width:56px;height:4px;border-radius:99px;background:rgba(255,255,255,0.07);overflow:hidden;flex-shrink:0}
+.cmp-metric-label{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:3px;letter-spacing:0.2px}
+.cmp-metric-detail{font-size:11px;color:var(--text-muted);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp-metric-bar-wrap{width:70px;height:6px;border-radius:99px;background:rgba(255,255,255,0.06);overflow:hidden;flex-shrink:0}
 .cmp-metric-bar{height:100%;border-radius:99px;transition:width .8s}
-.cmp-metric-score{width:40px;text-align:right;font-size:16px;font-weight:800;flex-shrink:0;letter-spacing:-0.3px}
+.cmp-metric-score{width:46px;text-align:right;font-size:17px;font-weight:800;flex-shrink:0;letter-spacing:-0.2px}
 .cmp-metric-grade{font-size:10px;font-weight:600;margin-top:1px;text-align:right}
 .cmp-winner-crown{font-size:11px;margin-left:2px}
 
@@ -434,6 +434,7 @@ window.addEventListener('unhandledrejection', function(e) {
 <div class="rc-controls">
 <div class="rc-seg"><button id="rc-tabL1" class="on" onclick="rcSetLevel('l1')">L1 Managers</button><button id="rc-tabL2" onclick="rcSetLevel('l2')">L2 Seniors</button></div>
 <select id="rc-fCycle" onchange="rcOnCycle(this.value)"></select>
+<span id="rc-date-filter-wrap"></span>
 <select id="rc-fL1" onchange="rcOnFilterChange('l1',this.value)"><option value="all">All L1</option></select>
 <select id="rc-fL2" onchange="rcOnFilterChange('l2',this.value)"><option value="all">All L2</option></select>
 <select id="rc-fGoal" onchange="rcOnFilterChange('goal',this.value)"><option value="all">All Goal Types</option></select>
@@ -572,9 +573,9 @@ function onCycleChange(cy){_selectedCycle=cy;saveState();_applyCycleDates();acti
 function buildCycleUI(){var cycles=(dashData&&dashData.cycles)||[];if(!cycles.length)return'';return'<select class="filter-select" style="font-weight:600;color:#FF5200" onchange="onCycleChange(this.value)">'+cycles.map(function(c){return'<option value="'+c+'"'+(c===_selectedCycle?' selected':'')+'>'+c+'</option>';}).join('')+'</select>';}
 
 // ═══════════════ DATE FILTER ═══════════════
-function buildDateUI(view){var df=globalFilters;var r=_cycleRange(_selectedCycle);var mm=r?(' min="'+r.from+'" max="'+r.to+'"'):'';return'<div class="date-range-wrap"><span class="date-range-label">From</span><input type="date" class="date-input" id="'+view+'-from" value="'+(df.from||'')+'"'+mm+' onchange="onDateChange(\''+view+'\')"><span class="date-sep">→</span><span class="date-range-label">To</span><input type="date" class="date-input" id="'+view+'-to" value="'+(df.to||'')+'"'+mm+' onchange="onDateChange(\''+view+'\')"><button class="date-clear" onclick="clearDate(\''+view+'\')">✕</button></div>'+((df.from||df.to)?'<span class="date-active-badge">📅 filtered</span>':'');}
-function onDateChange(view){var f=document.getElementById(view+'-from'),t=document.getElementById(view+'-to');if(!f||!t)return;globalFilters.from=f.value;globalFilters.to=t.value;saveState();rawCache={};mhlCache={};RC_DATA=null;renderAllViews();}
-function clearDate(view){var r=_cycleRange(_selectedCycle);globalFilters.from=r?r.from:'';globalFilters.to=r?r.to:'';saveState();rawCache={};mhlCache={};RC_DATA=null;renderAllViews();}
+function buildDateUI(view){var df=globalFilters;var r=_cycleRange(_selectedCycle);var mm=r?(' min="'+r.from+'" max="'+r.to+'"'):'';var fv=df.from||(view==='rc'?'2026-07-09':'');var tv=df.to||(view==='rc'?new Date().toISOString().split('T')[0]:'');return'<div class="date-range-wrap"><span class="date-range-label">From</span><input type="date" class="date-input" id="'+view+'-from" value="'+fv+'"'+mm+' onchange="onDateChange(\''+view+'\')"><span class="date-sep">→</span><span class="date-range-label">To</span><input type="date" class="date-input" id="'+view+'-to" value="'+tv+'"'+mm+' onchange="onDateChange(\''+view+'\')"><button class="date-clear" onclick="clearDate(\''+view+'\')">✕</button></div>'+((df.from||df.to)?'<span class="date-active-badge">📅 filtered</span>':'');}
+function onDateChange(view){var f=document.getElementById(view+'-from'),t=document.getElementById(view+'-to');if(!f||!t)return;globalFilters.from=f.value;globalFilters.to=t.value;saveState();rawCache={};mhlCache={};RC_DATA=null;renderAllViews();if(view==='rc'||document.getElementById('page-report').style.display==='block'){RC_DATA=null;rcLoadReportCard();}}
+function clearDate(view){var r=_cycleRange(_selectedCycle);globalFilters.from=r?r.from:'';globalFilters.to=r?r.to:'';saveState();rawCache={};mhlCache={};RC_DATA=null;renderAllViews();if(view==='rc'||document.getElementById('page-report').style.display==='block'){RC_DATA=null;rcLoadReportCard();}}
 
 // ═══════════════ RAW & MHL FETCH ═══════════════
 function fetchRaw(sellers,view,cb){var emails=sellers.map(function(s){return s.email;});var df=globalFilters;var key=emails.slice().sort().join('|')+'||'+(df.from||'')+'|'+(df.to||'');if(rawCache[key]){cb(rawCache[key]);return;}api('raw',{emails:emails.join(','),from:df.from||null,to:df.to||null},'POST').then(function(res){if(res&&res.success)rawCache[key]=res;cb(res||{});}).catch(function(){cb({});});}
@@ -881,9 +882,15 @@ function rcOpenSellers(){var m=RC_CUR;if(!m)return;var rows=m.sellerList.map(fun
 function rcClose1(){document.getElementById('rc-ov1').classList.remove('rc-show');document.getElementById('rc-ov1').style.display='none';}
 function rcClose2(){document.getElementById('rc-ov2').classList.remove('rc-show');document.getElementById('rc-ov2').style.display='none';}
 function rcLoadReportCard(){
-  // Show compare button for admin/management only
+  // Show compare button for admin only
   var cmpBtn=document.getElementById('rc-cmp-btn');
-  if(cmpBtn){var role=currentUser&&currentUser.role;cmpBtn.style.display=(role==='Admin'||role==='Management')?'':'none';}
+  if(cmpBtn){var role=currentUser&&currentUser.role;cmpBtn.style.display=(role&&role.toLowerCase()==='admin')?'':'none';}
+  
+  var dw = document.getElementById('rc-date-filter-wrap');
+  if(dw) {
+      dw.innerHTML = buildDateUI('rc');
+  }
+
   if(RC_DATA){rcSyncCycleDropdown();rcApplyFilters();return;}
   document.getElementById('rc-state').style.display='block';
   var qs='report-card';
@@ -893,7 +900,9 @@ function rcLoadReportCard(){
     l2: rcFilters.l2||'all',
     reg: '',
     goal: rcFilters.goal||'all',
-    haul: rcFilters.haul||'all'
+    haul: rcFilters.haul||'all',
+    from: globalFilters.from || null,
+    to: globalFilters.to || null
   };
   api(qs, payload).then(function(d){
     RC_DATA=d;RC_CYCLE=d.selectedCycle||RC_CYCLE;rcSyncCycleDropdown();

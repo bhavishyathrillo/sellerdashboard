@@ -63,9 +63,9 @@ function onCycleChange(cy){_selectedCycle=cy;saveState();_applyCycleDates();acti
 function buildCycleUI(){var cycles=(dashData&&dashData.cycles)||[];if(!cycles.length)return'';return'<select class="filter-select" style="font-weight:600;color:#FF5200" onchange="onCycleChange(this.value)">'+cycles.map(function(c){return'<option value="'+c+'"'+(c===_selectedCycle?' selected':'')+'>'+c+'</option>';}).join('')+'</select>';}
 
 // ═══════════════ DATE FILTER ═══════════════
-function buildDateUI(view){var df=globalFilters;var r=_cycleRange(_selectedCycle);var mm=r?(' min="'+r.from+'" max="'+r.to+'"'):'';return'<div class="date-range-wrap"><span class="date-range-label">From</span><input type="date" class="date-input" id="'+view+'-from" value="'+(df.from||'')+'"'+mm+' onchange="onDateChange(\''+view+'\')"><span class="date-sep">→</span><span class="date-range-label">To</span><input type="date" class="date-input" id="'+view+'-to" value="'+(df.to||'')+'"'+mm+' onchange="onDateChange(\''+view+'\')"><button class="date-clear" onclick="clearDate(\''+view+'\')">✕</button></div>'+((df.from||df.to)?'<span class="date-active-badge">📅 filtered</span>':'');}
-function onDateChange(view){var f=document.getElementById(view+'-from'),t=document.getElementById(view+'-to');if(!f||!t)return;globalFilters.from=f.value;globalFilters.to=t.value;saveState();rawCache={};mhlCache={};RC_DATA=null;renderAllViews();}
-function clearDate(view){var r=_cycleRange(_selectedCycle);globalFilters.from=r?r.from:'';globalFilters.to=r?r.to:'';saveState();rawCache={};mhlCache={};RC_DATA=null;renderAllViews();}
+function buildDateUI(view){var df=globalFilters;var r=_cycleRange(_selectedCycle);var mm=r?(' min="'+r.from+'" max="'+r.to+'"'):'';var fv=df.from||(view==='rc'?'2026-07-09':'');var tv=df.to||(view==='rc'?new Date().toISOString().split('T')[0]:'');return'<div class="date-range-wrap"><span class="date-range-label">From</span><input type="date" class="date-input" id="'+view+'-from" value="'+fv+'"'+mm+' onchange="onDateChange(\''+view+'\')"><span class="date-sep">→</span><span class="date-range-label">To</span><input type="date" class="date-input" id="'+view+'-to" value="'+tv+'"'+mm+' onchange="onDateChange(\''+view+'\')"><button class="date-clear" onclick="clearDate(\''+view+'\')">✕</button></div>'+((df.from||df.to)?'<span class="date-active-badge">📅 filtered</span>':'');}
+function onDateChange(view){var f=document.getElementById(view+'-from'),t=document.getElementById(view+'-to');if(!f||!t)return;globalFilters.from=f.value;globalFilters.to=t.value;saveState();rawCache={};mhlCache={};RC_DATA=null;renderAllViews();if(view==='rc'||document.getElementById('page-report').style.display==='block'){RC_DATA=null;rcLoadReportCard();}}
+function clearDate(view){var r=_cycleRange(_selectedCycle);globalFilters.from=r?r.from:'';globalFilters.to=r?r.to:'';saveState();rawCache={};mhlCache={};RC_DATA=null;renderAllViews();if(view==='rc'||document.getElementById('page-report').style.display==='block'){RC_DATA=null;rcLoadReportCard();}}
 
 // ═══════════════ RAW & MHL FETCH ═══════════════
 function fetchRaw(sellers,view,cb){var emails=sellers.map(function(s){return s.email;});var df=globalFilters;var key=emails.slice().sort().join('|')+'||'+(df.from||'')+'|'+(df.to||'');if(rawCache[key]){cb(rawCache[key]);return;}api('raw',{emails:emails.join(','),from:df.from||null,to:df.to||null},'POST').then(function(res){if(res&&res.success)rawCache[key]=res;cb(res||{});}).catch(function(){cb({});});}
@@ -372,9 +372,15 @@ function rcOpenSellers(){var m=RC_CUR;if(!m)return;var rows=m.sellerList.map(fun
 function rcClose1(){document.getElementById('rc-ov1').classList.remove('rc-show');document.getElementById('rc-ov1').style.display='none';}
 function rcClose2(){document.getElementById('rc-ov2').classList.remove('rc-show');document.getElementById('rc-ov2').style.display='none';}
 function rcLoadReportCard(){
-  // Show compare button for admin/management only
+  // Show compare button for admin only
   var cmpBtn=document.getElementById('rc-cmp-btn');
-  if(cmpBtn){var role=currentUser&&currentUser.role;cmpBtn.style.display=(role==='Admin'||role==='Management')?'':'none';}
+  if(cmpBtn){var role=currentUser&&currentUser.role;cmpBtn.style.display=(role&&role.toLowerCase()==='admin')?'':'none';}
+  
+  var dw = document.getElementById('rc-date-filter-wrap');
+  if(dw) {
+      dw.innerHTML = buildDateUI('rc');
+  }
+
   if(RC_DATA){rcSyncCycleDropdown();rcApplyFilters();return;}
   document.getElementById('rc-state').style.display='block';
   var qs='report-card';
@@ -384,7 +390,9 @@ function rcLoadReportCard(){
     l2: rcFilters.l2||'all',
     reg: '',
     goal: rcFilters.goal||'all',
-    haul: rcFilters.haul||'all'
+    haul: rcFilters.haul||'all',
+    from: globalFilters.from || null,
+    to: globalFilters.to || null
   };
   api(qs, payload).then(function(d){
     RC_DATA=d;RC_CYCLE=d.selectedCycle||RC_CYCLE;rcSyncCycleDropdown();

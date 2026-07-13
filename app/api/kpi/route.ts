@@ -381,15 +381,91 @@ async function handleReportCard(req: NextRequest) {
     const cycles = (cd||[]).map((c:any)=>c.cycle); 
     const sc = cycle||cycles[0]||'';
 
-    let q = supabase.from('roster').select('*'); 
-    if(sc) q=q.eq('cycle',sc);
-    const l1 = u.searchParams.get('l1'); if(l1 && l1 !== 'all') q=q.eq('l1_manager_name', l1);
-    const l2 = u.searchParams.get('l2'); if(l2 && l2 !== 'all') q=q.eq('l2_manager_name', l2);
-    const reg = u.searchParams.get('reg'); if(reg && reg !== 'all') q=q.eq('region', reg);
-    const goal = u.searchParams.get('goal'); if(goal && goal !== 'all') q=q.eq('goal_type', goal);
-    const haul = u.searchParams.get('haul'); if(haul && haul !== 'all') q=q.eq('haul', haul);
-    const { data: rows } = await q;
-    await enrichWithMedians(rows || [], sc);
+    const fromRaw = u.searchParams.get('from');
+    const toRaw = u.searchParams.get('to');
+    const from = (fromRaw && fromRaw !== 'null') ? fromRaw : '2026-07-09';
+    const to = (toRaw && toRaw !== 'null') ? toRaw : new Date().toISOString().split('T')[0];
+
+    const l1 = u.searchParams.get('l1');
+    const l2 = u.searchParams.get('l2');
+    const reg = u.searchParams.get('reg');
+    const goal = u.searchParams.get('goal');
+    const haul = u.searchParams.get('haul');
+
+    let rows: any[] = [];
+    if (from && to) {
+      const fromDateObj = new Date(from);
+      fromDateObj.setDate(fromDateObj.getDate() - 1);
+      const baselineDate = fromDateObj.toISOString().split('T')[0];
+
+      let dq = supabase.from('roster_daily_logs').select('*')
+        .gte('log_date', baselineDate)
+        .lte('log_date', to);
+      const { data: dRows } = await fetchAll(dq);
+      
+      const sellerLatest: Record<string, any> = {};
+      const sellerBaseline: Record<string, any> = {};
+      (dRows||[]).forEach((r: any) => {
+        const key = (r.email || '').toLowerCase();
+        if (!sellerLatest[key] || r.log_date > sellerLatest[key].log_date) sellerLatest[key] = r;
+        if (r.log_date <= baselineDate) {
+          if (!sellerBaseline[key] || r.log_date > sellerBaseline[key].log_date) sellerBaseline[key] = r;
+        }
+      });
+      
+      let deltaRows = Object.values(sellerLatest).map((latest: any) => {
+        const base = sellerBaseline[(latest.email || '').toLowerCase()];
+        if (!base) return latest;
+        const delta = { ...latest };
+        const fieldsToSubtract = [
+          'bottomline_shb', 'bottomline_actual',
+          'topline_shb', 'topline_actual',
+          'conversion_shb', 'conversion_actual',
+          'unique_leads', 'unique_leads_quoted',
+          'unique_feasibility_sent', 'total_feasibility_sent',
+          'feasibility_passed', 'reworks',
+          'mishandled_count', 'total_lead_instances',
+          'called_within_15_count', 'total_leads',
+          'priority_leads_count', 'leads_shb', 'converted_count'
+        ];
+        fieldsToSubtract.forEach(f => {
+          if (typeof latest[f] === 'number' && typeof base[f] === 'number') {
+            delta[f] = Math.max(0, latest[f] - base[f]);
+          }
+        });
+        const baseTalkN = (base.talk_actual || 0) * (base.talk_call_count || 0);
+        const latestTalkN = (latest.talk_actual || 0) * (latest.talk_call_count || 0);
+        const deltaTalkCallCount = Math.max(0, (latest.talk_call_count || 0) - (base.talk_call_count || 0));
+        if (deltaTalkCallCount > 0) {
+           delta.talk_actual = Math.max(0, (latestTalkN - baseTalkN) / deltaTalkCallCount);
+           delta.talk_call_count = deltaTalkCallCount;
+        } else {
+           delta.talk_actual = null;
+           delta.talk_call_count = 0;
+        }
+        return delta;
+      });
+
+      if (sc) deltaRows = deltaRows.filter((r: any) => r.cycle === sc);
+      if (l1 && l1 !== 'all') deltaRows = deltaRows.filter((r: any) => r.l1_manager_name === l1);
+      if (l2 && l2 !== 'all') deltaRows = deltaRows.filter((r: any) => r.l2_manager_name === l2);
+      if (reg && reg !== 'all') deltaRows = deltaRows.filter((r: any) => r.region === reg);
+      if (goal && goal !== 'all') deltaRows = deltaRows.filter((r: any) => r.goal_type === goal);
+      if (haul && haul !== 'all') deltaRows = deltaRows.filter((r: any) => r.haul === haul);
+      rows = deltaRows;
+
+    } else {
+      let q = supabase.from('roster').select('*'); 
+      if(sc) q=q.eq('cycle',sc);
+      if(l1 && l1 !== 'all') q=q.eq('l1_manager_name', l1);
+      if(l2 && l2 !== 'all') q=q.eq('l2_manager_name', l2);
+      if(reg && reg !== 'all') q=q.eq('region', reg);
+      if(goal && goal !== 'all') q=q.eq('goal_type', goal);
+      if(haul && haul !== 'all') q=q.eq('haul', haul);
+      const { data } = await q;
+      rows = data || [];
+      await enrichWithMedians(rows, sc);
+    }
     
     const l1M: Record<string,any> = {}, l2M: Record<string,any> = {}; const regs=new Set<string>();
     (rows||[]).forEach((r:any)=>{
