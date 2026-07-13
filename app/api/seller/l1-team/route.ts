@@ -17,10 +17,16 @@ export async function GET(req: Request) {
   const trimmedEmail = email.toLowerCase().trim()
 
   // Step 1: Get all sellers under this L1 manager
-  const { data: allSellers, error: sellersError } = await supabase
-    .from('srs_raw')
-    .select('*')
-    .eq('l1_email', trimmedEmail)
+    const { data: _me } = await supabase.from('srs_raw').select('l1_name').eq('l1_email', trimmedEmail).limit(1).maybeSingle()
+  const _myName = _me?.l1_name || ''
+  
+  let _query = supabase.from('srs_raw').select('*')
+  if (_myName) {
+    _query = _query.eq('l1_name', _myName)
+  } else {
+    _query = _query.eq('l1_email', trimmedEmail)
+  }
+  const { data: allSellers, error: sellersError } = await _query
 
   if (sellersError) {
     return NextResponse.json({ error: sellersError.message }, { status: 500 })

@@ -2004,7 +2004,11 @@ function GoalShbTrendModal({ hierarchy, dateFrom, onClose }: { hierarchy: any[],
 
   const activeSellers = drillSeller ? [drillSeller] : expandedTlKey ? (flatTls.find(t => t.key === expandedTlKey)?.sellers || []) : expandedCatKey ? (hierarchy.find(c => c.category_name === expandedCatKey)?.tls.flatMap((t: any) => t.sellers) || []) : allSellers
   const activeData = buildPadded(activeSellers)
-  const labels = activeData.map(d => `${parseInt(d.date.split('-')[2])} ${new Date(d.date).toLocaleString('default', { month: 'short' })}`)
+  const labels = activeData.map(d => {
+    const labelDateObj = new Date(d.date)
+    labelDateObj.setDate(labelDateObj.getDate() - 1)
+    return `${labelDateObj.getDate()} ${labelDateObj.toLocaleString('default', { month: 'short' })}`
+  })
   const goalValues = activeData.map(d => d.goalAvg)
   const shbValues = activeData.map(d => d.shbAvg)
   const hasData = goalValues.some(v => v > 0) || shbValues.some(v => v > 0)
@@ -2109,9 +2113,13 @@ function GoalShbTrendModal({ hierarchy, dateFrom, onClose }: { hierarchy: any[],
 }
 
 function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[], onSellerClick: (seller: any) => void }) {
-  const [activeCard, setActiveCard] = useState<'dot' | 'allotment' | 'pax' | 'ca' | null>(null)
+  const [activeCard, setActiveCard] = useState<'dot' | 'allotment' | 'pax' | 'ca' | 'lost' | null>(null)
+  const [lostDrilldownView, setLostDrilldownView] = useState<'main'|'others'>('main')
   const [expandedCatKey, setExpandedCatKey] = useState<string | null>(null)
   const [expandedTlKey, setExpandedTlKey] = useState<string | null>(null)
+  
+  // ── Enquiry popup state ──
+  const [enquiryPopup, setEnquiryPopup] = useState<{ title: string; bucket: string; leads: any[] } | null>(null)
   
   const dotChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const allotmentChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -2123,6 +2131,90 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
   const lostChartInstance = useRef<any>(null);
   const flatTls = hierarchy.flatMap(cat => cat.tls.map((tl: any) => ({ ...tl, category_name: cat.category_name, key: `${cat.category_name}-${tl.tl_name}` })))
   const allMembers = flatTls.flatMap(tl => tl.sellers)
+
+  // ── Lost reason helpers ──
+  function classifyLead(raw: string): { buckets: Set<string>, otherReasons: Set<string> } {
+    const buckets = new Set<string>()
+    const otherReasons = new Set<string>()
+    const parts = (raw || '').split(',').map(p => p.trim()).filter(p => p)
+    
+    if (parts.length === 0) {
+      buckets.add('Others')
+      otherReasons.add('Unknown')
+      return { buckets, otherReasons }
+    }
+
+    parts.forEach(part => {
+      const p = part.toLowerCase()
+      if (p.includes('just checking') || p.includes('no firm')) {
+        buckets.add('Just Checking')
+      } else if (p.includes('customer never responded')) {
+        buckets.add('Customer Never Responded')
+      } else if (p.includes('not interested')) {
+        buckets.add('Not Interested')
+      } else if (p.includes('budget issue')) {
+        buckets.add('Budget Issue')
+      } else {
+        buckets.add('Others')
+        otherReasons.add(part) // Keep original case for UI display
+      }
+    })
+    
+    return { buckets, otherReasons }
+  }
+
+  function formatLeadReason(raw: string, bucket: string): string {
+    if (!raw) return '-';
+    const parts = Array.from(new Set(raw.split(',').map(p => p.trim()).filter(p => p)));
+    if (bucket === 'Just Checking') return parts.filter(p => p.toLowerCase().includes('just checking') || p.toLowerCase().includes('no firm')).join(', ');
+    if (bucket === 'Customer Never Responded') return parts.filter(p => p.toLowerCase().includes('customer never responded')).join(', ');
+    if (bucket === 'Not Interested') return parts.filter(p => p.toLowerCase().includes('not interested')).join(', ');
+    if (bucket === 'Budget Issue') return parts.filter(p => p.toLowerCase().includes('budget issue')).join(', ');
+    if (bucket === 'Others') return parts.filter(p => {
+      const low = p.toLowerCase();
+      return !low.includes('just checking') && !low.includes('no firm') && !low.includes('customer never responded') && !low.includes('not interested') && !low.includes('budget issue');
+    }).join(', ');
+    return parts.filter(p => p === bucket).join(', ');
+  }
+
+  function countLeadsByBucket(lostRows: any[], bucket: string): number {
+    let c = 0
+    lostRows.forEach((lr: any) => { if (classifyLead(lr.lost_reason_details).buckets.has(bucket)) c++ })
+    return c
+  }
+
+  function getLeadsForBucket(sellers: any[], bucket: string): any[] {
+    const leads: any[] = []
+    sellers.forEach((m: any) => {
+      ;(m.monthly_lost_reasons || []).forEach((lr: any) => {
+        if (classifyLead(lr.lost_reason_details).buckets.has(bucket)) {
+          leads.push({ ...lr, seller_name: m.seller_name })
+        }
+      })
+    })
+    return leads
+  }
+
+  function getLeadsForOtherReason(sellers: any[], reason: string): any[] {
+    const leads: any[] = []
+    sellers.forEach((m: any) => {
+      ;(m.monthly_lost_reasons || []).forEach((lr: any) => {
+        if (classifyLead(lr.lost_reason_details).otherReasons.has(reason)) {
+          leads.push({ ...lr, seller_name: m.seller_name })
+        }
+      })
+    })
+    return leads
+  }
+
+  const uniqueOthersReasons = new Set<string>();
+  allMembers.forEach((m: any) => {
+    (m.monthly_lost_reasons || []).forEach((lr: any) => {
+      const res = classifyLead(lr.lost_reason_details);
+      res.otherReasons.forEach(r => uniqueOthersReasons.add(r));
+    });
+  });
+  const othersReasonColumns = Array.from(uniqueOthersReasons).sort();
 
   const sumField = (members: any[], key: string) => members.reduce((s: number, m: any) => s + (m.monthly_rows || []).reduce((s2: number, r: any) => s2 + (r[key] || 0), 0), 0)
 
@@ -2178,19 +2270,15 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
   ]
 
   // ── Lost Reasons (5 fixed buckets) ──
+  // Per-lead counting: a lead with "Budget Issue, Not interested" counts in BOTH buckets.
+  // "Just Checking, no firm plans" counts as ONE bucket (just checking), not two.
+  const allLostRows = allMembers.flatMap((m: any) => m.monthly_lost_reasons || [])
   const lostReasonCounts: Record<string, number> = { 'Just Checking': 0, 'Customer Never Responded': 0, 'Not Interested': 0, 'Budget Issue': 0, 'Others': 0 }
-  allMembers.forEach((m: any) => {
-    (m.monthly_lost_reasons || []).forEach((r: any) => {
-      const raw = (r.lost_reason_details || '').toLowerCase()
-      let matched = false
-      if (raw.includes('just checking')) { lostReasonCounts['Just Checking']++; matched = true }
-      if (raw.includes('customer never responded')) { lostReasonCounts['Customer Never Responded']++; matched = true }
-      if (raw.includes('not interested')) { lostReasonCounts['Not Interested']++; matched = true }
-      if (raw.includes('budget issue')) { lostReasonCounts['Budget Issue']++; matched = true }
-      if (!matched) lostReasonCounts['Others']++
-    })
+  allLostRows.forEach((r: any) => {
+    const buckets = classifyLead(r.lost_reason_details).buckets
+    buckets.forEach(b => { lostReasonCounts[b] = (lostReasonCounts[b] || 0) + 1 })
   })
-  const totalLost = Object.values(lostReasonCounts).reduce((a, b) => a + b, 0)
+  const totalLost = allLostRows.length
   const lostReasonRows = [
     { label: 'Just Checking', value: lostReasonCounts['Just Checking'], color: '#F59E0B' },
     { label: 'Customer Never Responded', value: lostReasonCounts['Customer Never Responded'], color: '#3B82F6' },
@@ -2250,7 +2338,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
             data: allotmentRows.map((d: any) => d.value),
             backgroundColor: allotmentRows.map((d: any) => d.color),
             borderRadius: 4,
-            barThickness: 20
+            barThickness: 12
           }]
         },
         options: {
@@ -2445,12 +2533,12 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
         {/* ── Lost Reason ── */}
         <div style={cardBase} onClick={() => { setActiveCard(activeCard === 'lost' ? null : 'lost'); setExpandedTlKey(null) }}>
           <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lost Reasons</div>
-          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Why leads were lost</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Why leads were lost ({totalLost})</div>
           <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={lostChartCanvasRef} /></div>
 
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
             {lostReasonRows.map((p, i) => {
-              const lostPct = totalLost > 0 ? Math.round((p.value / totalLost) * 100) : 0;
+              const lostPct = totalLeads > 0 ? Math.round((p.value / totalLeads) * 100) : 0;
               return (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2470,7 +2558,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
       
       {activeCard && (
         <div className="la-modal-overlay" onClick={() => { setActiveCard(null); setExpandedCatKey(null); setExpandedTlKey(null) }}>
-          <div className="la-modal-card wide" onClick={e => e.stopPropagation()}>
+          <div className="la-modal-card wide" onClick={e => e.stopPropagation()} style={(typeof lostDrilldownView !== 'undefined' && lostDrilldownView === 'others') ? { width: '95vw', maxWidth: '1600px' } : {}}>
             <button className="la-modal-close" onClick={() => { setActiveCard(null); setExpandedCatKey(null); setExpandedTlKey(null) }}>✕</button>
             <div className="la-modal-title" style={{ marginBottom: '20px' }}>
               {activeCard === 'dot' ? 'DOT Distribution' : activeCard === 'allotment' ? 'Allotment Breakdown' : activeCard === 'ca' ? 'Appetite & C→A Time' : activeCard === 'lost' ? 'Lost Reasons' : 'Leads by Group Size'}
@@ -2480,11 +2568,15 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
               <table className="la-table">
                 <thead>
                   <tr>
-                    <th>Team</th>
+                    <th style={{ whiteSpace: 'nowrap' }}>Team</th>
                     {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => <th key={mo.key}>{mo.label}</th>)}<th>6+ Months</th></>)
                       : activeCard === 'allotment' ? (<><th>Auto</th><th>Manual</th><th>RTG</th><th>Non-RTG</th></>)
                       : activeCard === 'ca' ? (<><th>Leads Allotted</th><th>Appetite</th><th>Overallocation</th><th>Fulfillment %</th><th>Avg C→A</th></>)
-                      : activeCard === 'lost' ? (<>{lostReasonRows.map((r: any) => <th key={r.label} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px' }} title={r.label}>{r.label}</th>)}</>) : (<><th>1-pax</th><th>2-pax</th><th>3-pax</th><th>4-pax</th><th>4+ pax</th></>)}
+                      : (activeCard === 'lost') && lostDrilldownView === 'main' ? (
+                        <>{lostReasonRows.map((r: any) => <th key={r.label} style={{ whiteSpace: 'nowrap', padding: '0 12px', ...(r.label === 'Others' ? {cursor: 'pointer', color: '#8B5CF6', textDecoration: 'underline'} : {}) }} title={r.label} onClick={() => { if(r.label === 'Others') setLostDrilldownView('others'); }}>{r.label}</th>)}</>
+                      ) : (activeCard === 'lost') && lostDrilldownView === 'others' ? (
+                        <><th style={{ cursor: 'pointer', color: '#8B5CF6', textDecoration: 'underline', whiteSpace: 'nowrap' }} onClick={() => setLostDrilldownView('main')}>← Back</th>{othersReasonColumns.map(reason => <th key={reason} style={{ whiteSpace: 'nowrap', padding: '0 12px' }} title={reason}>{reason}</th>)}</>
+                      ) : (<><th>1-pax</th><th>2-pax</th><th>3-pax</th><th>4-pax</th><th>4+ pax</th></>)}
                   </tr>
                 </thead>
                                 <tbody>
@@ -2498,7 +2590,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                     return (
                       <React.Fragment key={catKey}>
                         <tr className="la-cat-row" onClick={() => setExpandedCatKey(expandedCatKey === catKey ? null : catKey)} style={{ cursor: 'pointer', background: expandedCatKey === catKey ? 'rgba(255,255,255,0.03)' : 'transparent' }}>
-                          <td style={{ fontWeight: 600, color: '#F0EDE8' }}>{catKey}</td>
+                          <td style={{ fontWeight: 600, color: '#F0EDE8', whiteSpace: 'nowrap' }}>{catKey}</td>
                           {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => <td key={mo.key}>{getCatDot(mo.key)}</td>)}<td>{getCatFuture()}</td></>)
                             : activeCard === 'allotment' ? (<><td>{sumField(catSellers, 'auto_allotted')}</td><td>{sumField(catSellers, 'manual_allotted')}</td><td>{sumField(catSellers, 'rtg_leads')}</td><td>{sumField(catSellers, 'non_rtg_leads')}</td></>)
                             : activeCard === 'ca' ? (() => {
@@ -2512,22 +2604,16 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                 const cOverallocation = Math.max(0, cAllotted - cAppetite)
                                 return (<><td>{cAllotted}</td><td>{cAppetite}</td><td style={{ color: cOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{cOverallocation}</td><td style={{ color: cFulf >= 90 ? '#22C55E' : cFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{cFulf}%</td><td>{cAvgCa != null ? `${cAvgCa}m` : '—'}</td></>)
                               })()
-                            : activeCard === 'lost' ? (<>{ lostReasonRows.map((r: any) => {
-                                let count = 0;
-                                catSellers.forEach((m: any) => {
-                                  (m.monthly_lost_reasons || []).forEach((lr: any) => {
-                                    const raw = (lr.lost_reason_details || '').toLowerCase();
-                                    let matched = false;
-                                    if (raw.includes('just checking')) { if (r.label === 'Just Checking') count++; matched = true; }
-                                    if (raw.includes('customer never responded')) { if (r.label === 'Customer Never Responded') count++; matched = true; }
-                                    if (raw.includes('not interested')) { if (r.label === 'Not Interested') count++; matched = true; }
-                                    if (raw.includes('budget issue')) { if (r.label === 'Budget Issue') count++; matched = true; }
-                                    if (!matched && r.label === 'Others') count++;
-                                  })
-                                })
-                                return <td key={r.label}>{count}</td>
-                              })})</>) 
-                            : (<><td>{sumField(catSellers, 'pax_1')}</td><td>{sumField(catSellers, 'pax_2')}</td><td>{sumField(catSellers, 'pax_3')}</td><td>{sumField(catSellers, 'pax_4')}</td><td>{sumField(catSellers, 'pax_4_plus')}</td></>)}
+                            : activeCard === 'lost' && lostDrilldownView === 'main' ? (<>{ lostReasonRows.map((r: any) => {
+                                const catLostRows = catSellers.flatMap((m: any) => m.monthly_lost_reasons || []);
+                                const count = countLeadsByBucket(catLostRows, r.label);
+                                return <td key={r.label} style={{ cursor: 'pointer', textDecoration: count > 0 ? 'underline' : 'none', color: count > 0 ? r.color : undefined }} onClick={e => { e.stopPropagation(); if (count > 0) setEnquiryPopup({ title: `${catKey} — ${r.label}`, bucket: r.label, leads: getLeadsForBucket(catSellers, r.label) }) }}>{count}</td>;
+                              })}</>
+                            ) : activeCard === 'lost' && lostDrilldownView === 'others' ? (<><td></td>{ othersReasonColumns.map(reason => {
+                                const count = catSellers.flatMap((m: any) => m.monthly_lost_reasons || []).filter((lr: any) => { const raw = (lr.lost_reason_details || '').toLowerCase(); return !raw.includes('just checking') && !raw.includes('no firm') && !raw.includes('customer never responded') && !raw.includes('not interested') && !raw.includes('budget issue') && (lr.lost_reason_details || '').split(',').map((p: string) => p.trim()).includes(reason); }).length;
+                                return <td key={reason} style={{ color: count > 0 ? '#F9FAFB' : '#3A3A3A', fontWeight: count > 0 ? 600 : 400, cursor: count > 0 ? 'pointer' : 'default', textDecoration: count > 0 ? 'underline' : 'none' }} onClick={e => { e.stopPropagation(); if (count > 0) setEnquiryPopup({ title: `${catKey} — ${reason}`, bucket: reason, leads: getLeadsForOtherReason(catSellers, reason) }) }}>{count}</td>;
+                            })}</>
+                            ) : (<><td>{sumField(catSellers, 'pax_1')}</td><td>{sumField(catSellers, 'pax_2')}</td><td>{sumField(catSellers, 'pax_3')}</td><td>{sumField(catSellers, 'pax_4')}</td><td>{sumField(catSellers, 'pax_4_plus')}</td></>)}
                         </tr>
                         {expandedCatKey === catKey && cat.tls.map((tl: any) => {
                           const tlKey = `${catKey}-${tl.tl_name}`
@@ -2537,7 +2623,7 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                           return (
                             <React.Fragment key={tlKey}>
                               <tr className="la-tl-row" onClick={() => setExpandedTlKey(expandedTlKey === tlKey ? null : tlKey)} style={{ cursor: 'pointer' }}>
-                                <td style={{ paddingLeft: '28px', color: '#D4D4D8' }}>↳ {tl.tl_name}</td>
+                                <td style={{ paddingLeft: '28px', color: '#D4D4D8', whiteSpace: 'nowrap' }}>↳ {tl.tl_name}</td>
                                 {activeCard === 'dot' ? (<>{dotMonthsConfig.map(mo => <td key={mo.key}>{getTlDot(mo.key)}</td>)}<td>{getTlFuture()}</td></>)
                                   : activeCard === 'allotment' ? (<><td>{sumField(tl.sellers, 'auto_allotted')}</td><td>{sumField(tl.sellers, 'manual_allotted')}</td><td>{sumField(tl.sellers, 'rtg_leads')}</td><td>{sumField(tl.sellers, 'non_rtg_leads')}</td></>)
                                   : activeCard === 'ca' ? (() => {
@@ -2551,22 +2637,16 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                       const tOverallocation = Math.max(0, tAllotted - tAppetite)
                                       return (<><td>{tAllotted}</td><td>{tAppetite}</td><td style={{ color: tOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{tOverallocation}</td><td style={{ color: tFulf >= 90 ? '#22C55E' : tFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{tFulf}%</td><td>{tAvgCa != null ? `${tAvgCa}m` : '—'}</td></>)
                                     })()
-                                  : activeCard === 'lost' ? (<>{ lostReasonRows.map((r: any) => {
-                                let count = 0;
-                                tl.sellers.forEach((m: any) => {
-                                  (m.monthly_lost_reasons || []).forEach((lr: any) => {
-                                    const raw = (lr.lost_reason_details || '').toLowerCase();
-                                    let matched = false;
-                                    if (raw.includes('just checking')) { if (r.label === 'Just Checking') count++; matched = true; }
-                                    if (raw.includes('customer never responded')) { if (r.label === 'Customer Never Responded') count++; matched = true; }
-                                    if (raw.includes('not interested')) { if (r.label === 'Not Interested') count++; matched = true; }
-                                    if (raw.includes('budget issue')) { if (r.label === 'Budget Issue') count++; matched = true; }
-                                    if (!matched && r.label === 'Others') count++;
-                                  })
-                                })
-                                return <td key={r.label}>{count}</td>
-                              })})</>) 
-                                  : (<><td>{sumField(tl.sellers, 'pax_1')}</td><td>{sumField(tl.sellers, 'pax_2')}</td><td>{sumField(tl.sellers, 'pax_3')}</td><td>{sumField(tl.sellers, 'pax_4')}</td><td>{sumField(tl.sellers, 'pax_4_plus')}</td></>)}
+                                  : activeCard === 'lost' && lostDrilldownView === 'main' ? (<>{ lostReasonRows.map((r: any) => {
+                                const tlLostRows = tl.sellers.flatMap((m: any) => m.monthly_lost_reasons || []);
+                                const count = countLeadsByBucket(tlLostRows, r.label);
+                                return <td key={r.label} style={{ cursor: 'pointer', textDecoration: count > 0 ? 'underline' : 'none', color: count > 0 ? r.color : undefined }} onClick={e => { e.stopPropagation(); if (count > 0) setEnquiryPopup({ title: `${tl.tl_name} — ${r.label}`, bucket: r.label, leads: getLeadsForBucket(tl.sellers, r.label) }) }}>{count}</td>;
+                               })}</>
+                                  ) : activeCard === 'lost' && lostDrilldownView === 'others' ? (<><td></td>{ othersReasonColumns.map(reason => {
+                                const count = tl.sellers.flatMap((m: any) => m.monthly_lost_reasons || []).filter((lr: any) => { const raw = (lr.lost_reason_details || '').toLowerCase(); return !raw.includes('just checking') && !raw.includes('no firm') && !raw.includes('customer never responded') && !raw.includes('not interested') && !raw.includes('budget issue') && (lr.lost_reason_details || '').split(',').map((p: string) => p.trim()).includes(reason); }).length;
+                                return <td key={reason} style={{ color: count > 0 ? '#F9FAFB' : '#3A3A3A', fontWeight: count > 0 ? 600 : 400, cursor: count > 0 ? 'pointer' : 'default', textDecoration: count > 0 ? 'underline' : 'none' }} onClick={e => { e.stopPropagation(); if (count > 0) setEnquiryPopup({ title: `${tl.tl_name} — ${reason}`, bucket: reason, leads: getLeadsForOtherReason(tl.sellers, reason) }) }}>{count}</td>;
+                            })}</>
+                                  ) : (<><td>{sumField(tl.sellers, 'pax_1')}</td><td>{sumField(tl.sellers, 'pax_2')}</td><td>{sumField(tl.sellers, 'pax_3')}</td><td>{sumField(tl.sellers, 'pax_4')}</td><td>{sumField(tl.sellers, 'pax_4_plus')}</td></>)}
                               </tr>
                               {expandedTlKey === tlKey && tl.sellers.map((s: any) => {
                                 const getSellerFuture = () => { let v = 0; (s.dot_rows || []).forEach((d: any) => { if (!dotMonthsConfig.some(mo => d.dot_month.endsWith('-' + mo.key))) v += d.total_leads_allotted || 0 }); return v }
@@ -2586,22 +2666,16 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                                           const sOverallocation = Math.max(0, sAllotted - sAppetite)
                                           return (<><td>{sAllotted}</td><td>{sAppetite}</td><td style={{ color: sOverallocation > 0 ? '#EF4444' : '#5A5650' }}>{sOverallocation}</td><td style={{ color: sFulf >= 90 ? '#22C55E' : sFulf >= 70 ? '#F59E0B' : '#EF4444' }}>{`${sFulf}%`}</td><td>{(sAvgCa != null ? `${sAvgCa}m` : '—')}</td></>)
                                         })()
-                                      : activeCard === 'lost' ? (<>{ lostReasonRows.map((r: any) => {
-                                let count = 0;
-                                [s].forEach((m: any) => {
-                                  (m.monthly_lost_reasons || []).forEach((lr: any) => {
-                                    const raw = (lr.lost_reason_details || '').toLowerCase();
-                                    let matched = false;
-                                    if (raw.includes('just checking')) { if (r.label === 'Just Checking') count++; matched = true; }
-                                    if (raw.includes('customer never responded')) { if (r.label === 'Customer Never Responded') count++; matched = true; }
-                                    if (raw.includes('not interested')) { if (r.label === 'Not Interested') count++; matched = true; }
-                                    if (raw.includes('budget issue')) { if (r.label === 'Budget Issue') count++; matched = true; }
-                                    if (!matched && r.label === 'Others') count++;
-                                  })
-                                })
-                                return <td key={r.label}>{count}</td>
-                              })})</>) 
-                                      : (<><td>{sumField([s], 'pax_1')}</td><td>{sumField([s], 'pax_2')}</td><td>{sumField([s], 'pax_3')}</td><td>{sumField([s], 'pax_4')}</td><td>{sumField([s], 'pax_4_plus')}</td></>)}
+                                      : activeCard === 'lost' && lostDrilldownView === 'main' ? (<>{ lostReasonRows.map((r: any) => {
+                                const sLostRows = s.monthly_lost_reasons || [];
+                                const count = countLeadsByBucket(sLostRows, r.label);
+                                return <td key={r.label} style={{ cursor: 'pointer', textDecoration: count > 0 ? 'underline' : 'none', color: count > 0 ? r.color : undefined }} onClick={e => { e.stopPropagation(); if (count > 0) setEnquiryPopup({ title: `${s.seller_name} — ${r.label}`, bucket: r.label, leads: getLeadsForBucket([s], r.label) }) }}>{count}</td>;
+                               })}</>
+                            ) : activeCard === 'lost' && lostDrilldownView === 'others' ? (<><td></td>{ othersReasonColumns.map(reason => {
+                                const count = (s.monthly_lost_reasons || []).filter((lr: any) => { const raw = (lr.lost_reason_details || '').toLowerCase(); return !raw.includes('just checking') && !raw.includes('no firm') && !raw.includes('customer never responded') && !raw.includes('not interested') && !raw.includes('budget issue') && (lr.lost_reason_details || '').split(',').map((p: string) => p.trim()).includes(reason); }).length;
+                                return <td key={reason} style={{ color: count > 0 ? '#F9FAFB' : '#3A3A3A', fontWeight: count > 0 ? 600 : 400, cursor: count > 0 ? 'pointer' : 'default', textDecoration: count > 0 ? 'underline' : 'none' }} onClick={e => { e.stopPropagation(); if (count > 0) setEnquiryPopup({ title: `${s.seller_name} — ${reason}`, bucket: reason, leads: getLeadsForOtherReason([s], reason) }) }}>{count}</td>;
+                            })}</>
+                                      ) : (<><td>{sumField([s], 'pax_1')}</td><td>{sumField([s], 'pax_2')}</td><td>{sumField([s], 'pax_3')}</td><td>{sumField([s], 'pax_4')}</td><td>{sumField([s], 'pax_4_plus')}</td></>)}
                                   </tr>
                                 )
                               })}
@@ -2611,6 +2685,43 @@ function MonthlyBreakdownSection({ hierarchy, onSellerClick }: { hierarchy: any[
                       </React.Fragment>
                     )
                   })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Enquiry Popup Modal ── */}
+      {enquiryPopup && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.82)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setEnquiryPopup(null)}>
+          <div style={{ background: '#1A1A1A', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '28px', width: '780px', maxWidth: '95vw', maxHeight: '85vh', overflowY: 'auto', position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }} onClick={e => e.stopPropagation()}>
+            <button style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.06)', border: '1px solid #333', color: '#E5E7EB', cursor: 'pointer', padding: '4px 10px', borderRadius: '6px', fontSize: '1rem', lineHeight: 1 }} onClick={() => setEnquiryPopup(null)}>✕</button>
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '4px' }}>Lost Leads — Enquiry List</div>
+            <div style={{ fontSize: '0.75rem', color: '#8A8278', marginBottom: '20px' }}>{enquiryPopup.title} · {enquiryPopup.leads.length} leads</div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                <thead>
+                  <tr style={{ background: '#111' }}>
+                    <th style={{ textAlign: 'left', padding: '8px 12px', color: '#8A8278', fontWeight: 600, borderBottom: '1px solid #222', whiteSpace: 'nowrap' }}>Enquiry ID</th>
+                    <th style={{ textAlign: 'left', padding: '8px 12px', color: '#8A8278', fontWeight: 600, borderBottom: '1px solid #222', whiteSpace: 'nowrap' }}>Seller</th>
+                    <th style={{ textAlign: 'left', padding: '8px 12px', color: '#8A8278', fontWeight: 600, borderBottom: '1px solid #222' }}>Lost Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {enquiryPopup.leads.map((lead: any, i: number) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #1e1e1e' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                        {lead.lead_link ? (
+                          <a href={lead.lead_link} target="_blank" rel="noopener noreferrer" style={{ color: '#3B82F6', textDecoration: 'underline', fontWeight: 600 }}>{lead.enquiry_code || '—'}</a>
+                        ) : (
+                          <span style={{ color: '#8A8278' }}>{lead.enquiry_code || '—'}</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '8px 12px', color: '#D4D4D8', whiteSpace: 'nowrap' }}>{lead.seller_name || lead.sales_email_id || '—'}</td>
+                      <td style={{ padding: '8px 12px', color: '#9CA3AF', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={lead.lost_reason_details}>{formatLeadReason(lead.lost_reason_details, enquiryPopup.bucket)}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -3001,6 +3112,7 @@ export default function AdminLTAPage({ session }: AdminLTAPageProps) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>Goal vs SHB</div>
+                <span style={{ fontSize: '0.55rem', color: '#6B7280', fontStyle: 'italic' }}>· Yesterday</span>
               </div>
               <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Tap to view ▸</span>
             </div>

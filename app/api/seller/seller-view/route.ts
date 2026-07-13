@@ -39,6 +39,11 @@ export async function GET(request: NextRequest) {
     const currentMonth = date.substring(0, 7)
     const { start: monthStart, end: monthEnd } = monthBounds(date)
 
+    // Goal vs SHB: the row stored on date=X contains data OF date=X-1.
+    // So fetching today's row already gives yesterday's actual performance.
+    // We just need to cap the trend at today (don't show future empty dates).
+    const goalShbMonthEnd = monthEnd
+
     const [
       { data: allotmentData },
       { data: attendanceData },
@@ -114,7 +119,7 @@ export async function GET(request: NextRequest) {
         .lte('log_date', monthEnd)
         .order('log_date', { ascending: true }),
 
-      // Goal vs SHB
+      // Goal vs SHB — row stored on 'date' contains previous day's actual data
       supabasePublic
         .from('goal_vs_shb')
         .select('*')
@@ -123,13 +128,13 @@ export async function GET(request: NextRequest) {
         .limit(1)
         .maybeSingle(),
 
-      // Monthly Goal vs SHB Trend
+      // Monthly Goal vs SHB Trend — fetch all rows; labels will be shifted -1 day in UI
       supabasePublic
         .from('goal_vs_shb')
         .select('*')
         .eq('seller_email', email)
         .gte('date', monthStart)
-        .lte('date', monthEnd)
+        .lte('date', goalShbMonthEnd)
         .order('date', { ascending: true }),
 
       // Orbit Login Data (seller_availability)

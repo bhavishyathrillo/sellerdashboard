@@ -1,513 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KPI Command Center</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<style>
-:root{--brand-orange:#F4631E;--brand-teal:#007AFF;--brand-gold:#C9A84C;--text-primary:#F0EDE8;--text-secondary:#E0DCD5;--text-muted:#8A8278;--border:#232323;--green:#22C55E;--red:#EF4444;--amber:#F4631E;--sidebar-width:240px;--bg-main:#080808;--bg-card:#141414;--bg-hover:#1A1A1A;--bg-active:rgba(244,99,30,0.12)}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;background:var(--bg-main);color:var(--text-primary);min-height:100vh;font-size:14px}
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.35); border: 2px solid transparent; background-clip: padding-box; }
-html { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) transparent; }
-#loading-screen{position:fixed;inset:0;z-index:9999;background:var(--bg-main);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px}
-#app{display:none;min-height:100vh}
-#app.visible{display:flex;flex-direction:column}
-.sidebar{width:100%;flex-shrink:0;background:var(--bg-main);border-bottom:none;display:flex;flex-direction:row;align-items:center;position:sticky;top:0;padding:12px 20px;z-index:100;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
-.sidebar::-webkit-scrollbar{display:none}
-.sidebar-logo{display:none}
-.sidebar-nav{display:inline-flex;flex-direction:row;align-items:center;gap:4px;padding:5px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;margin:0 auto}
-.nav-section-label{display:none}
-.nav-item{display:inline-flex;align-items:center;justify-content:center;padding:7px 18px;border-radius:8px;cursor:pointer;transition:all .2s cubic-bezier(0.4, 0, 0.2, 1);color:#8A8278;font-size:13px;font-weight:600;margin-bottom:0;white-space:nowrap}
-.nav-item:hover{color:#fff;background:rgba(255,255,255,0.03)}
-.nav-item.active{background:rgba(244,99,30,0.15);color:var(--brand-orange);box-shadow:inset 0 0 0 1px rgba(244,99,30,0.2)}
-.nav-icon{display:none}
-.sidebar-user{display:none}
-.user-card{display:none}
-.user-avatar{display:none}
-.user-name{display:none}
-.user-role{display:none}
-.main-content{flex:1;min-width:0;padding:24px 20px}
-.page{display:none}
-.page.active{display:block}
-.topbar{display:flex;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:8px}
-.topbar h2{font-size:22px;font-weight:700;color:var(--text-primary)}
-.date-badge{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:7px 14px;font-size:12px;color:var(--text-primary);font-weight:500}
-.notice-banner{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-primary);margin-bottom:20px;flex-wrap:wrap}
-.notice-dot{width:7px;height:7px;border-radius:50%;background:var(--brand-orange);animation:pulse-dot 1.5s infinite}
-@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
-.filter-wrap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto}
-.filter-select{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:7px 12px;color:var(--text-primary);font-size:12px;font-weight:500;outline:none;max-width:150px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%238E8E93' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:24px}
-.date-range-wrap{display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:6px 12px}
-.date-range-label{font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase}
-.date-input{background:transparent;border:none;color:var(--text-primary);font-size:12px;outline:none;width:100px;color-scheme: dark;}
-.date-sep{color:var(--text-muted);font-size:11px}
-.date-clear{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px}
-.date-clear:hover{color:var(--red)}
-.date-active-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(0,122,255,.1);color:var(--brand-teal);font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px}
-.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
-.summary-box{background:var(--bg-card);border-radius:14px;padding:14px 16px;transition:all .15s;cursor:pointer;border:1px solid var(--border)}
-.summary-box:hover{transform:translateY(-2px);border-color:#444}
-.sb-header{display:flex;align-items:center;gap:6px;margin-bottom:12px}
-.sb-icon{font-size:14px}
-.sb-title{font-size:11px;font-weight:500;color:var(--text-muted);flex:1}
-.sb-pct{font-size:11px;font-weight:700}
-.sb-values{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.sb-val{flex:1}
-.sb-val-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px}
-.sb-val-num{font-size:17px;font-weight:700;line-height:1;color:var(--text-primary)}
-.sb-divider{width:1px;height:36px;background:var(--border)}
-.sb-bar-wrap{height:4px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:10px}
-.sb-bar{height:100%;border-radius:99px;transition:width .7s}
-.sb-bar.green{background:var(--green)}.sb-bar.red{background:var(--red)}.sb-bar.amber{background:var(--amber)}
-.sb-footer{display:flex;justify-content:space-between;font-size:10px;font-weight:600}
-.data-table-wrap{background:var(--bg-card);border-radius:16px;overflow:hidden;margin-bottom:20px;border:1px solid var(--border)}
-.table-header{padding:14px 18px;display:flex;justify-content:space-between;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
-.table-title{font-size:15px;font-weight:700;color:var(--text-primary)}
-.table-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
-.search-input{background:var(--bg-main);border:1px solid var(--border);border-radius:10px;padding:7px 12px;color:var(--text-primary);font-size:12px;outline:none;width:180px}
-.table-scroll{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:11px}
-thead{background:var(--bg-main)}
-th{padding:8px 10px;text-align:left;font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;white-space:nowrap}
-td{padding:10px 10px;border-top:1px solid var(--border);color:var(--text-secondary)}
-tr:hover td{background:var(--bg-hover)}
-.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:10px;font-weight:600}
-.badge-green{background:rgba(34,197,94,.15);color:var(--green)}.badge-red{background:rgba(239,68,68,.15);color:var(--red)}
-.badge-orange{background:var(--bg-active);color:var(--brand-orange)}.badge-blue{background:rgba(0,122,255,.15);color:var(--brand-teal)}
-.badge-gold{background:rgba(201,168,76,.15);color:var(--brand-gold)}
-.sort-th{cursor:pointer;user-select:none}.sort-th:hover{color:var(--brand-orange)!important}
-.raw-btn{padding:4px 10px;border-radius:8px;border:none;background:var(--bg-active);color:var(--brand-orange);font-size:10px;font-weight:600;cursor:pointer;transition:all .15s}
-.raw-btn:hover{background:var(--brand-orange);color:#fff}
-.btn-sm{padding:7px 14px;border-radius:10px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--bg-active);color:var(--brand-orange);cursor:pointer;transition:all .15s}
-.btn-sm:hover{background:var(--brand-orange);color:#fff}
-.btn-close{width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:var(--bg-main);color:var(--text-muted);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
-.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
-.modal-overlay.open{display:flex}
-.modal{background:var(--bg-card);border-radius:20px;padding:28px;max-height:90vh;display:flex;flex-direction:column;border:1px solid var(--border);animation:card-in .25s}
-@keyframes card-in{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:none}}
-.modal-header{display:flex;justify-content:space-between;margin-bottom:18px}
-.modal-title{font-size:18px;font-weight:700;color:var(--text-primary)}
-.modal-body{overflow-y:auto;flex:1}
-.tab-btn{padding:7px 16px;border-radius:10px;font-size:12px;font-weight:500;border:1px solid transparent;background:none;color:var(--text-muted);cursor:pointer;transition:all .15s}
-.tab-btn.active{background:var(--bg-main);color:var(--brand-orange);font-weight:600;border:1px solid var(--border)}
-.raw-table{width:100%;border-collapse:collapse;font-size:11px}
-.raw-table th{padding:8px 12px;font-size:10px;color:var(--text-muted);background:var(--bg-main);position:sticky;top:0}
-.raw-table td{padding:8px 12px;border-top:1px solid var(--border);color:var(--text-secondary)}
-.raw-table tr:hover td{background:var(--bg-hover)}
-.seller-header{display:flex;align-items:center;gap:16px;padding:18px;background:var(--bg-card);border-radius:16px;margin-bottom:20px;border:1px solid var(--border)}
-.seller-avatar-lg{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--brand-orange),var(--amber));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff}
-.empty-state{text-align:center;padding:40px;color:var(--text-muted);font-size:13px}
-.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--brand-orange);border-radius:50%;animation:spin .7s linear infinite}
-.spinner-sm{display:inline-block;width:10px;height:10px;border:1.5px solid var(--border);border-top-color:var(--brand-orange);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:3px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.settings-section{background:var(--bg-card);border-radius:16px;padding:22px;margin-bottom:20px;border:1px solid var(--border)}
-.settings-section h3{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text-primary)}
-.users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
-.user-row-card{background:var(--bg-main);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px}
-.user-row-avatar{width:34px;height:34px;border-radius:50%;background:var(--brand-orange);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff}
-.user-row-info{flex:1}
-.user-row-name{font-size:13px;font-weight:600;color:var(--text-primary)}
-.user-row-email{font-size:11px;color:var(--text-muted)}
-.btn-icon{width:28px;height:28px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-muted);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
-.btn-icon.danger:hover{background:rgba(239,68,68,.1);color:var(--red)}
-.adopt-section{background:var(--bg-card);border-radius:16px;overflow:hidden;margin-bottom:20px;border:1px solid var(--border)}
-.adopt-section-hdr{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.adopt-section-title{font-size:15px;font-weight:700;color:var(--text-primary)}
-.adopt-section-sub{font-size:11px;color:var(--text-muted)}
-.rc-wrap{max-width:1560px;margin:0 auto}
-.rc-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:22px}
-.rc-seg{display:inline-flex;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:4px;gap:4px}
-.rc-seg button{border:0;background:transparent;padding:8px 18px;font-size:13px;font-weight:500;border-radius:9px;cursor:pointer;color:var(--text-muted);transition:all .2s;font-family:inherit;letter-spacing:0.2px}
-.rc-seg button.on{background:rgba(244,99,30,0.18);color:var(--brand-orange);font-weight:700;box-shadow:0 0 0 1px rgba(244,99,30,0.35) inset}
-.rc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:18px}
 
-/* ─── Report Card — Card ─── */
-.rc-card{
-  background:linear-gradient(160deg,#181818 0%,#121212 100%);
-  border-radius:20px;overflow:hidden;cursor:pointer;
-  border:1px solid rgba(255,255,255,0.07);
-  transition:transform .22s cubic-bezier(0.2,0.7,0.3,1),box-shadow .22s,border-color .22s;
-  box-shadow:0 2px 16px rgba(0,0,0,0.35);
-}
-.rc-card:hover{
-  transform:translateY(-4px);
-  box-shadow:0 16px 48px rgba(0,0,0,0.55),0 0 0 1px rgba(244,99,30,0.25);
-  border-color:rgba(244,99,30,0.3);
-}
-
-/* ─── Report Card — Head ─── */
-.rc-head{
-  padding:22px 24px 18px;
-  display:flex;gap:18px;align-items:center;
-  border-bottom:1px solid rgba(255,255,255,0.06);
-  background:rgba(255,255,255,0.02);
-}
-
-/* ─── Score Ring ─── */
-.rc-score-ring{
-  width:60px;height:60px;border-radius:50%;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  font-weight:800;font-size:18px;letter-spacing:-0.5px;
-  position:relative;
-}
-.rc-score-ring::before{
-  content:'';position:absolute;inset:-3px;border-radius:50%;
-  background:conic-gradient(var(--rc-ring-color,#FF9500) var(--rc-pct,0%), rgba(255,255,255,0.08) 0%);
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);
-  mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);
-}
-
-/* ─── Report Card — Body ─── */
-.rc-body{padding:18px 24px 20px}
-.rc-subrow{display:flex;align-items:center;gap:12px;margin:10px 0}
-.rc-lab{
-  width:90px;font-size:12px;color:var(--text-muted);flex:none;
-  font-weight:600;letter-spacing:0.3px;text-transform:uppercase;font-size:10px;
-}
-.rc-bar{
-  flex:1;height:6px;border-radius:99px;
-  background:rgba(255,255,255,0.07);overflow:hidden;
-}
-.rc-bar>i{
-  display:block;height:100%;border-radius:99px;
-  transition:width .7s cubic-bezier(0.4,0,0.2,1);
-}
-.rc-score-num{
-  width:34px;text-align:right;font-size:13px;font-weight:700;
-  flex:none;color:var(--text-primary);
-}
-.rc-state{padding:64px 0;text-align:center;color:var(--text-muted);font-size:14px}
-.rc-pill{
-  display:inline-flex;align-items:center;gap:5px;
-  font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;margin-top:6px;
-  letter-spacing:0.2px;
-}
-
-/* ─── Report Card — Detail Overlay ─── */
-.rc-ov{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);
-  display:none;align-items:flex-start;justify-content:center;
-  padding:32px 14px;overflow:auto;z-index:5000;
-}
-.rc-ov.rc-show{display:flex}
-.rc-modal{
-  background:var(--bg-main);border-radius:22px;
-  width:100%;max-width:780px;overflow:hidden;
-  border:1px solid rgba(255,255,255,0.1);
-  box-shadow:0 32px 80px rgba(0,0,0,0.7);
-  animation:rc-slide-in .28s cubic-bezier(0.34,1.56,0.64,1);
-}
-@keyframes rc-slide-in{from{opacity:0;transform:translateY(28px) scale(0.97)}to{opacity:1;transform:none}}
-
-.rc-mh{
-  background:rgba(255,255,255,0.03);
-  border-bottom:1px solid rgba(255,255,255,0.08);
-  color:var(--text-primary);padding:20px 24px;
-  display:flex;justify-content:space-between;align-items:center;gap:14px;
-}
-.rc-mh .rc-t{font-size:19px;font-weight:700;letter-spacing:-0.3px}
-.rc-mh .rc-x{
-  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
-  color:var(--text-muted);width:34px;height:34px;border-radius:10px;
-  font-size:18px;cursor:pointer;transition:all .15s;
-  display:flex;align-items:center;justify-content:center;
-}
-.rc-mh .rc-x:hover{background:rgba(239,68,68,0.15);color:#EF4444;border-color:rgba(239,68,68,0.3)}
-.rc-mbody{padding:20px;max-height:calc(100vh - 140px);overflow:auto}
-
-/* ─── Detail Hero ─── */
-.rc-hero{
-  background:linear-gradient(135deg,rgba(244,99,30,0.08) 0%,rgba(255,255,255,0.03) 100%);
-  border-radius:18px;padding:20px;
-  display:flex;align-items:center;gap:20px;flex-wrap:wrap;
-  margin-bottom:18px;
-  border:1px solid rgba(244,99,30,0.2);
-  box-shadow:0 4px 24px rgba(0,0,0,0.25);
-}
-
-/* ─── Detail Subject Sections ─── */
-.rc-subj{
-  border-radius:18px;overflow:hidden;margin-bottom:16px;
-  border:1px solid rgba(255,255,255,0.08);
-  box-shadow:0 4px 20px rgba(0,0,0,0.2);
-}
-.rc-subj .rc-sh{
-  padding:16px 20px;display:flex;align-items:center;
-  justify-content:space-between;gap:12px;
-  background:rgba(255,255,255,0.04);
-  border-bottom:1px solid rgba(255,255,255,0.07);
-}
-.rc-subj-icon{
-  width:38px;height:38px;border-radius:11px;
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;
-}
-
-/* ─── Detail Chapter Rows ─── */
-.rc-chap{
-  display:flex;align-items:flex-start;gap:16px;
-  padding:16px 20px;border-top:1px solid rgba(255,255,255,0.05);
-  flex-wrap:wrap;background:rgba(0,0,0,0.15);
-  transition:background .15s;
-}
-.rc-chap:hover{background:rgba(255,255,255,0.025)}
-
-.rc-sellersBtn{
-  width:100%;margin-top:10px;
-  border:1px solid rgba(244,99,30,0.3);
-  background:rgba(244,99,30,0.07);
-  border-radius:14px;padding:14px;
-  font-size:13px;font-weight:600;color:var(--brand-orange);
-  cursor:pointer;transition:all .2s;font-family:inherit;
-}
-.rc-sellersBtn:hover{background:rgba(244,99,30,0.14);border-color:rgba(244,99,30,0.5)}
-
-.rc-spacer{flex:1}
-.rc-count{font-size:12px;color:var(--text-muted);font-weight:500}
-.rc-wchip{
-  font-size:11px;font-weight:600;color:var(--text-muted);
-  background:rgba(255,255,255,0.05);border:1px solid var(--border);
-  border-radius:7px;padding:3px 8px;flex:none;
-}
-.rc-cbar{width:84px;height:6px;border-radius:99px;background:rgba(255,255,255,0.07);overflow:hidden;flex:none}
-.rc-cbar>i{display:block;height:100%;border-radius:99px}
-.rc-cmark{
-  width:36px;text-align:right;font-size:15px;
-  font-weight:800;flex:none;color:var(--text-primary);
-}
-.rc-how{
-  background:rgba(255,255,255,0.03);border-radius:16px;
-  padding:18px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.07);
-}
-.rc-how h4{margin:0 0 10px;font-size:13px;font-weight:700;color:var(--text-primary)}
-.rc-how p{margin:0 0 8px;font-size:12.5px;color:var(--text-muted);line-height:1.6}
-
-/* Base overrides for inputs added in HTML modals */
-input[type="text"], input[type="email"], select { background: var(--bg-main) !important; color: var(--text-primary) !important; border: 1px solid var(--border) !important; outline: none; }
-
-/* ─── Compare Mode Toggle Button ─── */
-.rc-cmp-btn{
-  padding:8px 18px;border-radius:9px;border:1px solid rgba(255,255,255,0.12);
-  background:transparent;color:var(--text-muted);font-size:13px;font-weight:600;
-  cursor:pointer;transition:all .2s;font-family:inherit;letter-spacing:0.2px;
-  display:inline-flex;align-items:center;gap:7px;
-}
-.rc-cmp-btn:hover{background:rgba(91,156,246,0.1);border-color:rgba(91,156,246,0.4);color:#5B9CF6}
-.rc-cmp-btn.active{background:rgba(91,156,246,0.15);border-color:rgba(91,156,246,0.5);color:#5B9CF6;box-shadow:0 0 0 1px rgba(91,156,246,0.3) inset}
-
-/* ─── Compare Wrap ─── */
-#cmp-wrap{display:none;max-width:1600px;margin:0 auto}
-#cmp-wrap.show{display:block}
-
-/* ─── Compare Controls Bar ─── */
-.cmp-controls{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:16px 20px;margin-bottom:16px;display:flex;flex-direction:column;gap:12px}
-.cmp-ctrl-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.cmp-ctrl-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap}
-.cmp-date-group{display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:6px 12px}
-.cmp-date-input{background:transparent !important;border:none !important;color:var(--text-primary) !important;font-size:12px;width:110px;color-scheme:dark;cursor:pointer}
-.cmp-date-sep{color:var(--text-muted);font-size:11px;padding:0 2px}
-
-/* ─── Name Input Area ─── */
-.cmp-names-row{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
-.cmp-name-wrap{position:relative;flex:none}
-.cmp-name-input{
-  background:var(--bg-card) !important;border:1px solid var(--border) !important;
-  border-radius:10px;padding:8px 32px 8px 12px;font-size:13px;
-  color:var(--text-primary) !important;width:190px;font-family:inherit;
-  transition:border-color .15s;
-}
-.cmp-name-input:focus{border-color:rgba(91,156,246,0.5) !important;box-shadow:0 0 0 2px rgba(91,156,246,0.08)}
-.cmp-name-remove{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:2px;line-height:1}
-.cmp-name-remove:hover{color:var(--red)}
-.cmp-autocomplete{position:absolute;top:calc(100% + 4px);left:0;width:230px;background:#1A1A1A;border:1px solid rgba(255,255,255,0.12);border-radius:10px;z-index:200;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5)}
-.cmp-autocomplete div{padding:9px 14px;font-size:12px;cursor:pointer;color:var(--text-secondary);transition:background .12s}
-.cmp-autocomplete div:hover,.cmp-autocomplete div.selected{background:rgba(91,156,246,0.15);color:#5B9CF6}
-.cmp-add-btn{padding:8px 14px;border-radius:10px;border:1px dashed rgba(255,255,255,0.15);background:transparent;color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
-.cmp-add-btn:hover{border-color:rgba(91,156,246,0.4);color:#5B9CF6;background:rgba(91,156,246,0.06)}
-.cmp-run-btn{
-  padding:9px 22px;border-radius:10px;border:none;
-  background:linear-gradient(135deg,#5B9CF6,#4080e0);
-  color:#fff;font-size:13px;font-weight:700;cursor:pointer;
-  transition:all .2s;font-family:inherit;
-  box-shadow:0 2px 8px rgba(91,156,246,0.3);
-}
-.cmp-run-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(91,156,246,0.45)}
-.cmp-run-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
-
-/* ─── Compare State ─── */
-.cmp-state{padding:64px 0;text-align:center;color:var(--text-muted);font-size:14px;display:flex;align-items:center;justify-content:center;gap:10px}
-
-/* ─── Compare Grid ─── */
-#cmp-grid{display:grid;gap:16px;align-items:start}
-
-/* ─── Compare Panel (one per person) ─── */
-.cmp-panel{
-  background:linear-gradient(170deg,#181818 0%,#111111 100%);
-  border:1px solid rgba(255,255,255,0.08);border-radius:20px;
-  overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.4);
-}
-
-/* ─── Panel Header ─── */
-.cmp-panel-head{
-  padding:20px 22px 16px;
-  background:rgba(255,255,255,0.02);
-  border-bottom:1px solid rgba(255,255,255,0.06);
-  display:flex;align-items:center;gap:16px;
-}
-.cmp-ring-wrap{position:relative;width:68px;height:68px;flex-shrink:0}
-.cmp-ring-wrap svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-.cmp-ring-inner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:var(--text-primary);letter-spacing:-0.5px}
-.cmp-panel-info{flex:1;min-width:0}
-.cmp-panel-name{font-size:15px;font-weight:700;color:var(--text-primary);letter-spacing:-0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cmp-panel-sub{font-size:11px;color:var(--text-muted);margin-top:3px}
-.cmp-grade-pill{display:inline-flex;align-items:center;margin-top:7px;padding:4px 11px;border-radius:8px;font-size:12px;font-weight:800;letter-spacing:0.5px}
-.cmp-snap-badge{font-size:10px;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;gap:4px}
-
-/* ─── Subject summary bars ─── */
-.cmp-subjects{padding:14px 22px 10px;border-bottom:1px solid rgba(255,255,255,0.05)}
-.cmp-subj-row{display:flex;align-items:center;gap:10px;margin:7px 0}
-.cmp-subj-lab{width:72px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);flex-shrink:0}
-.cmp-subj-bar-wrap{flex:1;height:5px;border-radius:99px;background:rgba(255,255,255,0.07);overflow:hidden}
-.cmp-subj-bar{height:100%;border-radius:99px;transition:width .8s cubic-bezier(0.4,0,0.2,1)}
-.cmp-subj-score{width:32px;text-align:right;font-size:13px;font-weight:700;color:var(--text-primary);flex-shrink:0}
-
-/* ─── Chapter section ─── */
-.cmp-section-hdr{padding:12px 22px 6px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.015)}
-.cmp-section-icon{opacity:0.7}
-.cmp-section-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;flex:1}
-.cmp-section-score{font-size:14px;font-weight:800;color:var(--text-primary)}
-
-.cmp-metric{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 22px;border-top:1px solid rgba(255,255,255,0.04);
-  transition:background .12s;
-}
-.cmp-metric:hover{background:rgba(255,255,255,0.02)}
-.cmp-metric.winner{background:rgba(74,222,128,0.04);border-left:3px solid rgba(74,222,128,0.4)}
-.cmp-metric.loser{opacity:0.6}
-.cmp-metric-info{flex:1;min-width:0}
-.cmp-metric-label{font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:2px}
-.cmp-metric-detail{font-size:10px;color:var(--text-muted);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cmp-metric-bar-wrap{width:56px;height:4px;border-radius:99px;background:rgba(255,255,255,0.07);overflow:hidden;flex-shrink:0}
-.cmp-metric-bar{height:100%;border-radius:99px;transition:width .8s}
-.cmp-metric-score{width:40px;text-align:right;font-size:16px;font-weight:800;flex-shrink:0;letter-spacing:-0.3px}
-.cmp-metric-grade{font-size:10px;font-weight:600;margin-top:1px;text-align:right}
-.cmp-winner-crown{font-size:11px;margin-left:2px}
-
-/* ─── Snapshot date banner ─── */
-.cmp-snap-bar{background:rgba(91,156,246,0.08);border:1px solid rgba(91,156,246,0.18);border-radius:10px;padding:8px 14px;font-size:11px;color:#5B9CF6;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:7px}
-
-</style>
-</head>
-<body>
-<div id="loading-screen"><div class="spinner" style="width:40px;height:40px;"></div><p style="color:#8E8E93">Loading KPI Command Center...</p></div>
-<div id="app">
-<nav class="sidebar">
-<div id="debug-error-overlay" style="display:none;position:fixed;top:0;left:0;right:0;background:rgba(255,0,0,0.9);color:white;z-index:99999;padding:20px;font-family:monospace;white-space:pre-wrap;max-height:50vh;overflow:auto;"></div>
-<script>
-window.addEventListener('error', function(e) {
-  var d = document.getElementById('debug-error-overlay');
-  d.style.display = 'block';
-  d.textContent += 'Error: ' + e.message + '\nAt: ' + e.filename + ':' + e.lineno + ':' + e.colno + '\n\n';
-});
-window.addEventListener('unhandledrejection', function(e) {
-  var d = document.getElementById('debug-error-overlay');
-  d.style.display = 'block';
-  d.textContent += 'Promise Error: ' + (e.reason && e.reason.stack ? e.reason.stack : e.reason) + '\n\n';
-});
-</script>
-<div class="sidebar-logo"><span style="font-weight:700;font-size:16px;color:#FF5200">KPI Command Center</span></div>
-<div class="sidebar-nav" id="sidebar-nav"></div>
-<div class="sidebar-user"><div class="user-card"><div class="user-avatar" id="sidebar-avatar">A</div><div><div class="user-name" id="sidebar-name">Admin</div><div class="user-role" id="sidebar-role">Admin</div></div></div></div>
-</nav>
-<main class="main-content">
-<div class="page" id="page-seller"><div class="topbar"><h2>My Dashboard</h2><div class="date-badge" id="date-badge-seller"></div></div><div id="seller-content"></div></div>
-<div class="page" id="page-l1"><div class="topbar"><h2>L1 Team View</h2><div class="date-badge" id="date-badge-l1"></div></div><div id="l1-content"></div></div>
-<div class="page" id="page-l2"><div class="topbar"><h2>L2 Division View</h2><div class="date-badge" id="date-badge-l2"></div></div><div id="l2-content"></div></div>
-<div class="page" id="page-overview"><div class="topbar"><h2>Organization Overview</h2><div class="date-badge" id="date-badge-overview"></div></div><div id="overview-content"></div></div>
-<div class="page" id="page-report"><div class="topbar"><h2>Manager Report Card</h2><div class="date-badge" id="date-badge-report"></div></div><div id="report-card-content"><div class="rc-wrap">
-<div class="rc-controls">
-<div class="rc-seg"><button id="rc-tabL1" class="on" onclick="rcSetLevel('l1')">L1 Managers</button><button id="rc-tabL2" onclick="rcSetLevel('l2')">L2 Seniors</button></div>
-<select id="rc-fCycle" onchange="rcOnCycle(this.value)"></select>
-<select id="rc-fL1" onchange="rcOnFilterChange('l1',this.value)"><option value="all">All L1</option></select>
-<select id="rc-fL2" onchange="rcOnFilterChange('l2',this.value)"><option value="all">All L2</option></select>
-<select id="rc-fGoal" onchange="rcOnFilterChange('goal',this.value)"><option value="all">All Goal Types</option></select>
-<select id="rc-fHaul" onchange="rcOnFilterChange('haul',this.value)"><option value="all">All Haul</option></select>
-<select id="rc-fRegion" onchange="rcOnRegion()"></select>
-<select id="rc-fSort" onchange="rcApplyFilters()"><option value="overall">Sort: Overall</option><option value="output">Sort: Output</option><option value="input">Sort: Input</option><option value="quotations">Sort: Quotations</option></select>
-<div class="rc-spacer"></div><div class="rc-count" id="rc-count"></div>
-<button class="rc-cmp-btn" id="rc-cmp-btn" onclick="cmpToggle()" style="display:none">⚡ Compare</button>
-</div>
-<div id="rc-grid" class="rc-grid"></div>
-<div id="rc-state" class="rc-state"><div class="spinner"></div>Building report cards...</div>
-</div>
-
-<!-- COMPARE VIEW -->
-<div id="cmp-wrap">
-  <div class="cmp-controls">
-    <!-- Row 1: Level + Filters -->
-    <div class="cmp-ctrl-row">
-      <div class="rc-seg" style="flex-shrink:0">
-        <button id="cmp-tabL1" class="on" onclick="cmpSetLevel('l1')">L1 Managers</button>
-        <button id="cmp-tabL2" onclick="cmpSetLevel('l2')">L2 Seniors</button>
-      </div>
-      <select id="cmp-fGoal" class="filter-select" onchange="cmpOnFilterChange()"><option value="all">All Goal Types</option></select>
-      <select id="cmp-fHaul" class="filter-select" onchange="cmpOnFilterChange()"><option value="all">All Haul</option></select>
-      <select id="cmp-fRegion" class="filter-select" onchange="cmpOnFilterChange()"><option value="all">All Regions</option></select>
-      <div style="flex-grow:1"></div>
-      <button class="rc-cmp-btn" style="background:rgba(255,255,255,0.1);color:var(--text-primary);border:1px solid rgba(255,255,255,0.2)" onclick="cmpToggle()">✕ Close Compare</button>
-    </div>
-    <!-- Row 2: Date Range -->
-    <div class="cmp-ctrl-row">
-      <span class="cmp-ctrl-label">Date Range</span>
-      <div class="cmp-date-group">
-        <span style="font-size:11px;color:var(--text-muted)">From</span>
-        <input type="date" id="cmp-from" class="cmp-date-input" value="2026-07-09" min="2026-07-09" onchange="cmpPopulateNames()">
-        <span class="cmp-date-sep">→</span>
-        <span style="font-size:11px;color:var(--text-muted)">To</span>
-        <input type="date" id="cmp-to" class="cmp-date-input" onchange="cmpPopulateNames()">
-      </div>
-      <span class="cmp-ctrl-label" style="margin-left:8px">Compare</span>
-      <div class="cmp-names-row" id="cmp-names-row">
-        <!-- Name inputs injected by JS -->
-      </div>
-      <button class="cmp-add-btn" onclick="cmpAddSlot()">+ Add Person</button>
-      <button class="cmp-run-btn" id="cmp-run-btn" onclick="cmpRun()">▶ Run Compare</button>
-    </div>
-  </div>
-  <div id="cmp-snap-bar" style="display:none" class="cmp-snap-bar">
-    📅 <span id="cmp-snap-text"></span>
-  </div>
-  <div id="cmp-state" style="display:none" class="cmp-state"><div class="spinner"></div><span>Loading comparison...</span></div>
-  <div id="cmp-grid"></div>
-</div>
-
-</div></div>
-
-
-</main>
-</div>
-
-<!-- FLAG MODAL -->
-<div class="modal-overlay" id="flag-modal"><div class="modal" style="width:700px;max-width:95vw"><div class="modal-header"><div><div class="modal-title" id="flag-modal-title"></div><div id="flag-modal-sub" style="font-size:11px;color:#8E8E93"></div></div><button class="btn-close" onclick="document.getElementById('flag-modal').classList.remove('open')">✕</button></div><div class="modal-body"><div id="flag-modal-body"></div></div></div></div>
-
-<!-- RAW MODAL -->
-<div class="modal-overlay" id="raw-modal"><div class="modal" style="width:860px;max-width:95vw"><div class="modal-header"><div><div class="modal-title" id="raw-modal-title">Raw Data</div><div id="raw-modal-email" style="font-size:11px;color:#8E8E93"></div></div><button class="btn-close" onclick="closeRawModal()">✕</button></div><div style="display:flex;gap:8px;margin-bottom:12px"><button class="tab-btn active" id="raw-tab-mhl" onclick="switchRawTab('mhl')">MHE</button><button class="tab-btn" id="raw-tab-call" onclick="switchRawTab('call')">Lead Records</button></div><div class="modal-body"><div id="raw-loading" style="text-align:center;padding:32px"><div class="spinner"></div></div><div id="raw-mhl-content" style="display:none"></div><div id="raw-call-content" style="display:none"></div></div></div></div>
-
-
-<!-- INCENTIVE MODAL -->
-<div class="modal-overlay" id="incentive-modal"><div class="modal" style="width:660px;max-width:95vw"><div class="modal-header"><div><div class="modal-title">💰 Incentive Structure</div><div style="font-size:11px;color:#8E8E93">Category Manager Incentive Framework</div></div><button class="btn-close" onclick="document.getElementById('incentive-modal').classList.remove('open')">✕</button></div><div class="modal-body" style="font-size:13px;line-height:1.7"><div style="background:rgba(255,183,3,.08);border:1px solid rgba(255,183,3,.25);border-radius:10px;padding:14px;margin-bottom:14px"><div style="font-weight:700;color:#C9A84C;margin-bottom:8px">Framework Overview</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px"><div style="background:rgba(255,82,0,.1);border-radius:8px;padding:10px;text-align:center"><div style="font-size:24px;font-weight:700;color:#FF5200">70%</div><div style="font-size:11px;color:#8E8E93">Revenue Performance</div></div><div style="background:rgba(0,180,216,.1);border-radius:8px;padding:10px;text-align:center"><div style="font-size:24px;font-weight:700;color:#007AFF">30%</div><div style="font-size:11px;color:#8E8E93">Hygiene Parameters</div></div></div></div><p style="font-weight:700;margin-bottom:8px">Revenue Achievement Slabs</p><table style="font-size:12px;width:100%;margin-bottom:14px"><thead><tr><th style="padding:9px 12px;color:#8E8E93;font-size:10px">Goal Achievement</th><th style="text-align:center;color:#8E8E93;font-size:10px">Multiplier</th></tr></thead><tbody><tr><td style="padding:9px 12px;border-top:1px solid #E5E5EA">Less than 80%</td><td style="text-align:center;font-weight:700;color:#FF3B30">0 — Not Eligible</td></tr><tr><td>80%–90%</td><td style="text-align:center;font-weight:700;color:#FF9500">0.6×</td></tr><tr><td>90%–100%</td><td style="text-align:center;font-weight:700;color:#FF9500">0.7×</td></tr><tr><td>100%–110%</td><td style="text-align:center;font-weight:700;color:#34C759">0.8×</td></tr><tr><td>110%–120%</td><td style="text-align:center;font-weight:700;color:#34C759">0.9×</td></tr><tr><td>More than 120%</td><td style="text-align:center;font-weight:700;color:#34C759">1.0×</td></tr></tbody></table><p style="font-weight:700;margin-bottom:8px">Hygiene Parameters (30%)</p><table style="font-size:12px;width:100%;margin-bottom:14px"><thead><tr><th style="padding:9px 12px;color:#8E8E93;font-size:10px">Parameter</th><th style="text-align:center;color:#8E8E93;font-size:10px">Weight</th><th style="text-align:center;color:#8E8E93;font-size:10px">Benchmark</th></tr></thead><tbody><tr><td>📞 First Call Duration</td><td style="text-align:center;font-weight:700;color:#007AFF">10%</td><td style="text-align:center">≥70% vs target</td></tr><tr><td>📋 MHE</td><td style="text-align:center;font-weight:700;color:#007AFF">10%</td><td style="text-align:center">MHE % &lt;15%</td></tr><tr><td>🚩 Flag %</td><td style="text-align:center;font-weight:700;color:#007AFF">10%</td><td style="text-align:center">Flag % &lt;12%</td></tr></tbody></table><div style="background:rgba(0,180,216,.08);border:1px solid rgba(0,180,216,.25);border-radius:10px;padding:12px;text-align:center;font-weight:700">Final Payout = <span style="color:#FF5200">Revenue Multiplier</span> × [<span style="color:#007AFF">70% + Hygiene Score</span>]</div></div></div></div>
-
-<!-- REPORT CARD OVERLAYS -->
-<div class="rc-ov" id="rc-ov1" onclick="if(event.target===this)rcClose1()"><div class="rc-modal"><div class="rc-mh"><div><div class="rc-t" id="rc-t1"></div><div class="rc-s" id="rc-s1"></div></div><button class="rc-x" onclick="rcClose1()">&times;</button></div><div class="rc-mbody" id="rc-b1"></div></div></div>
-<div class="rc-ov" id="rc-ov2" onclick="if(event.target===this)rcClose2()"><div class="rc-modal"><div class="rc-mh"><div><div class="rc-t" id="rc-t2"></div><div class="rc-s" id="rc-s2"></div></div><button class="rc-x" onclick="rcClose2()">&times;</button></div><div class="rc-mbody" id="rc-b2"></div></div></div>
-
-<script>
 // ═══════════════ API HELPER ═══════════════
 function api(action,params,method){
   method=method||'GET';var url='/api/kpi?action='+action;
@@ -939,14 +430,6 @@ function cmpSetLevel(l){
   CMP_LEVEL=l;
   document.getElementById('cmp-tabL1').classList.toggle('on',l==='l1');
   document.getElementById('cmp-tabL2').classList.toggle('on',l==='l2');
-  ['cmp-fGoal', 'cmp-fHaul', 'cmp-fRegion'].forEach(function(id){
-    var el = document.getElementById(id);
-    if(el) el.value = 'all';
-  });
-  CMP_SLOTS.forEach(function(s){ s.value = ''; });
-  cmpRenderSlots();
-  document.getElementById('cmp-grid').innerHTML = '';
-  document.getElementById('cmp-snap-bar').style.display = 'none';
   cmpPopulateNames();
 }
 
@@ -957,18 +440,18 @@ function cmpPopulateFilterDropdowns(){
   if(!RC_DATA) return;
   var cs=cycleSellers();
   var l1s=[...new Set(cs.map(function(s){return s.l1Manager;}).filter(Boolean))].sort();
+  var l2s=[...new Set(cs.map(function(s){return s.l2Manager;}).filter(Boolean))].sort();
   var goals=[...new Set(cs.map(function(s){return s.goalType;}).filter(Boolean))].sort();
   var hauls=[...new Set(cs.map(function(s){return s.haul;}).filter(Boolean))].sort();
   function fill(id,arr){var el=document.getElementById(id);if(!el)return;var first=el.options[0].text;el.innerHTML='<option value="all">'+first+'</option>'+arr.map(function(v){return'<option value="'+v+'">'+v+'</option>';}).join('');}
-  fill('cmp-fGoal',goals); fill('cmp-fHaul',hauls);
-  var regs=[];
-  if(RC_DATA.views['']){
-    var allSellers = (RC_DATA.views[''].l1||[]).concat(RC_DATA.views[''].l2||[]);
-    var allRegs = allSellers.reduce(function(a,m){return a.concat(m.regions||[]);}, []);
-    regs = Array.from(new Set(allRegs)).sort();
-  }
+  fill('cmp-fL1',l1s); fill('cmp-fL2',l2s); fill('cmp-fGoal',goals); fill('cmp-fHaul',hauls);
+  var regs=(RC_DATA.views['']?[...new Set((RC_DATA.views[''].l1||[]).concat(RC_DATA.views[''].l2||[]).reduce(function(a,m){return a.concat(m.regions||[]);},[])).sort()]:[] );
   var rsel=document.getElementById('cmp-fRegion');
   if(rsel) rsel.innerHTML='<option value="all">All Regions</option>'+regs.map(function(r){return'<option value="'+r+'">'+r+'</option>';}).join('');
+  // Cycles
+  var cycles=RC_DATA.cycles||[];
+  var csel=document.getElementById('cmp-fCycle');
+  if(csel) csel.innerHTML='<option value="">All Cycles</option>'+cycles.map(function(c){return'<option value="'+c+'"'+(c===RC_DATA.selectedCycle?' selected':'')+'>'+c+'</option>';}).join('');
 }
 
 // Fetch available manager names for autocomplete based on date range + filters
@@ -976,6 +459,8 @@ function cmpPopulateNames(){
   var from=document.getElementById('cmp-from').value||'2026-07-09';
   var to=document.getElementById('cmp-to').value||new Date().toISOString().split('T')[0];
   var params={from:from, to:to, level:CMP_LEVEL, names:'',
+    l1:document.getElementById('cmp-fL1').value||'all',
+    l2:document.getElementById('cmp-fL2').value||'all',
     goal:document.getElementById('cmp-fGoal').value||'all',
     haul:document.getElementById('cmp-fHaul').value||'all',
     reg:document.getElementById('cmp-fRegion').value||'all'};
@@ -1021,7 +506,7 @@ function cmpSlotInput(idx,val){
   if(!filtered.length){ac.style.display='none';return;}
   ac.style.display='block';
   ac.innerHTML=filtered.map(function(n){
-    return '<div onmousedown="cmpSlotSelect('+idx+',\''+n.replace(/'/g,"\\'")+'\')">'+(n)+'</div>';
+    return '<div onclick="cmpSlotSelect('+idx+',\''+n.replace(/'/g,"\\'")+'\')">'+(n)+'</div>';
   }).join('');
 }
 function cmpSlotFocus(idx){var ac=document.getElementById('cmp-ac-'+idx);if(ac&&CMP_SLOTS[idx].value)ac.style.display='block';}
@@ -1036,6 +521,8 @@ function cmpRun(){
   var to=document.getElementById('cmp-to').value||new Date().toISOString().split('T')[0];
   var params={
     from:from, to:to, level:CMP_LEVEL, names:names.join(','),
+    l1:document.getElementById('cmp-fL1').value||'all',
+    l2:document.getElementById('cmp-fL2').value||'all',
     goal:document.getElementById('cmp-fGoal').value||'all',
     haul:document.getElementById('cmp-fHaul').value||'all',
     reg:document.getElementById('cmp-fRegion').value||'all'
@@ -1052,7 +539,7 @@ function cmpRun(){
     if(!res.length){document.getElementById('cmp-grid').innerHTML='<div class="cmp-state" style="display:flex">No data found for the selected names and date range.</div>';return;}
     // Show snapshot info
     var snapDates=[...new Set(res.map(function(r){return(r.dateRange&&r.dateRange.snapshotDate)||to;}))].join(', ');
-    document.getElementById('cmp-snap-text').textContent='Showing performance strictly within the selected date window ('+from+' → '+to+')';
+    document.getElementById('cmp-snap-text').textContent='Showing cumulative data as of '+snapDates+' (snapshot of the latest available day per person in '+from+' → '+to+')';
     document.getElementById('cmp-snap-bar').style.display='flex';
     cmpRenderPanels(res);
   }).catch(function(e){
@@ -1165,6 +652,3 @@ function cmpRenderPanels(results){
 }
 
 
-</script>
-</body>
-</html>

@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
     case 'seller-raw': return handleSellerRaw(req);
     case 'sessions': return handleGetSessions();
     case 'report-card': return handleReportCard(req);
+    case 'compare-report': return handleCompareReport(req);
     case 'conviq': return handleConvIQ();
     case 'cycles': return handleCycles();
     default: return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
@@ -405,6 +406,130 @@ async function handleReportCard(req: NextRequest) {
     return NextResponse.json({generated:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),subjectWeights:SW,hasConviq:false,regions:[...regs].sort(),cycles,selectedCycle:sc,views:{'':{l1:l1Cards,l2:l2Cards}}});
   } catch(e:any) { return NextResponse.json({generated:'',subjectWeights:SW,hasConviq:false,regions:[],cycles:[],selectedCycle:'',views:{'':{l1:[],l2:[]}},error:e.message}); }
 }
+
+// ============================================================
+// COMPARE REPORT — queries roster_daily_logs by date range
+// Uses the LATEST snapshot row per seller within the range.
+// Each daily log row is a cumulative snapshot, so the most recent
+// date (e.g. 12 Jul) already has all accumulated actuals + SHBs.
+// ============================================================
+async function handleCompareReport(req: NextRequest) {
+  try {
+    const u = new URL(req.url);
+    const from = u.searchParams.get('from') || '2026-07-09';
+    const to = u.searchParams.get('to') || new Date().toISOString().split('T')[0];
+    const level = (u.searchParams.get('level') || 'l1') as string;
+    const namesRaw = u.searchParams.get('names') || '';
+    const names = namesRaw.split(',').map((n: string) => n.trim()).filter(Boolean);
+    const l1f = u.searchParams.get('l1') || '';
+    const l2f = u.searchParams.get('l2') || '';
+    const goal = u.searchParams.get('goal') || '';
+    const haul = u.searchParams.get('haul') || '';
+    const reg = u.searchParams.get('reg') || '';
+
+    const fromDateObj = new Date(from);
+    fromDateObj.setDate(fromDateObj.getDate() - 1);
+    const baselineDate = fromDateObj.toISOString().split('T')[0];
+
+    let q = supabase.from('roster_daily_logs').select('*')
+      .gte('log_date', baselineDate)
+      .lte('log_date', to);
+    if (l1f && l1f !== 'all') q = q.eq('l1_manager_name', l1f);
+    if (l2f && l2f !== 'all') q = q.eq('l2_manager_name', l2f);
+    if (goal && goal !== 'all') q = q.eq('goal_type', goal);
+    if (haul && haul !== 'all') q = q.eq('haul', haul);
+    if (reg && reg !== 'all') q = q.eq('region', reg);
+
+    const { data: rows } = await fetchAll(q);
+    const allRows = rows || [];
+
+    const managerKey = level === 'l1' ? 'l1_manager_name' : 'l2_manager_name';
+    const allManagerNames: string[] = [...new Set(allRows.map((r: any) => r[managerKey]).filter(Boolean))].sort() as string[];
+    const allL1s = [...new Set(allRows.map((r: any) => r.l1_manager_name).filter(Boolean))].sort();
+    const allL2s = [...new Set(allRows.map((r: any) => r.l2_manager_name).filter(Boolean))].sort();
+    const allGoals = [...new Set(allRows.map((r: any) => r.goal_type).filter(Boolean))].sort();
+    const allHauls = [...new Set(allRows.map((r: any) => r.haul).filter(Boolean))].sort();
+    const allRegions = [...new Set(allRows.map((r: any) => r.region).filter(Boolean))].sort();
+
+    const targetNames = names.length > 0
+      ? allManagerNames.filter((n: string) => names.some((nm: string) => nm.toLowerCase() === n.toLowerCase()))
+      : allManagerNames;
+
+    const results: any[] = [];
+    targetNames.forEach((mgr: string) => {
+      const mgrRows = allRows.filter((r: any) => (r[managerKey] || '').toLowerCase() === mgr.toLowerCase());
+      if (!mgrRows.length) return;
+
+      const sellerLatest: Record<string, any> = {};
+      const sellerBaseline: Record<string, any> = {};
+
+      mgrRows.forEach((r: any) => {
+        const key = (r.email || '').toLowerCase();
+        if (!sellerLatest[key] || r.log_date > sellerLatest[key].log_date) {
+          sellerLatest[key] = r;
+        }
+        if (r.log_date <= baselineDate) {
+          if (!sellerBaseline[key] || r.log_date > sellerBaseline[key].log_date) {
+            sellerBaseline[key] = r;
+          }
+        }
+      });
+
+      const sellers = Object.values(sellerLatest).map((latest: any) => {
+        const base = sellerBaseline[(latest.email || '').toLowerCase()];
+        if (!base) return latest; // No baseline found, so use accumulated stats as is
+
+        const delta = { ...latest };
+        const fieldsToSubtract = [
+          'bottomline_shb', 'bottomline_actual',
+          'topline_shb', 'topline_actual',
+          'conversion_shb', 'conversion_actual',
+          'unique_leads', 'unique_leads_quoted',
+          'unique_feasibility_sent', 'total_feasibility_sent',
+          'feasibility_passed', 'reworks',
+          'mishandled_count', 'total_lead_instances',
+          'called_within_15_count', 'total_leads',
+          'priority_leads_count', 'leads_shb', 'converted_count'
+        ];
+        fieldsToSubtract.forEach(f => {
+          if (typeof latest[f] === 'number' && typeof base[f] === 'number') {
+            delta[f] = latest[f] - base[f];
+            if (delta[f] < 0) delta[f] = 0; // Prevent negatives just in case
+          }
+        });
+
+        // Special handling for talk_actual (which is an average, not a sum)
+        const baseTalkN = (base.talk_actual || 0) * (base.talk_call_count || 0);
+        const latestTalkN = (latest.talk_actual || 0) * (latest.talk_call_count || 0);
+        const deltaTalkCallCount = Math.max(0, (latest.talk_call_count || 0) - (base.talk_call_count || 0));
+        
+        if (deltaTalkCallCount > 0) {
+           delta.talk_actual = Math.max(0, (latestTalkN - baseTalkN) / deltaTalkCallCount);
+           delta.talk_call_count = deltaTalkCallCount;
+        } else {
+           delta.talk_actual = null;
+           delta.talk_call_count = 0;
+        }
+        return delta;
+      });
+
+      const regions = [...new Set(sellers.map((s: any) => s.region).filter(Boolean))];
+      const latestDate = sellers.reduce((best: string, s: any) => s.log_date > best ? s.log_date : best, from);
+      const agg = rcAggregate(sellers, level === 'l1');
+      results.push({
+        name: mgr, level, sellers: sellers.length, regions,
+        dateRange: { from, to, snapshotDate: latestDate },
+        subjects: agg.subjects, aggregate: agg.aggregate, grade: agg.grade, chapters: agg.chapters
+      });
+    });
+
+    results.sort((a, b) => (b.aggregate || 0) - (a.aggregate || 0));
+    return NextResponse.json({ success: true, results, meta: { from, to, level, requestedNames: names, allManagerNames, allL1s, allL2s, allGoals, allHauls, allRegions } });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message, results: [], meta: {} });
+  }
+}
+
 
 // ============================================================
 // CONVIQ

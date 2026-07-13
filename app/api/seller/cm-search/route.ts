@@ -19,10 +19,18 @@ export async function GET(req: Request) {
   const trimmedL1 = l1Email.toLowerCase().trim()
 
   try {
+    const { data: _me } = await supabase.from('srs_raw').select('l1_name').eq('l1_email', trimmedL1).limit(1).maybeSingle()
+  const _myName = _me?.l1_name || ''
+    
     let srsQuery = supabase
       .from('srs_raw')
       .select('seller_email, seller_name, l2_email')
-      .eq('l1_email', trimmedL1)
+      
+    if (_myName) {
+      srsQuery = srsQuery.eq('l1_name', _myName)
+    } else {
+      srsQuery = srsQuery.eq('l1_email', trimmedL1)
+    }
 
     if (query) {
       srsQuery = srsQuery.or(`seller_name.ilike.%${query}%,seller_email.ilike.%${query}%`)

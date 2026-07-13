@@ -822,7 +822,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
           <div className="la-kpi-bar" style={{ background: '#378ADD' }} />
           
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>Goal vs SHB</div>
+            <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.07em' }}>Goal vs SHB <span style={{ textTransform: 'none', fontWeight: 400, fontSize: '0.6rem' }}>· Yesterday</span></div>
             <span style={{ fontSize: '0.55rem', color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Tap to view ▸</span>
           </div>
           
@@ -1700,8 +1700,11 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         // Pad data up to the current date so we see days 1, 2, 3 etc. even if they are 0
         const [qy, qm] = (date || todayStr()).split('-').map(Number)
         const endDate = new Date(date || todayStr()).getDate()
+        const maxAvailableDate = sortedDays.length > 0 ? new Date(sortedDays[sortedDays.length - 1]).getDate() : 0;
+        const targetEndDate = Math.min(endDate + 1, maxAvailableDate);
+        
         const paddedTeamAvg = []
-        for (let i = 1; i <= endDate; i++) {
+        for (let i = 1; i <= targetEndDate; i++) {
           const dStr = `${qy}-${String(qm).padStart(2, '0')}-${String(i).padStart(2, '0')}`
           if (dayMap[dStr]) {
             paddedTeamAvg.push({
@@ -1728,7 +1731,7 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         // Drill: current seller logs padded
         let drillLogs: any[] = []
         if (goalShbDrillSeller) {
-          for (let i = 1; i <= endDate; i++) {
+          for (let i = 1; i <= targetEndDate; i++) {
             const dStr = `${qy}-${String(qm).padStart(2, '0')}-${String(i).padStart(2, '0')}`
             const existing = (goalShbDrillSeller.monthly_goal_shb || []).find((r: any) => r.date === dStr)
             drillLogs.push({
@@ -1740,7 +1743,11 @@ export default function L2SellerViewPage({ session }: { session: UserSession }) 
         }
 
         const activeData = goalShbDrillSeller ? drillLogs : paddedTeamAvg
-        const activeLabels = activeData.map((d: any) => new Date(d.date).getDate().toString())
+        const activeLabels = activeData.map((d: any) => {
+          const dt = new Date(d.date)
+          dt.setDate(dt.getDate() - 1)
+          return dt.getDate().toString()
+        })
         const activeGoalValues = activeData.map((d: any) => d.goalAvg)
         const activeShbValues = activeData.map((d: any) => d.shbAvg)
 

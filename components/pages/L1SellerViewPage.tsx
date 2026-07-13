@@ -280,6 +280,8 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   const [activeBreakdownCard, setActiveBreakdownCard] = useState<string | null>(null)
   const [breakdownDrillSeller, setBreakdownDrillSeller] = useState<any>(null)
   const [breakdownExpandedTl, setBreakdownExpandedTl] = useState<string | null>(null)
+  const [lostDrilldownView, setLostDrilldownView] = useState<'main'|'others'>('main')
+  const [enquiryPopup, setEnquiryPopup] = useState<{ title: string; bucket: string; leads: any[] } | null>(null)
 
   const [drillSellerS7, setDrillSellerS7] = useState<any>(null)
 
@@ -497,20 +499,85 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
   const sumCta = allCAMonthlyRows.reduce((s: number, r: any) => s + (r.median_creation_to_allotment_mins * r.total_leads_allotted), 0);
   const sumCtaLeads = allCAMonthlyRows.reduce((s: number, r: any) => s + r.total_leads_allotted, 0);
   const cmMonthlyAvgCA = sumCtaLeads > 0 ? Math.round(sumCta / sumCtaLeads) : null;
-  // ── Lost Reasons (5 fixed buckets) ──
-  const cmLostReasonCounts: Record<string, number> = { 'Just Checking': 0, 'Customer Never Responded': 0, 'Not Interested': 0, 'Budget Issue': 0, 'Others': 0 }
-  allMembers.forEach((m: any) => {
-    (m.monthly_lost_reasons || []).forEach((r: any) => {
-      const raw = (r.lost_reason_details || '').toLowerCase()
-      let matched = false
-      if (raw.includes('just checking')) { cmLostReasonCounts['Just Checking']++; matched = true }
-      if (raw.includes('customer never responded')) { cmLostReasonCounts['Customer Never Responded']++; matched = true }
-      if (raw.includes('not interested')) { cmLostReasonCounts['Not Interested']++; matched = true }
-      if (raw.includes('budget issue')) { cmLostReasonCounts['Budget Issue']++; matched = true }
-      if (!matched) cmLostReasonCounts['Others']++
+  // ── Lost reason helpers ──
+  function classifyLost(raw: string): { buckets: Set<string>, otherReasons: Set<string> } {
+    const buckets = new Set<string>()
+    const otherReasons = new Set<string>()
+    const parts = (raw || '').split(',').map(p => p.trim()).filter(p => p)
+    
+    if (parts.length === 0) {
+      buckets.add('Others')
+      otherReasons.add('Unknown')
+      return { buckets, otherReasons }
+    }
+
+    parts.forEach(part => {
+      const p = part.toLowerCase()
+      if (p.includes('just checking') || p.includes('no firm')) {
+        buckets.add('Just Checking')
+      } else if (p.includes('customer never responded')) {
+        buckets.add('Customer Never Responded')
+      } else if (p.includes('not interested')) {
+        buckets.add('Not Interested')
+      } else if (p.includes('budget issue')) {
+        buckets.add('Budget Issue')
+      } else {
+        buckets.add('Others')
+        otherReasons.add(part)
+      }
     })
+    
+    return { buckets, otherReasons }
+  }
+
+  function formatLeadReason(raw: string, bucket: string): string {
+    if (!raw) return '-';
+    const parts = Array.from(new Set(raw.split(',').map(p => p.trim()).filter(p => p)));
+    if (bucket === 'Just Checking') return parts.filter(p => p.toLowerCase().includes('just checking') || p.toLowerCase().includes('no firm')).join(', ');
+    if (bucket === 'Customer Never Responded') return parts.filter(p => p.toLowerCase().includes('customer never responded')).join(', ');
+    if (bucket === 'Not Interested') return parts.filter(p => p.toLowerCase().includes('not interested')).join(', ');
+    if (bucket === 'Budget Issue') return parts.filter(p => p.toLowerCase().includes('budget issue')).join(', ');
+    if (bucket === 'Others') return parts.filter(p => {
+      const low = p.toLowerCase();
+      return !low.includes('just checking') && !low.includes('no firm') && !low.includes('customer never responded') && !low.includes('not interested') && !low.includes('budget issue');
+    }).join(', ');
+    return parts.filter(p => p === bucket).join(', ');
+  }
+
+  function cmCountByBucket(lostRows: any[], bucket: string): number {
+    let c = 0
+    lostRows.forEach((lr: any) => { if (classifyLost(lr.lost_reason_details).buckets.has(bucket)) c++ })
+    return c
+  }
+
+  function cmGetLeadsForBucket(sellers: any[], bucket: string): any[] {
+    const leads: any[] = []
+    sellers.forEach((m: any) => {
+      ;(m.monthly_lost_reasons || []).forEach((lr: any) => {
+        if (classifyLost(lr.lost_reason_details).buckets.has(bucket)) leads.push({ ...lr, seller_name: m.seller_name })
+      })
+    })
+    return leads
+  }
+
+  function cmGetLeadsForOtherReason(sellers: any[], reason: string): any[] {
+    const leads: any[] = []
+    sellers.forEach((m: any) => {
+      ;(m.monthly_lost_reasons || []).forEach((lr: any) => {
+        if (classifyLost(lr.lost_reason_details).otherReasons.has(reason)) leads.push({ ...lr, seller_name: m.seller_name })
+      })
+    })
+    return leads
+  }
+
+  // ── Lost Reasons (5 fixed buckets, per-lead counting) ──
+  const allLostRows = allMembers.flatMap((m: any) => m.monthly_lost_reasons || [])
+  const cmLostReasonCounts: Record<string, number> = { 'Just Checking': 0, 'Customer Never Responded': 0, 'Not Interested': 0, 'Budget Issue': 0, 'Others': 0 }
+  allLostRows.forEach((r: any) => {
+    const buckets = classifyLost(r.lost_reason_details).buckets
+    buckets.forEach(b => { cmLostReasonCounts[b] = (cmLostReasonCounts[b] || 0) + 1 })
   })
-  const cmTotalLost = Object.values(cmLostReasonCounts).reduce((a, b) => a + b, 0)
+  const cmTotalLost = allLostRows.length
   const cmLostReasonRows = [
     { label: 'Just Checking', value: cmLostReasonCounts['Just Checking'], color: '#F59E0B' },
     { label: 'Customer Never Responded', value: cmLostReasonCounts['Customer Never Responded'], color: '#3B82F6' },
@@ -518,6 +585,14 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
     { label: 'Budget Issue', value: cmLostReasonCounts['Budget Issue'], color: '#EC4899' },
     { label: 'Others', value: cmLostReasonCounts['Others'], color: '#8B5CF6' },
   ]
+
+  // Collect unique others reasons for the Others drill-down
+  const cmOthersReasons = new Set<string>()
+  allLostRows.forEach((lr: any) => {
+    const res = classifyLost(lr.lost_reason_details)
+    res.otherReasons.forEach(r => cmOthersReasons.add(r))
+  })
+  const cmOthersColumns = Array.from(cmOthersReasons).sort()
 
   const cmMonthlyCaRows = [
     { label: 'Leads Allotted', value: cmMonthlyTotalLeads, color: '#E5E7EB' },
@@ -653,7 +728,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
             data: cmAllotmentRows.map((d: any) => d.value),
             backgroundColor: cmAllotmentRows.map((d: any) => d.color),
             borderRadius: 4,
-            barThickness: 30
+            barThickness: 12
           }]
         },
         options: {
@@ -940,7 +1015,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 
         {/* Goal vs SHB */}
         <div className={styles.kpiTile} style={{ cursor: 'pointer' }} onClick={() => setShowGoalShbTrendModal(true)}>
-          <div className={styles.kpiLabel}>Goal vs SHB</div>
+          <div className={styles.kpiLabel}>Goal vs SHB <span style={{ textTransform: 'none', fontWeight: 400, fontSize: '0.6rem', color: '#6B7280' }}>· Yesterday</span></div>
           {(() => {
             const targetDay = date || todayStr();
             const dayMap: Record<string, any> = {}
@@ -1113,12 +1188,12 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
         {/* ── Lost Reason ── */}
         <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '20px 16px', display: 'flex', flexDirection: 'column', height: '360px', cursor: 'pointer' }} onClick={() => { setActiveBreakdownCard(activeBreakdownCard === 'lost' ? null : 'lost'); setBreakdownExpandedTl(null) }}>
           <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A8278', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lost Reasons</div>
-          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Why leads were lost</div>
+          <div style={{ fontSize: '0.58rem', color: '#4A4642', marginBottom: '16px' }}>Why leads were lost ({cmTotalLost})</div>
           <div style={{ height: '120px', position: 'relative', marginBottom: '16px' }}><canvas ref={lostChartCanvasRef} /></div>
 
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
             {cmLostReasonRows.map((p, i) => {
-              const lostPct = cmTotalLost > 0 ? Math.round((p.value / cmTotalLost) * 100) : 0;
+              const lostPct = cmMonthlyTotalLeads > 0 ? Math.round((p.value / cmMonthlyTotalLeads) * 100) : 0;
               return (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2351,14 +2426,20 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                   {activeBreakdownCard === 'allotment' && 'TL Wise Bifurcation: Allotment Breakdown (Monthly)'}
                   {activeBreakdownCard === 'pax' && 'TL Wise Bifurcation: Leads by Group Size (Monthly)'}
                   {activeBreakdownCard === 'dot' && 'TL Wise Bifurcation: DOT Distribution (All-Time)'}
+                  {activeBreakdownCard === 'lost' && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      TL Wise Bifurcation: Lost Reasons (Monthly)
+                      {lostDrilldownView === 'others' && <button style={{ fontSize: '0.75rem', background: 'transparent', border: '1px solid #444', color: '#8B5CF6', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }} onClick={() => setLostDrilldownView('main')}>← Back</button>}
+                    </span>
+                  )}
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
+                <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', padding: '0' }}>
                     <table className={styles.table} style={{ width: '100%' }}>
                       <thead style={{ position: 'sticky', top: 0, background: '#111', zIndex: 10 }}>
                         <tr>
-                          <th style={{ paddingLeft: '24px' }}>Team (TL)</th>
+                          <th style={{ paddingLeft: '24px', whiteSpace: 'nowrap' }}>Team (TL)</th>
                           {activeBreakdownCard === 'ca' && (
                             <><th>Appetite (Monthly LTA)</th><th>Leads Allotted (Monthly)</th><th>Fulfillment %</th><th>Avg C→A (mins)</th></>
                           )}
@@ -2373,6 +2454,12 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                               {dotMonthsConfig.map(mo => <th key={mo.key}>{mo.label}</th>)}
                               <th>6+ Months</th>
                             </>
+                          )}
+                          {activeBreakdownCard === 'lost' && lostDrilldownView === 'main' && (
+                            <>{cmLostReasonRows.map(r => <th key={r.label} style={{ whiteSpace: 'nowrap', cursor: r.label === 'Others' ? 'pointer' : 'default', color: r.label === 'Others' ? '#8B5CF6' : undefined, textDecoration: r.label === 'Others' ? 'underline' : 'none' }} onClick={() => { if (r.label === 'Others') setLostDrilldownView('others') }}>{r.label}</th>)}</>
+                          )}
+                          {activeBreakdownCard === 'lost' && lostDrilldownView === 'others' && (
+                            <>{cmOthersColumns.map(reason => <th key={reason} style={{ whiteSpace: 'nowrap', padding: '0 12px' }}>{reason}</th>)}</>
                           )}
                         </tr>
                       </thead>
@@ -2441,6 +2528,19 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                                     <td>{tlStats.dotFuture}</td>
                                   </>
                                 )}
+                                {activeBreakdownCard === 'lost' && lostDrilldownView === 'main' && (
+                                  <>{cmLostReasonRows.map(r => {
+                                    const tlLostRows = g.members.flatMap((m: any) => m.monthly_lost_reasons || []);
+                                    const count = cmCountByBucket(tlLostRows, r.label);
+                                    return <td key={r.label} style={{ cursor: 'pointer', textDecoration: count > 0 ? 'underline' : 'none', color: count > 0 ? r.color : undefined }} onClick={e => { e.stopPropagation(); if (count > 0) setEnquiryPopup({ title: `${g.l2_name} — ${r.label}`, bucket: r.label, leads: cmGetLeadsForBucket(g.members, r.label) }) }}>{count}</td>;
+                                  })}</>
+                                )}
+                                {activeBreakdownCard === 'lost' && lostDrilldownView === 'others' && (
+                                  <>{cmOthersColumns.map(reason => {
+                                    const count = g.members.flatMap((m: any) => m.monthly_lost_reasons || []).filter((lr: any) => { const raw = (lr.lost_reason_details || '').toLowerCase(); return !raw.includes('just checking') && !raw.includes('no firm') && !raw.includes('customer never responded') && !raw.includes('not interested') && !raw.includes('budget issue') && (lr.lost_reason_details || '').split(',').map((p: string) => p.trim()).includes(reason); }).length;
+                                    return <td key={reason} style={{ color: count > 0 ? '#F9FAFB' : '#3A3A3A', fontWeight: count > 0 ? 600 : 400, cursor: count > 0 ? 'pointer' : 'default', textDecoration: count > 0 ? 'underline' : 'none' }} onClick={e => { e.stopPropagation(); if (count > 0) setEnquiryPopup({ title: `${g.l2_name} — ${reason}`, bucket: reason, leads: cmGetLeadsForOtherReason(g.members, reason) }) }}>{count}</td>;
+                                  })}</>
+                                )}
                               </tr>
                               
                               {breakdownExpandedTl === g.l2_email && g.members.map((m: any) => {
@@ -2507,6 +2607,19 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                                         <td>{mStats.dotFuture}</td>
                                       </>
                                     )}
+                                    {activeBreakdownCard === 'lost' && lostDrilldownView === 'main' && (
+                                      <>{cmLostReasonRows.map(r => {
+                                        const sLostRows = m.monthly_lost_reasons || [];
+                                        const count = cmCountByBucket(sLostRows, r.label);
+                                        return <td key={r.label} style={{ cursor: 'pointer', textDecoration: count > 0 ? 'underline' : 'none', color: count > 0 ? r.color : undefined }} onClick={e => { e.stopPropagation(); if (count > 0) setEnquiryPopup({ title: `${m.seller_name} — ${r.label}`, bucket: r.label, leads: cmGetLeadsForBucket([m], r.label) }) }}>{count}</td>;
+                                      })}</>
+                                    )}
+                                    {activeBreakdownCard === 'lost' && lostDrilldownView === 'others' && (
+                                      <>{cmOthersColumns.map(reason => {
+                                        const count = (m.monthly_lost_reasons || []).filter((lr: any) => { const raw = (lr.lost_reason_details || '').toLowerCase(); return !raw.includes('just checking') && !raw.includes('no firm') && !raw.includes('customer never responded') && !raw.includes('not interested') && !raw.includes('budget issue') && (lr.lost_reason_details || '').split(',').map((p: string) => p.trim()).includes(reason); }).length;
+                                        return <td key={reason} style={{ color: count > 0 ? '#F9FAFB' : '#3A3A3A', fontWeight: count > 0 ? 600 : 400, cursor: count > 0 ? 'pointer' : 'default', textDecoration: count > 0 ? 'underline' : 'none' }} onClick={e => { e.stopPropagation(); if (count > 0) setEnquiryPopup({ title: `${m.seller_name} — ${reason}`, bucket: reason, leads: cmGetLeadsForOtherReason([m], reason) }) }}>{count}</td>;
+                                      })}</>
+                                    )}
                                   </tr>
                                 )
                               })}
@@ -2519,6 +2632,43 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
                 </div>
               </div>
             </div>
+        )}
+
+        {/* ── Enquiry Popup Modal ── */}
+        {enquiryPopup && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.82)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setEnquiryPopup(null)}>
+            <div style={{ background: '#1A1A1A', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '28px', width: '780px', maxWidth: '95vw', maxHeight: '85vh', overflowY: 'auto', position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }} onClick={e => e.stopPropagation()}>
+              <button style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.06)', border: '1px solid #333', color: '#E5E7EB', cursor: 'pointer', padding: '4px 10px', borderRadius: '6px', fontSize: '1rem', lineHeight: 1 }} onClick={() => setEnquiryPopup(null)}>✕</button>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: '#F0EDE8', marginBottom: '4px' }}>Lost Leads — Enquiry List</div>
+              <div style={{ fontSize: '0.75rem', color: '#8A8278', marginBottom: '20px' }}>{enquiryPopup.title} · {enquiryPopup.leads.length} leads</div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                  <thead>
+                    <tr style={{ background: '#111' }}>
+                      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#8A8278', fontWeight: 600, borderBottom: '1px solid #222', whiteSpace: 'nowrap' }}>Enquiry ID</th>
+                      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#8A8278', fontWeight: 600, borderBottom: '1px solid #222', whiteSpace: 'nowrap' }}>Seller</th>
+                      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#8A8278', fontWeight: 600, borderBottom: '1px solid #222' }}>Lost Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {enquiryPopup.leads.map((lead: any, i: number) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #1e1e1e' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                          {lead.lead_link ? (
+                            <a href={lead.lead_link} target="_blank" rel="noopener noreferrer" style={{ color: '#3B82F6', textDecoration: 'underline', fontWeight: 600 }}>{lead.enquiry_code || '—'}</a>
+                          ) : (
+                            <span style={{ color: '#8A8278' }}>{lead.enquiry_code || '—'}</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '8px 12px', color: '#D4D4D8', whiteSpace: 'nowrap' }}>{lead.seller_name || lead.sales_email_id || '—'}</td>
+                        <td style={{ padding: '8px 12px', color: '#9CA3AF', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={lead.lost_reason_details}>{formatLeadReason(lead.lost_reason_details, enquiryPopup.bucket)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         )}
 
 
@@ -2618,10 +2768,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
           const targetDay = date || todayStr();
           const dayMap: Record<string, { goalSum: number; shbSum: number; count: number }> = {}
           const targetDateObj = new Date(targetDay);
-          for (let i = 1; i <= targetDateObj.getDate(); i++) {
-            const dStr = `${targetDateObj.getFullYear()}-${String(targetDateObj.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            dayMap[dStr] = { goalSum: 0, shbSum: 0, count: 0 };
-          }
+          const endDate = targetDateObj.getDate();
           const activeSellers = goalShbDrillSeller ? (goalShbDrillSeller.isGroup ? goalShbDrillSeller.members : [goalShbDrillSeller]) : allMembers
           activeSellers.forEach((m: any) => {
             ;(m.monthly_goal_shb || []).forEach((r: any) => {
@@ -2633,9 +2780,19 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
               dayMap[d].count += 1
             })
           })
+          const sortedDaysRaw = Object.keys(dayMap).sort();
+          const maxAvailableDate = sortedDaysRaw.length > 0 ? new Date(sortedDaysRaw[sortedDaysRaw.length - 1]).getDate() : 0;
+          const targetEndDate = Math.min(endDate + 1, maxAvailableDate);
+
+          for (let i = 1; i <= targetEndDate; i++) {
+            const dStr = `${targetDateObj.getFullYear()}-${String(targetDateObj.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            if (!dayMap[dStr]) dayMap[dStr] = { goalSum: 0, shbSum: 0, count: 0 };
+          }
+
           const sortedDays = Object.keys(dayMap).sort()
           const labels = sortedDays.map(d => {
             const dt = new Date(d)
+            dt.setDate(dt.getDate() - 1)
             return `${dt.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()]}`
           })
           const goalValues = sortedDays.map(d => dayMap[d].count > 0 ? parseFloat((dayMap[d].goalSum / dayMap[d].count).toFixed(0)) : 0)

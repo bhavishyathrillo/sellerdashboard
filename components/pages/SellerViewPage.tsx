@@ -453,13 +453,19 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
         const m = new Date(data.date).getMonth();
 
         const paddedData = [];
-        for (let i = 1; i <= endDate; i++) {
+        const maxAvailableDate = data.goal_vs_shb_trend!.length > 0 ? new Date(data.goal_vs_shb_trend![data.goal_vs_shb_trend!.length - 1].date).getDate() : 0;
+        const targetEndDate = Math.min(endDate + 1, maxAvailableDate);
+        
+        for (let i = 1; i <= targetEndDate; i++) {
           const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
           const existing = data.goal_vs_shb_trend!.find((d: any) => d.date === dateStr);
           paddedData.push(existing || { date: dateStr, goal_completion: 0, shb_percent: 0 });
         }
 
-        const labels = paddedData.map((d: any) => new Date(d.date).getDate().toString())
+        // Shift label by -1 day: row stored on date=X contains data of date=X-1
+        const labels = paddedData.map((d: any) => {
+          const dt = new Date(d.date); dt.setDate(dt.getDate() - 1); return dt.getDate().toString()
+        })
         const goalPcts = paddedData.map((d: any) => (d.goal_completion * 100).toFixed(0))
         const shbPcts = paddedData.map((d: any) => (d.shb_percent * 100).toFixed(0))
 

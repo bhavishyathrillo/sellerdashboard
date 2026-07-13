@@ -16,7 +16,16 @@ export async function GET(req: Request) {
   const trimmedEmail = cleanEmail(email)
 
   try {
-    const { data: sellers } = await supabase.from('srs_raw').select('seller_email, seller_name').eq('l1_email', trimmedEmail)
+      const { data: _me } = await supabase.from('srs_raw').select('l1_name').eq('l1_email', trimmedEmail).limit(1).maybeSingle()
+  const _myName = _me?.l1_name || ''
+  
+  let _query = supabase.from('srs_raw').select('seller_email, seller_name')
+  if (_myName) {
+    _query = _query.eq('l1_name', _myName)
+  } else {
+    _query = _query.eq('l1_email', trimmedEmail)
+  }
+  const { data: sellers } = await _query
     if (!sellers || sellers.length === 0) return NextResponse.json({ teamAverage: null, sellers: [] })
 
     const today = new Date()

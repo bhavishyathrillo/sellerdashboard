@@ -19,10 +19,16 @@ export async function GET(req: Request) {
   const queryDate = date || new Date().toISOString().split('T')[0]
 
   // Step 1: Get all sellers under this CM (L1)
-  const { data: allSellers, error: sellersError } = await supabase
-    .from('srs_raw')
-    .select('*')
-    .eq('l1_email', trimmedEmail)
+    const { data: _me } = await supabase.from('srs_raw').select('l1_name').eq('l1_email', trimmedEmail).limit(1).maybeSingle()
+  const _myName = _me?.l1_name || ''
+  
+  let _query = supabase.from('srs_raw').select('*')
+  if (_myName) {
+    _query = _query.eq('l1_name', _myName)
+  } else {
+    _query = _query.eq('l1_email', trimmedEmail)
+  }
+  const { data: allSellers, error: sellersError } = await _query
 
   if (sellersError) {
     return NextResponse.json({ error: sellersError.message }, { status: 500 })
@@ -59,7 +65,7 @@ export async function GET(req: Request) {
     supabase.from('goal_vs_shb').select('*').gte('date', monthStart).lte('date', monthEnd).or(emailFilters).order('date', { ascending: true }),
     supabase.from('kalpit_2').select('*').eq('date', queryDate),
     supabase.from('planned_lta').select('*').gte('log_date', monthStart).lte('log_date', monthEnd).in('seller_email', emails),
-    supabase.schema('seller_day_to_day').from('lead_journey_details').select('sales_email_id, lost_reason_details, lead_assignment_time').ilike('current_lead_state', 'lost').gte('lead_assignment_time', monthStart + 'T00:00:00+05:30').lte('lead_assignment_time', monthEnd + 'T23:59:59+05:30').in('sales_email_id', emails)
+    supabase.schema('seller_day_to_day').from('lead_journey_details').select('sales_email_id, lost_reason_details, lead_assignment_time, enquiry_code, lead_link').ilike('current_lead_state', 'lost').gte('lead_assignment_time', monthStart + 'T00:00:00+05:30').lte('lead_assignment_time', monthEnd + 'T23:59:59+05:30').in('sales_email_id', emails)
   ])
 
   // Map day-to-day data to sellers

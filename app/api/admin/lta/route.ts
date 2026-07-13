@@ -67,6 +67,10 @@ export async function GET(req: Request) {
     const lastDay = new Date(qy, qm, 0).getDate()
     const monthEnd = `${qy}-${String(qm).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
+    // Goal vs SHB: row stored on date=X contains data OF date=X-1.
+    // Fetching today's row gives yesterday's data. Labels shifted in UI.
+    const goalShbMonthEnd = monthEnd
+
     // ── 2. Parallel data fetch ──────────────────────────────────────────
     const [
       attendanceRes,
@@ -115,7 +119,7 @@ export async function GET(req: Request) {
         .from('seller_dot_distribution')
         .select('seller_email, dot_month, total_leads_allotted')),
 
-      // Goal vs SHB
+      // Goal vs SHB — row stored on date=X is data of date=X-1
       fetchAll(supabase
         .from('goal_vs_shb')
         .select('seller_email, goal_completion, shb_percent')
@@ -133,12 +137,12 @@ export async function GET(req: Request) {
         .gte('log_date', monthStart)
         .lte('log_date', monthEnd)),
 
-      // Monthly Goal vs SHB for Goal trend
+      // Monthly Goal vs SHB Trend — labels will be shifted -1 day in UI
       fetchAll(supabase
         .from('goal_vs_shb')
         .select('seller_email, date, goal_completion, shb_percent')
         .gte('date', monthStart)
-        .lte('date', monthEnd)),
+        .lte('date', goalShbMonthEnd)),
 
       // Hourly Leads for Timeline
       fetchAll(supabase.schema('seller_day_to_day')
@@ -179,7 +183,7 @@ export async function GET(req: Request) {
       // Lost Reason Details
       fetchAll(supabase.schema('seller_day_to_day')
         .from('lead_journey_details')
-        .select('sales_email_id, lost_reason_details, lead_assignment_time')
+        .select('sales_email_id, lost_reason_details, lead_assignment_time, enquiry_code, lead_link')
         .ilike('current_lead_state', 'lost')
         .gte('lead_assignment_time', monthStart + 'T00:00:00+05:30')
         .lte('lead_assignment_time', monthEnd + 'T23:59:59+05:30'))

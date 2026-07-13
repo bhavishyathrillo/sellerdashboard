@@ -17,11 +17,16 @@ export async function GET(req: Request) {
 
   try {
     if (role === 'L2') {
-      const { data: sellers } = await supabase
-        .from(table)
-        .select('*')
-        .eq(table === 'srs_june' ? '"L2 Email"' : 'l2_email', email.toLowerCase().trim())
-        .order(table === 'srs_june' ? '"% of Goal Achieved"' : 'goal_achieved_percent', { ascending: false })
+      const { data: _me } = await supabase.from('srs_raw').select('l1_name').eq('l1_email', email.toLowerCase().trim()).limit(1).maybeSingle()
+      const _myName = _me?.l1_name || ''
+      let _q = supabase.from(table).select('*')
+      if (_myName && table === 'srs_raw') {
+        _q = _q.eq('l2_name', _myName)
+      } else {
+        _q = _q.eq(table === 'srs_june' ? '"L2 Email"' : 'l2_email', email.toLowerCase().trim())
+      }
+      _q = _q.order(table === 'srs_june' ? '"% of Goal Achieved"' : 'goal_achieved_percent', { ascending: false })
+      const { data: sellers } = await _q
 
       // Map srs_june columns to standard srs_raw names
       const normalizedSellers = (sellers || []).map(s => {
@@ -78,11 +83,16 @@ export async function GET(req: Request) {
     }
 
     if (role === 'L1') {
-      const { data: sellers } = await supabase
-        .from(table)
-        .select('*')
-        .eq(table === 'srs_june' ? '"L1 Email"' : 'l1_email', email.toLowerCase().trim())
-        .order(table === 'srs_june' ? '"% of Goal Achieved"' : 'goal_achieved_percent', { ascending: false })
+      const { data: _me } = await supabase.from('srs_raw').select('l1_name').eq('l1_email', email.toLowerCase().trim()).limit(1).maybeSingle()
+      const _myName = _me?.l1_name || ''
+      let _q = supabase.from(table).select('*')
+      if (_myName && table === 'srs_raw') {
+        _q = _q.eq('l1_name', _myName)
+      } else {
+        _q = _q.eq(table === 'srs_june' ? '"L1 Email"' : 'l1_email', email.toLowerCase().trim())
+      }
+      _q = _q.order(table === 'srs_june' ? '"% of Goal Achieved"' : 'goal_achieved_percent', { ascending: false })
+      const { data: sellers } = await _q
 
       const normalizedSellers = (sellers || []).map(s => {
         if (table === 'srs_raw') return s

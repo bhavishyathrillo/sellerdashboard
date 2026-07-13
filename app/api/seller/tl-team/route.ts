@@ -60,6 +60,9 @@ export async function GET(req: Request) {
   const monthEnd = `${qy}-${String(qm).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
   const queryMonth = `${qy}-${String(qm).padStart(2, '0')}`
 
+  // Goal vs SHB: row stored on date=X contains data OF date=X-1.
+  // Fetching today's row gives yesterday's data. Labels are shifted -1 day in UI.
+
   const emailFilters = emails.map(e => `seller_email.eq.${e}`).join(',')
 
   // Step 2: Fetch daily data for these sellers
@@ -74,7 +77,7 @@ export async function GET(req: Request) {
     supabase.schema('seller_day_to_day').from('daily_allotment_summary').select('*').gte('allotment_date', monthStart).lte('allotment_date', monthEnd).in('seller_email', emails),
     // Monthly LTA logs for MHE trend (mishandled_pct per day per seller)
     supabase.from('daily_lta_log').select('seller_email,log_date,mishandled_pct,mishandled_enquiries').gte('log_date', monthStart).lte('log_date', monthEnd).in('seller_email', emails).order('log_date', { ascending: true }),
-    // Monthly Goal vs SHB for the team
+    // Monthly Goal vs SHB — row stored on date=X is data of date=X-1; labels shifted -1 day in UI
     supabase.from('goal_vs_shb').select('*').gte('date', monthStart).lte('date', monthEnd).or(emailFilters).order('date', { ascending: true }),
     supabase.from('kalpit_2').select('*').eq('date', queryDate),
     supabase.from('planned_lta').select('*').gte('log_date', monthStart).lte('log_date', monthEnd).in('seller_email', emails),
@@ -107,7 +110,7 @@ export async function GET(req: Request) {
       dot_rows: dotRes.data?.filter(d => d.seller_email === seller.seller_email) || [],
       monthly_rows: (monthlyAllotmentRes.data || []).filter((r: any) => r.seller_email === seller.seller_email),
       monthly_lta_logs: (monthlyLtaLogRes.data || []).filter((r: any) => r.seller_email === seller.seller_email),
-      monthly_goal_shb: (goalShbRes.data || []).filter((r: any) => r.seller_email.startsWith(shortPrefix)),
+      monthly_goal_shb: (goalShbRes.data || []).filter((r: any) => r.seller_email === seller.seller_email),
     }
   })
 

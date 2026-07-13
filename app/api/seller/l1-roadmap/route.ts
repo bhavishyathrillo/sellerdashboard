@@ -17,10 +17,13 @@ export async function GET(req: Request) {
   const trimmedEmail = email.toLowerCase().trim()
 
   // Get all sellers under this L1
-  const { data: allSellers, error } = await supabase
-    .from('srs_raw')
-    .select('seller_email, seller_name, l2_email, l2_name')
-    .eq('l1_email', trimmedEmail)
+  const { data: _me } = await supabase.from('srs_raw').select('l1_name').eq('l1_email', trimmedEmail).limit(1).maybeSingle()
+  const _myName = _me?.l1_name || ''
+  let _q = supabase.from('srs_raw').select('seller_email, seller_name, l2_email, l2_name')
+  if (_myName) _q = _q.eq('l1_name', _myName)
+  else _q = _q.eq('l1_email', trimmedEmail)
+  
+  const { data: allSellers, error } = await _q
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!allSellers || allSellers.length === 0) {
