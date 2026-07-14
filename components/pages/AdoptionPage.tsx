@@ -111,13 +111,21 @@ const CSS = `
 }
 
 /* Inactive Grid */
-.adp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.adp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; width: 100%; }
 .adp-card { 
   background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px;
   padding: 14px; display: flex; flex-direction: column; gap: 4px;
 }
 .adp-card-name { font-weight: 600; font-size: 0.9rem; color: #EF4444; }
 .adp-card-role { font-size: 0.7rem; color: #8A8278; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+
+.adp-grid-container { display: flex; flex-direction: column; gap: 16px; align-items: stretch; width: 100%; }
+.adp-show-more {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;
+  padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; font-family: 'Inter', sans-serif; align-self: center;
+}
+.adp-show-more:hover { background: rgba(255,255,255,0.1); }
 
 /* Active Table */
 .adp-tbl-wrap { 
@@ -199,6 +207,7 @@ export default function AdoptionPage({ session }: { session: UserSession }) {
   const [roleFilter, setRoleFilter] = useState('ALL')
   const [selectedUser, setSelectedUser] = useState<AdoptionUser | null>(null)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
+  const [showAllInactive, setShowAllInactive] = useState(false)
 
   const fetchData = async (overrideFrom?: string | React.MouseEvent, overrideTo?: string) => {
     setLoading(true)
@@ -347,13 +356,23 @@ export default function AdoptionPage({ session }: { session: UserSession }) {
               </div>
               
               {inactiveFiltered.length > 0 ? (
-                <div className="adp-grid">
-                  {inactiveFiltered.map(u => (
-                    <div key={u.email} className="adp-card">
-                      <div className="adp-card-name">{u.name}</div>
-                      <div className="adp-card-role">{formatRole(u.role)}</div>
-                    </div>
-                  ))}
+                <div className="adp-grid-container">
+                  <div className="adp-grid">
+                    {inactiveFiltered.slice(0, showAllInactive ? inactiveFiltered.length : 12).map(u => (
+                      <div key={u.email} className="adp-card">
+                        <div className="adp-card-name">{u.name}</div>
+                        <div className="adp-card-role">{formatRole(u.role)}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {inactiveFiltered.length > 12 && (
+                    <button 
+                      className="adp-show-more" 
+                      onClick={() => setShowAllInactive(!showAllInactive)}
+                    >
+                      {showAllInactive ? 'Show Less' : `Show All ${inactiveFiltered.length} Users`}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <p style={{ color: '#8A8278', fontSize: '0.85rem' }}>Everyone logged in during this period! 🎉</p>
