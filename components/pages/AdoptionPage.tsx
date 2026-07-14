@@ -80,12 +80,13 @@ const CSS = `
 }
 .adp-title p { color: #8A8278; font-size: 0.85rem; margin: 0; }
 
-.adp-filters { display: flex; gap: 12px; align-items: center; }
+.adp-filters { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
 .adp-date-grp { display: flex; flex-direction: column; gap: 4px; }
 .adp-date-lbl { font-size: 0.65rem; color: #6A6258; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
 .adp-date-inp { 
   background: rgba(18,18,18,0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; 
   padding: 8px 12px; color: #E8E4DD; font-size: 0.8rem; font-family: 'Inter', sans-serif; outline: none;
+  height: 38px; box-sizing: border-box;
 }
 .adp-date-inp::-webkit-calendar-picker-indicator {
   filter: invert(1) brightness(100);
@@ -93,8 +94,9 @@ const CSS = `
 }
 .adp-date-inp:focus { border-color: #F4631E; }
 .adp-btn {
-  background: #F4631E; color: #fff; border: none; padding: 9px 20px; border-radius: 8px;
-  font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; align-self: flex-end;
+  background: #F4631E; color: #fff; border: none; padding: 0 20px; border-radius: 8px;
+  font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+  height: 38px; display: flex; align-items: center; justify-content: center; white-space: nowrap; box-sizing: border-box;
 }
 .adp-btn:hover { background: #e05315; transform: translateY(-1px); }
 .adp-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
@@ -188,19 +190,22 @@ function formatRole(role: string) {
 }
 
 export default function AdoptionPage({ session }: { session: UserSession }) {
-  const [fromDate, setFromDate] = useState('2026-07-13')
+  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0])
   const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0])
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<{ activeUsers: AdoptionUser[], inactiveUsers: AdoptionUser[] } | null>(null)
   
   const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('ALL')
   const [selectedUser, setSelectedUser] = useState<AdoptionUser | null>(null)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
 
-  const fetchData = async () => {
+  const fetchData = async (overrideFrom?: string | React.MouseEvent, overrideTo?: string) => {
     setLoading(true)
+    const f = typeof overrideFrom === 'string' ? overrideFrom : fromDate
+    const t = typeof overrideTo === 'string' ? overrideTo : toDate
     try {
-      const res = await fetch(`/api/admin/adoption?from=${fromDate}&to=${toDate}&email=${encodeURIComponent(session.email)}&role=${session.role}`)
+      const res = await fetch(`/api/admin/adoption?from=${f}&to=${t}&email=${encodeURIComponent(session.email)}&role=${session.role}`)
       const json = await res.json()
       if (json.success) {
         setData(json.data)
@@ -220,17 +225,49 @@ export default function AdoptionPage({ session }: { session: UserSession }) {
 
   const activeFiltered = useMemo(() => {
     if (!data) return []
-    if (!search) return data.activeUsers
-    const s = search.toLowerCase()
-    return data.activeUsers.filter(u => u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s))
-  }, [data, search])
+    let arr = data.activeUsers
+    if (roleFilter !== 'ALL') {
+      arr = arr.filter(u => u.role === roleFilter)
+    }
+    if (search) {
+      const s = search.toLowerCase()
+      arr = arr.filter(u => u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s))
+    }
+    return arr
+  }, [data, search, roleFilter])
 
   const inactiveFiltered = useMemo(() => {
     if (!data) return []
-    if (!search) return data.inactiveUsers
-    const s = search.toLowerCase()
-    return data.inactiveUsers.filter(u => u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s))
-  }, [data, search])
+    let arr = data.inactiveUsers
+    if (roleFilter !== 'ALL') {
+      arr = arr.filter(u => u.role === roleFilter)
+    }
+    if (search) {
+      const s = search.toLowerCase()
+      arr = arr.filter(u => u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s))
+    }
+    return arr
+  }, [data, search, roleFilter])
+
+  let availableRoles = [{label: 'All', value: 'ALL'}, {label: 'Seller', value: 'SELLER'}]
+  if (session.role === 'L2') {
+    availableRoles.push({label: 'Team Lead', value: 'L2'})
+  } else if (session.role === 'L1') {
+    availableRoles = [
+      {label: 'All', value: 'ALL'}, 
+      {label: 'Seller', value: 'SELLER'}, 
+      {label: 'Team Lead', value: 'L2'}, 
+      {label: 'Me (Category Manager)', value: 'L1'}
+    ]
+  } else if (session.role === 'ADMIN') {
+    availableRoles = [
+      {label: 'All', value: 'ALL'}, 
+      {label: 'Seller', value: 'SELLER'}, 
+      {label: 'Team Lead', value: 'L2'}, 
+      {label: 'Category Manager', value: 'L1'},
+      {label: 'Admin', value: 'ADMIN'}
+    ]
+  }
 
   return (
     <>
@@ -245,6 +282,25 @@ export default function AdoptionPage({ session }: { session: UserSession }) {
           
           <div className="adp-filters">
             <div className="adp-date-grp">
+              <span className="adp-date-lbl">Search</span>
+              <input 
+                type="text" 
+                placeholder="Name or email..." 
+                className="adp-date-inp" 
+                style={{ width: '220px' }}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+            <button className="adp-btn" style={{background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)'}} onClick={() => {
+              const t = new Date().toISOString().split('T')[0];
+              setFromDate(t);
+              setToDate(t);
+              fetchData(t, t);
+            }}>
+              Today
+            </button>
+            <div className="adp-date-grp">
               <span className="adp-date-lbl">From</span>
               <input type="date" className="adp-date-inp" min="2026-07-13" value={fromDate} onChange={e => setFromDate(e.target.value)} />
             </div>
@@ -256,6 +312,28 @@ export default function AdoptionPage({ session }: { session: UserSession }) {
               {loading ? 'Loading...' : 'Fetch Data'}
             </button>
           </div>
+        </div>
+
+        <div style={{ marginBottom: '24px', display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '12px', width: 'fit-content', border: '1px solid rgba(255,255,255,0.05)' }}>
+          {availableRoles.map(r => (
+            <button 
+              key={r.value}
+              onClick={() => setRoleFilter(r.value)}
+              style={{
+                background: roleFilter === r.value ? '#F4631E' : 'transparent',
+                color: roleFilter === r.value ? '#fff' : '#8A8278',
+                border: 'none',
+                padding: '6px 16px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {r.label}
+            </button>
+          ))}
         </div>
 
         {data && (
@@ -289,16 +367,6 @@ export default function AdoptionPage({ session }: { session: UserSession }) {
                   <Clock size={20} color="#3B82F6" />
                   Active Users
                   <span className="adp-sec-count">{activeFiltered.length} Users</span>
-                </div>
-                <div>
-                  <input 
-                    type="text" 
-                    placeholder="Search name or email..." 
-                    className="adp-date-inp" 
-                    style={{ width: '250px' }}
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                  />
                 </div>
               </div>
 

@@ -93,18 +93,26 @@ export function useSessionTracker(email: string | null | undefined, activeTab: s
     };
   }, [activeTab]);
 
-  // Handle visibility changes (user switches browser tabs or minimizes window)
+  // Handle visibility and focus changes (user switches tabs, minimizes, or opens another app)
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleFocus = () => {
       if (document.visibilityState === 'visible') {
-        // Resumed looking at the page
-        if (activeTab) {
+        if (activeTab && lastStartTimeRef.current === null) {
           lastStartTimeRef.current = performance.now();
         }
+      }
+    };
+
+    const handleBlur = () => {
+      commitCurrentTime();
+      lastStartTimeRef.current = null;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && document.hasFocus()) {
+        handleFocus();
       } else {
-        // Tab hidden
-        commitCurrentTime();
-        lastStartTimeRef.current = null;
+        handleBlur();
       }
     };
 
@@ -114,10 +122,14 @@ export function useSessionTracker(email: string | null | undefined, activeTab: s
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [activeTab, email]);
