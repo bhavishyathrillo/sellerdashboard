@@ -87,12 +87,62 @@ export async function GET(req: Request) {
       by: completionDay
     }
 
+    // 🔥 Sync earned spins with database if they haven't been granted yet
+    let dbMaxPremium = rewards?.max_premium || 0;
+    let dbMaxStandard = rewards?.max_standard || 0;
+    let earnedPremium = 0;
+    let earnedStandard = 0;
+
+    if (completionDay > 0) {
+      if (completionDay <= 5) { earnedPremium = 2; }
+      else if (completionDay <= 10) { earnedPremium = 1; }
+      else if (completionDay <= 15) { earnedStandard = 1; }
+      else if (completionDay <= 20) { earnedStandard = 1; }
+    }
+
+    let needsUpdate = false;
+    let newPremiumAvailable = rewards?.premium_available || 0;
+    let newStandardAvailable = rewards?.standard_available || 0;
+
+    if (earnedPremium > dbMaxPremium) {
+      newPremiumAvailable += (earnedPremium - dbMaxPremium);
+      dbMaxPremium = earnedPremium;
+      needsUpdate = true;
+    }
+    if (earnedStandard > dbMaxStandard) {
+      newStandardAvailable += (earnedStandard - dbMaxStandard);
+      dbMaxStandard = earnedStandard;
+      needsUpdate = true;
+    }
+
+    if (needsUpdate) {
+      if (rewards?.id) {
+        await supabase.from('rewards').update({
+          max_premium: dbMaxPremium,
+          premium_available: newPremiumAvailable,
+          max_standard: dbMaxStandard,
+          standard_available: newStandardAvailable
+        }).eq('id', rewards.id);
+      } else {
+        await supabase.from('rewards').insert({
+          seller_email: trimmedEmail,
+          max_premium: dbMaxPremium,
+          premium_available: newPremiumAvailable,
+          max_standard: dbMaxStandard,
+          standard_available: newStandardAvailable,
+          is_premium: dbMaxPremium > 0,
+          goal_done: true,
+          pct: 100 // they reached milestone
+        });
+      }
+    }
+
     // 🔥 Return the response
     return NextResponse.json({
-      premiumAvailable: rewards?.premium_available || 0,
-      standardAvailable: rewards?.standard_available || 0,
-      maxPremium: rewards?.max_premium || 0,
-      maxStandard: rewards?.max_standard || 0,
+      premiumAvailable: newPremiumAvailable,
+      standardAvailable: newStandardAvailable,
+      maxPremium: dbMaxPremium,
+      maxStandard: dbMaxStandard,
       isPremium: rewards?.is_premium || false,
       goalDone: rewards?.goal_done || false,
       pct: rewards?.pct || 0,
