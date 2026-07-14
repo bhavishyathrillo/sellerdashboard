@@ -505,54 +505,57 @@ async function handleReportCard(req: NextRequest) {
 async function handleCompareReport(req: NextRequest) {
   try {
     const u = new URL(req.url);
+    const level = (u.searchParams.get('level') || 'l1') as string;
+    const slotsRaw = u.searchParams.get('slots');
+    
+    // Fallbacks for cmpPopulateNames
     const from = u.searchParams.get('from') || '2026-07-09';
     const to = u.searchParams.get('to') || new Date().toISOString().split('T')[0];
-    const level = (u.searchParams.get('level') || 'l1') as string;
-    const namesRaw = u.searchParams.get('names') || '';
-    const names = namesRaw.split(',').map((n: string) => n.trim()).filter(Boolean);
+    
     const l1f = u.searchParams.get('l1') || '';
     const l2f = u.searchParams.get('l2') || '';
     const goal = u.searchParams.get('goal') || '';
     const haul = u.searchParams.get('haul') || '';
     const reg = u.searchParams.get('reg') || '';
 
-    let rows = await getRosterDataWithDeltas(from, to, '', l1f, l2f);
-    if (goal && goal !== 'all') rows = rows.filter((r: any) => r.goal_type === goal);
-    if (haul && haul !== 'all') rows = rows.filter((r: any) => r.haul === haul);
-    if (reg && reg !== 'all') rows = rows.filter((r: any) => r.region === reg);
+    let slots: {name:string, from:string, to:string}[] = [];
+    if (slotsRaw) {
+      try { slots = JSON.parse(slotsRaw); } catch(e) {}
+    }
 
-    const allRows = rows || [];
-
-    const managerKey = level === 'l1' ? 'l1_manager_name' : 'l2_manager_name';
-    const allManagerNames: string[] = [...new Set(allRows.map((r: any) => r[managerKey]).filter(Boolean))].sort() as string[];
-    const allL1s = [...new Set(allRows.map((r: any) => r.l1_manager_name).filter(Boolean))].sort();
-    const allL2s = [...new Set(allRows.map((r: any) => r.l2_manager_name).filter(Boolean))].sort();
-    const allGoals = [...new Set(allRows.map((r: any) => r.goal_type).filter(Boolean))].sort();
-    const allHauls = [...new Set(allRows.map((r: any) => r.haul).filter(Boolean))].sort();
-    const allRegions = [...new Set(allRows.map((r: any) => r.region).filter(Boolean))].sort();
-
-    const targetNames = names.length > 0
-      ? allManagerNames.filter((n: string) => names.some((nm: string) => nm.toLowerCase() === n.toLowerCase()))
-      : allManagerNames;
+    if (slots.length === 0) {
+      let rows = await getRosterDataWithDeltas(from, to, '', l1f, l2f);
+      if (goal && goal !== 'all') rows = rows.filter((r: any) => r.goal_type === goal);
+      if (haul && haul !== 'all') rows = rows.filter((r: any) => r.haul === haul);
+      if (reg && reg !== 'all') rows = rows.filter((r: any) => r.region === reg);
+      const managerKey = level === 'l1' ? 'l1_manager_name' : 'l2_manager_name';
+      const allManagerNames: string[] = [...new Set((rows||[]).map((r: any) => r[managerKey]).filter(Boolean))].sort() as string[];
+      return NextResponse.json({ success: true, results: [], meta: { allManagerNames } });
+    }
 
     const results: any[] = [];
-    targetNames.forEach((mgr: string) => {
-      const sellers = allRows.filter((r: any) => (r[managerKey] || '').toLowerCase() === mgr.toLowerCase());
+    await Promise.all(slots.map(async (slot) => {
+      let rows = await getRosterDataWithDeltas(slot.from, slot.to, '', l1f, l2f);
+      if (goal && goal !== 'all') rows = rows.filter((r: any) => r.goal_type === goal);
+      if (haul && haul !== 'all') rows = rows.filter((r: any) => r.haul === haul);
+      if (reg && reg !== 'all') rows = rows.filter((r: any) => r.region === reg);
+
+      const managerKey = level === 'l1' ? 'l1_manager_name' : 'l2_manager_name';
+      const sellers = (rows||[]).filter((r: any) => (r[managerKey] || '').toLowerCase() === slot.name.toLowerCase());
       if (!sellers.length) return;
 
       const regions = [...new Set(sellers.map((s: any) => s.region).filter(Boolean))];
-      const latestDate = sellers.reduce((best: string, s: any) => s.log_date > best ? s.log_date : best, from);
+      const latestDate = sellers.reduce((best: string, s: any) => s.log_date > best ? s.log_date : best, slot.from);
       const agg = rcAggregate(sellers, level === 'l1');
       results.push({
-        name: mgr, level, sellers: sellers.length, regions,
-        dateRange: { from, to, snapshotDate: latestDate },
+        name: slot.name, level, sellers: sellers.length, regions,
+        dateRange: { from: slot.from, to: slot.to, snapshotDate: latestDate },
         subjects: agg.subjects, aggregate: agg.aggregate, grade: agg.grade, chapters: agg.chapters
       });
-    });
-
+    }));
 
     results.sort((a, b) => (b.aggregate || 0) - (a.aggregate || 0));
-    return NextResponse.json({ success: true, results, meta: { from, to, level, requestedNames: names, allManagerNames, allL1s, allL2s, allGoals, allHauls, allRegions } });
+    return NextResponse.json({ success: true, results, meta: {} });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message, results: [], meta: {} });
   }

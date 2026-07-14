@@ -462,16 +462,9 @@ window.addEventListener('unhandledrejection', function(e) {
       <div style="flex-grow:1"></div>
       <button class="rc-cmp-btn" style="background:rgba(255,255,255,0.1);color:var(--text-primary);border:1px solid rgba(255,255,255,0.2)" onclick="cmpToggle()">✕ Close Compare</button>
     </div>
-    <!-- Row 2: Date Range -->
-    <div class="cmp-ctrl-row">
-      <span class="cmp-ctrl-label">Date Range</span>
-      <div class="cmp-date-group">
-        <span style="font-size:11px;color:var(--text-muted)">From</span>
-        <input type="date" id="cmp-from" class="cmp-date-input" value="2026-07-09" min="2026-07-09" onchange="cmpPopulateNames()">
-        <span class="cmp-date-sep">→</span>
-        <span style="font-size:11px;color:var(--text-muted)">To</span>
-        <input type="date" id="cmp-to" class="cmp-date-input" onchange="cmpPopulateNames()">
-      </div>
+    <!-- Row 2: Slots -->
+    <div class="cmp-ctrl-row" style="flex-wrap: wrap;">
+      <span class="cmp-ctrl-label" style="margin-left:8px">Compare</span>
       <span class="cmp-ctrl-label" style="margin-left:8px">Compare</span>
       <div class="cmp-names-row" id="cmp-names-row">
         <!-- Name inputs injected by JS -->
@@ -930,10 +923,7 @@ function cmpToggle(){
     btn.classList.add('active'); btn.textContent='✕ Exit Compare';
     if(rcWrap) rcWrap.style.display='none';
     cmpWrap.classList.add('show');
-    // Set default "to" date to today
     var todayStr=new Date().toISOString().split('T')[0];
-    document.getElementById('cmp-to').value=todayStr;
-    document.getElementById('cmp-to').max=todayStr;
     cmpPopulateFilterDropdowns();
     if(CMP_SLOTS.length===0){cmpAddSlot();cmpAddSlot();}
     cmpPopulateNames();
@@ -982,8 +972,8 @@ function cmpPopulateFilterDropdowns(){
 
 // Fetch available manager names for autocomplete based on date range + filters
 function cmpPopulateNames(){
-  var from=document.getElementById('cmp-from').value||'2026-07-09';
-  var to=document.getElementById('cmp-to').value||new Date().toISOString().split('T')[0];
+  var from='2020-01-01'; // Broad date range to get all names
+  var to=new Date().toISOString().split('T')[0];
   var params={from:from, to:to, level:CMP_LEVEL, names:'',
     goal:document.getElementById('cmp-fGoal').value||'all',
     haul:document.getElementById('cmp-fHaul').value||'all',
@@ -999,7 +989,8 @@ function cmpPopulateNames(){
 var CMP_SLOT_COUNT=0;
 function cmpAddSlot(){
   CMP_SLOT_COUNT++;
-  CMP_SLOTS.push({id:'cmp-slot-'+CMP_SLOT_COUNT, value:'', acOpen:false});
+  var todayStr=new Date().toISOString().split('T')[0];
+  CMP_SLOTS.push({id:'cmp-slot-'+CMP_SLOT_COUNT, value:'', from:'2026-07-09', to:todayStr, acOpen:false});
   cmpRenderSlots();
 }
 function cmpRemoveSlot(idx){
@@ -1016,6 +1007,13 @@ function cmpRenderSlots(){
         'onfocus="cmpSlotFocus('+i+')" '+
         'onblur="setTimeout(function(){cmpSlotBlur('+i+');},180)"'+
         ' autocomplete="off">'+
+      '<div class="cmp-date-group" style="margin-left:8px; display:inline-flex; align-items:center;">'+
+        '<span style="font-size:11px;color:var(--text-muted);margin-right:4px;">From</span>'+
+        '<input type="date" class="cmp-date-input" value="'+s.from+'" onchange="CMP_SLOTS['+i+'].from=this.value">'+
+        '<span class="cmp-date-sep" style="margin:0 4px;">→</span>'+
+        '<span style="font-size:11px;color:var(--text-muted);margin-right:4px;">To</span>'+
+        '<input type="date" class="cmp-date-input" value="'+s.to+'" onchange="CMP_SLOTS['+i+'].to=this.value">'+
+      '</div>'+
       (CMP_SLOTS.length>2?'<button class="cmp-name-remove" onclick="cmpRemoveSlot('+i+')">×</button>':'')+
       '<div class="cmp-autocomplete" id="cmp-ac-'+i+'" style="display:none"></div>'+
     '</div>';
@@ -1039,12 +1037,11 @@ function cmpSlotSelect(idx,name){CMP_SLOTS[idx].value=name;cmpRenderSlots();}
 
 // ── Run Compare ──
 function cmpRun(){
-  var names=CMP_SLOTS.map(function(s){return s.value.trim();}).filter(Boolean);
-  if(!names.length){alert('Please enter at least one manager name to compare.');return;}
-  var from=document.getElementById('cmp-from').value||'2026-07-09';
-  var to=document.getElementById('cmp-to').value||new Date().toISOString().split('T')[0];
+  var validSlots=CMP_SLOTS.filter(function(s){return s.value.trim();});
+  if(!validSlots.length){alert('Please enter at least one manager name to compare.');return;}
+  var slotsJSON = JSON.stringify(validSlots.map(function(s){return {name: s.value.trim(), from: s.from, to: s.to};}));
   var params={
-    from:from, to:to, level:CMP_LEVEL, names:names.join(','),
+    slots: slotsJSON, level:CMP_LEVEL,
     goal:document.getElementById('cmp-fGoal').value||'all',
     haul:document.getElementById('cmp-fHaul').value||'all',
     reg:document.getElementById('cmp-fRegion').value||'all'
@@ -1060,8 +1057,8 @@ function cmpRun(){
     var res=d.results||[];
     if(!res.length){document.getElementById('cmp-grid').innerHTML='<div class="cmp-state" style="display:flex">No data found for the selected names and date range.</div>';return;}
     // Show snapshot info
-    var snapDates=[...new Set(res.map(function(r){return(r.dateRange&&r.dateRange.snapshotDate)||to;}))].join(', ');
-    document.getElementById('cmp-snap-text').textContent='Showing performance strictly within the selected date window ('+from+' → '+to+')';
+    var snapDates=[...new Set(res.map(function(r){return(r.dateRange&&r.dateRange.snapshotDate)||'';}))].join(', ');
+    document.getElementById('cmp-snap-text').textContent='Showing performance strictly within the individually selected date windows';
     document.getElementById('cmp-snap-bar').style.display='flex';
     cmpRenderPanels(res);
   }).catch(function(e){
