@@ -43,7 +43,7 @@ export default function RewardsPage({ session }: Props) {
     const [showStandard, setShowStandard] = useState(true)
 
     useEffect(() => {
-      fetch(`/api/seller/l1-rewards?email=${encodeURIComponent(session.email)}`)
+      fetch(`/api/seller/l1-rewards?email=${encodeURIComponent(session.email)}&t=${Date.now()}`)
         .then(r => r.json()).then(d => { setL1Rewards(d); setL1Loading(false) }).catch(() => setL1Loading(false))
     }, [session.email])
 
@@ -121,7 +121,7 @@ export default function RewardsPage({ session }: Props) {
 
   async function loadRewards() {
     try {
-      const res = await fetch(`/api/seller/rewards?email=${encodeURIComponent(session.email)}`)
+      const res = await fetch(`/api/seller/rewards?email=${encodeURIComponent(session.email)}&t=${Date.now()}`)
       const data = await res.json()
       if (res.ok) setRewards(data)
     } catch {}
