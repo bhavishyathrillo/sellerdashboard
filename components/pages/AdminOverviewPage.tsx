@@ -187,6 +187,76 @@ const CSS = `
   font-weight: 500;
 }
 
+/* ── Region Filter ── */
+.ov-region-select {
+  position: relative;
+  display: inline-block;
+  z-index: 100;
+}
+.ov-region-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #E8E4DD;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  height: 38px;
+}
+.ov-region-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(212, 175, 55, 0.4);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.1);
+}
+.ov-region-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  background: #151515;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 8px;
+  min-width: 180px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 400px;
+  overflow-y: auto;
+}
+.ov-region-menu.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.ov-region-item {
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #B0A898;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ov-region-item:hover {
+  background: rgba(212, 175, 55, 0.1);
+  color: #D4AF37;
+}
+.ov-region-item.active {
+  background: rgba(212, 175, 55, 0.15);
+  color: #D4AF37;
+  font-weight: 700;
+}
+
 /* ── KPI Section ── */
 .ov-kpi-sec { margin-bottom: 36px; }
 
@@ -495,6 +565,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
   const [expandedFlagCms, setExpandedFlagCms] = useState<Record<string, boolean>>({})
   const [flagModal, setFlagModal] = useState<{ cmName: string, l2Name?: string, flag: string } | null>(null)
   const [search, setSearch] = useStickyState('', 'AdminOverview_search')
+  const [selectedRegion, setSelectedRegion] = useStickyState('All', 'AdminOverview_region')
+  const [regionOpen, setRegionOpen] = useState(false)
   const adminName = session?.name || 'Admin'
 
   useEffect(() => {
@@ -522,12 +594,36 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
   const flagTable = apiData?.flagTable || { columns: [], rows: [] }
   let gBlG = 0, gBlS = 0, gBlA = 0, gTlG = 0, gTlS = 0, gTlA = 0
 
+  const formatRegionName = (region: string) => {
+    if (!region || region === 'All') return 'All';
+    let name = region;
+    if (name.toLowerCase().endsWith('_tours')) {
+      name = name.substring(0, name.length - 6);
+    }
+    name = name.replace(/_/g, ' ');
+    return name.split(' ').map(w => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '').join(' ');
+  }
+
+  const allRegions = (() => {
+    const rSet = new Set<string>()
+    l1Data.forEach((l1: any) => {
+      l1.l2_groups?.forEach((l2: any) => {
+        l2.sellers?.forEach((s: any) => {
+          if (s.region) rSet.add(s.region)
+        })
+      })
+    })
+    return ['All', ...Array.from(rSet).sort()]
+  })()
+
   const processed = l1Data.map((l1: any) => {
     let cBG = 0, cBS = 0, cBA = 0, cTG = 0, cTS = 0, cTA = 0
     const rMap: Record<string, any[]> = {}
     ;(l1.l2_groups || []).forEach((l2: any) => {
       l2.sellers?.forEach((s: any) => {
         const r = s.region || 'Unknown'
+        if (selectedRegion !== 'All' && r !== selectedRegion) return;
+        
         if (!rMap[r]) rMap[r] = []
         rMap[r].push(s)
       })
@@ -550,10 +646,10 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
         
         return { ...s, blGoal: blG, blShb: blS, blAch: blA, tlGoal: tlG, tlShb: tlS, tlAch: tlA, tag: isTop ? 'Topline' : 'Bottomline', totalAch: blA+tlA, totalGoal: blG+tlG }
       })
-      return { regionName: rn, id: `${l1.l1_email}-${rn}`, sellers, blGoal: rBG, blShb: rBS, blAch: rBA, tlGoal: rTG, tlShb: rTS, tlAch: rTA, totalAch: rBA+rTA, totalGoal: rBG+rTG }
+      return { regionName: formatRegionName(rn), id: `${l1.l1_email}-${rn}`, sellers, blGoal: rBG, blShb: rBS, blAch: rBA, tlGoal: rTG, tlShb: rTS, tlAch: rTA, totalAch: rBA+rTA, totalGoal: rBG+rTG }
     })
     return { ...l1, regions, blGoal: cBG, blShb: cBS, blAch: cBA, tlGoal: cTG, tlShb: cTS, tlAch: cTA, totalAch: cBA+cTA, totalGoal: cBG+cTG }
-  })
+  }).filter((l1: any) => l1.regions.length > 0)
 
   const toggleCm = (e: string) => setExpandedCms(p => ({ ...p, [e]: !p[e] }))
   const toggleReg = (id: string) => setExpandedRegions(p => ({ ...p, [id]: !p[id] }))
@@ -641,11 +737,31 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
 
       {/* ── Header ── */}
       <div className="ov-hdr">
-        <div>
-          <h1 style={{ textTransform: 'capitalize' }}>Hi, {adminName} 👋</h1>
-          <div className="ov-hdr-sub">
-            <span className="ov-live" />
-            <span>{processed.length} Category Managers</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <h1 style={{ textTransform: 'capitalize' }}>Hi, {adminName} 👋</h1>
+            <div className="ov-hdr-sub">
+              <span className="ov-live" />
+              <span>{processed.length} Category Managers</span>
+            </div>
+          </div>
+          
+          <div className="ov-region-select">
+            <button className="ov-region-btn" onClick={() => setRegionOpen(!regionOpen)}>
+              <span style={{color: '#8A8278'}}>Region:</span> {formatRegionName(selectedRegion)}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: regionOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }}>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            
+            <div className={`ov-region-menu ${regionOpen ? 'open' : ''}`}>
+              {allRegions.map(r => (
+                <div key={r} className={`ov-region-item ${r === selectedRegion ? 'active' : ''}`} onClick={() => { setSelectedRegion(r); setRegionOpen(false) }}>
+                  {formatRegionName(r)}
+                </div>
+              ))}
+            </div>
+            {regionOpen && <div style={{position: 'fixed', inset: 0, zIndex: -1}} onClick={() => setRegionOpen(false)} />}
           </div>
         </div>
         <div className="ov-rings">
@@ -691,16 +807,16 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
         <div className="ov-kpi-tag ov-kpi-tag-bl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F4631E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2c0 6-8 10-8 16a8 8 0 0016 0c0-6-8-10-8-16z"/></svg> Bottom Line</div>
         <div className="la-kpi-row">
           {[
-            { lbl: 'BL Goal', val: kpis.bottomline_goal, cls: 'ov-kpi-val-def', c: '#F4631E' },
-            { lbl: 'BL SHB', val: kpis.bottomline_should_have_been, cls: 'ov-kpi-val-def', c: '#F4631E' },
+            { lbl: 'BL Goal', val: gBlG, cls: 'ov-kpi-val-def', c: '#F4631E' },
+            { lbl: 'BL SHB', val: gBlS, cls: 'ov-kpi-val-def', c: '#F4631E' },
             { 
               lbl: 'BL Achieved', 
-              val: kpis.bl_actual_splits, 
+              val: gBlA, 
               cls: 'ov-kpi-val-bl', 
               c: '#F4631E', 
-              pct: kpis.bottomline_should_have_been > 0 ? Math.round(Math.abs(kpis.bl_actual_splits - kpis.bottomline_should_have_been) / kpis.bottomline_should_have_been * 100) : 0, 
-              arrow: kpis.bl_actual_splits >= kpis.bottomline_should_have_been ? '▲' : '▼', 
-              pctColor: kpis.bl_actual_splits >= kpis.bottomline_should_have_been ? '#22C55E' : '#EF4444' 
+              pct: gBlS > 0 ? Math.round(Math.abs(gBlA - gBlS) / gBlS * 100) : 0, 
+              arrow: gBlA >= gBlS ? '▲' : '▼', 
+              pctColor: gBlA >= gBlS ? '#22C55E' : '#EF4444' 
             },
           ].map(k => (
             <div key={k.lbl} className="la-kpi-card" style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
@@ -723,16 +839,16 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
         <div className="ov-kpi-tag ov-kpi-tag-tl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> Top Line</div>
         <div className="la-kpi-row">
           {[
-            { lbl: 'TL Goal', val: kpis.topline_goal_this_month, cls: 'ov-kpi-val-def', c: '#22C55E' },
-            { lbl: 'TL SHB', val: kpis.topline_should_have_been, cls: 'ov-kpi-val-def', c: '#22C55E' },
+            { lbl: 'TL Goal', val: gTlG, cls: 'ov-kpi-val-def', c: '#22C55E' },
+            { lbl: 'TL SHB', val: gTlS, cls: 'ov-kpi-val-def', c: '#22C55E' },
             { 
               lbl: 'TL Achieved', 
-              val: kpis.tl_actual_splits, 
+              val: gTlA, 
               cls: 'ov-kpi-val-tl', 
               c: '#22C55E', 
-              pct: kpis.topline_should_have_been > 0 ? Math.round(Math.abs(kpis.tl_actual_splits - kpis.topline_should_have_been) / kpis.topline_should_have_been * 100) : 0, 
-              arrow: kpis.tl_actual_splits >= kpis.topline_should_have_been ? '▲' : '▼', 
-              pctColor: kpis.tl_actual_splits >= kpis.topline_should_have_been ? '#22C55E' : '#EF4444' 
+              pct: gTlS > 0 ? Math.round(Math.abs(gTlA - gTlS) / gTlS * 100) : 0, 
+              arrow: gTlA >= gTlS ? '▲' : '▼', 
+              pctColor: gTlA >= gTlS ? '#22C55E' : '#EF4444' 
             },
           ].map(k => (
             <div key={k.lbl} className="la-kpi-card" style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
@@ -815,12 +931,14 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
         </div>
       )}
 
-      {/* ── Search & Lists ── */}
-      <div className="ov-search-wrap">
-        <span className="ov-search-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-        <input className="ov-search" type="text" placeholder="Search by CM, Manager, Seller Name or Email..."
-          value={search} onChange={e => setSearch(e.target.value)} />
-        {search && <button className="ov-search-x" onClick={() => setSearch('')}>✕</button>}
+      {/* ── Search ── */}
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
+        <div className="ov-search-wrap" style={{ flex: 1, marginBottom: 0 }}>
+          <span className="ov-search-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <input className="ov-search" type="text" placeholder="Search by CM, Manager, Seller Name or Email..."
+            value={search} onChange={e => setSearch(e.target.value)} />
+          {search && <button className="ov-search-x" onClick={() => setSearch('')}>✕</button>}
+        </div>
       </div>
 
       {/* ── Table ── */}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { UserSession } from '@/lib/session'
+import { useStickyState } from '@/components/hooks/useStickyState'
 import styles from './PriorityPage.module.css'
 import QBStatsPage from './QBStatsPage'
 
@@ -404,6 +405,47 @@ function SearchBar({ value, onChange, placeholder, maxWidth = 480 }: { value: st
   )
 }
 
+// ── Region Select ─────────────────────────────────────────────────────────
+function RegionSelect({ selectedRegion, setSelectedRegion, allRegions }: { selectedRegion: string, setSelectedRegion: (r: string) => void, allRegions: string[] }) {
+  const [open, setOpen] = useState(false)
+  const formatRegionName = (region: string) => {
+    if (!region || region === 'All') return 'All';
+    let name = region.replace(/_/g, ' ');
+    if (name.toLowerCase().endsWith(' tours')) name = name.substring(0, name.length - 6);
+    return name.split(' ').map(w => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '').join(' ');
+  }
+
+  return (
+    <div className="rs-container">
+      <style>{`
+        .rs-container { position: relative; }
+        .rs-btn { display: flex; align-items: center; gap: 8px; background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 8px; padding: 8px 16px; color: #F0EDE8; font-size: 0.75rem; cursor: pointer; font-weight: 600; font-family: Inter, sans-serif; transition: all 0.2s; }
+        .rs-btn:hover { background: #222; border-color: #333; }
+        .rs-menu { position: absolute; top: 100%; right: 0; margin-top: 8px; background: #161616; border: 1px solid #2A2A2A; border-radius: 12px; padding: 8px 6px; display: flex; flex-direction: column; gap: 2px; z-index: 100; min-width: 180px; max-height: 350px; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.8); opacity: 0; pointer-events: none; transform: translateY(-10px); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .rs-menu.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        .rs-item { padding: 10px 14px; color: #8A8278; font-size: 0.75rem; cursor: pointer; border-radius: 8px; transition: all 0.15s; font-weight: 500; font-family: Inter, sans-serif; }
+        .rs-item:hover { background: #222; color: #F0EDE8; }
+        .rs-item.active { background: rgba(201, 168, 76, 0.15); color: #C9A84C; font-weight: 600; }
+      `}</style>
+      <button className="rs-btn" onClick={() => setOpen(!open)}>
+        <span style={{ color: '#8A8278' }}>Region:</span> {formatRegionName(selectedRegion)}
+        <span style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s', display: 'flex' }}>
+          <ChevronDown />
+        </span>
+      </button>
+      
+      <div className={`rs-menu ${open ? 'open' : ''}`}>
+        {allRegions.map(r => (
+          <div key={r} className={`rs-item ${r === selectedRegion ? 'active' : ''}`} onClick={() => { setSelectedRegion(r); setOpen(false) }}>
+            {formatRegionName(r)}
+          </div>
+        ))}
+      </div>
+      {open && <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setOpen(false)} />}
+    </div>
+  )
+}
+
 // ── Main export ───────────────────────────────────────────────────────────
 export default function PriorityPage({ session }: Props) {
   const [data, setData] = useState<any>(null)
@@ -412,6 +454,7 @@ export default function PriorityPage({ session }: Props) {
   const [tableView, setTableView] = useState(false)
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<'priority' | 'qb'>('priority')
+  const [selectedRegion, setSelectedRegion] = useStickyState('All', 'PriorityPage_region')
 
   const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session.role)
   const isL1 = session.role === 'L1'
@@ -428,6 +471,94 @@ export default function PriorityPage({ session }: Props) {
       if (!json.error) setData(json)
     } catch (err) { console.error('Failed to load priority leads:', err) }
     setLoading(false)
+  }
+
+  // ── Data Processing for Region Filter ──
+  let displayData = data
+  let allRegions = ['All']
+
+  if (data && activeTab === 'priority') {
+    const rSet = new Set<string>()
+    const extractRegions = (leads: any[]) => leads.forEach(l => { if (l.planned_region) rSet.add(l.planned_region) })
+
+    if (data.admin && data.l1Groups) {
+      data.l1Groups.forEach((l1: any) => l1.l2_groups?.forEach((l2: any) => l2.sellers?.forEach((s: any) => extractRegions(s.leads || []))))
+    } else if (data.isL1 && data.l2Groups) {
+      data.l2Groups.forEach((l2: any) => l2.sellers?.forEach((s: any) => extractRegions(s.leads || [])))
+    } else if (data.isL2 && viewMode === 'team' && data.sellers) {
+      data.sellers.forEach((s: any) => extractRegions(s.leads || []))
+    } else if (data.leads) {
+      extractRegions(data.leads || [])
+    }
+
+    allRegions = ['All', ...Array.from(rSet).sort()]
+
+    if (selectedRegion !== 'All') {
+      const filterLeads = (leads: any[]) => leads.filter(l => l.planned_region === selectedRegion)
+      
+      const calcMetrics = (leads: any[]) => {
+        const totalLeads = leads.length
+        const calledLeads = leads.filter((l: any) => (l.dials_today || 0) > 0).length
+        const mishandledLeads = leads.filter((l: any) => (l.final_status || '').toLowerCase() === 'mishandled').length
+        const mishandledPct = totalLeads > 0 ? Math.round((mishandledLeads / totalLeads) * 100 * 10) / 10 : 0
+        const calledLeadsData = leads.filter((l: any) => (l.dials_today || 0) > 0)
+        const totalDuration = calledLeadsData.reduce((sum: number, l: any) => sum + (l.answered_seconds_today || 0), 0)
+        const avgDurationSeconds = calledLeadsData.length > 0 ? Math.round(totalDuration / calledLeadsData.length) : 0
+        const conversationHappenedLeads = leads.filter((l: any) => { const s = (l.final_status || '').toLowerCase().trim(); return s === 'convo happened' || s === 'conversation happened' }).length
+        const twoAttemptsDoneLeads = leads.filter((l: any) => { const s = (l.final_status || '').toLowerCase().trim(); return s === '2 attempts done' || s === 'two attempts done' }).length
+        const fmt = (seconds: number) => { if (!seconds) return '0s'; const m = Math.floor(seconds/60), s = seconds%60; return m>0?`${m}m ${s}s`:`${s}s` }
+        return { totalLeads, calledLeads, notCalledLeads: totalLeads - calledLeads, mishandledLeads, mishandledPct, avgDurationSeconds, avgDurationFormatted: fmt(avgDurationSeconds), conversationHappenedLeads, twoAttemptsDoneLeads }
+      }
+
+      displayData = { ...data }
+
+      if (data.admin && data.l1Groups) {
+        let allLeads: any[] = []
+        displayData.l1Groups = data.l1Groups.map((l1: any) => {
+          let l1Leads: any[] = []
+          const l2Groups = (l1.l2_groups || []).map((l2: any) => {
+            let l2Leads: any[] = []
+            const sellers = (l2.sellers || []).map((s: any) => {
+              const f = filterLeads(s.leads || [])
+              l2Leads = l2Leads.concat(f)
+              return { ...s, leads: f, metrics: calcMetrics(f) }
+            }).filter((s: any) => s.metrics.totalLeads > 0)
+            l1Leads = l1Leads.concat(l2Leads)
+            return { ...l2, sellers, seller_count: sellers.length, metrics: calcMetrics(l2Leads) }
+          }).filter((l2: any) => l2.sellers.length > 0)
+          allLeads = allLeads.concat(l1Leads)
+          return { ...l1, l2_groups: l2Groups, l2_count: l2Groups.length, seller_count: l2Groups.reduce((acc:number,g:any)=>acc+g.seller_count,0), metrics: calcMetrics(l1Leads) }
+        }).filter((l1: any) => l1.l2_groups.length > 0)
+        displayData.teamMetrics = calcMetrics(allLeads)
+        displayData.totalSellers = displayData.l1Groups.reduce((sum:number, l1:any) => sum + l1.seller_count, 0)
+      } else if (data.isL1 && data.l2Groups) {
+        let allLeads: any[] = []
+        displayData.l2Groups = data.l2Groups.map((l2: any) => {
+          let l2Leads: any[] = []
+          const sellers = (l2.sellers || []).map((s: any) => {
+            const f = filterLeads(s.leads || [])
+            l2Leads = l2Leads.concat(f)
+            return { ...s, leads: f, metrics: calcMetrics(f) }
+          }).filter((s: any) => s.metrics.totalLeads > 0)
+          allLeads = allLeads.concat(l2Leads)
+          return { ...l2, sellers, seller_count: sellers.length, metrics: calcMetrics(l2Leads) }
+        }).filter((l2: any) => l2.sellers.length > 0)
+        displayData.teamMetrics = calcMetrics(allLeads)
+        displayData.totalSellers = displayData.l2Groups.reduce((sum:number, l2:any) => sum + l2.seller_count, 0)
+      } else if (data.isL2 && viewMode === 'team' && data.sellers) {
+        let allLeads: any[] = []
+        displayData.sellers = data.sellers.map((s: any) => {
+          const f = filterLeads(s.leads || [])
+          allLeads = allLeads.concat(f)
+          return { ...s, leads: f, metrics: calcMetrics(f) }
+        }).filter((s: any) => s.metrics.totalLeads > 0)
+        displayData.teamMetrics = calcMetrics(allLeads)
+      } else if (data.leads) {
+        const f = filterLeads(data.leads || [])
+        displayData.leads = f
+        displayData.metrics = calcMetrics(f)
+      }
+    }
   }
 
   // ── QB tab ──
@@ -458,21 +589,26 @@ export default function PriorityPage({ session }: Props) {
       <TabToggle active="priority" onChange={setActiveTab} />
 
       {/* ── ADMIN VIEW ── */}
-      {isAdmin && data?.admin && (
+      {isAdmin && displayData?.admin && (
         <div>
           <PageHeader
             title="Priority Leads"
-            subtitle={`${data.l1Groups?.length || 0} Category Managers · ${data.totalSellers} sellers`}
+            subtitle={`${displayData.l1Groups?.length || 0} Category Managers · ${displayData.totalSellers} sellers`}
             note="Updates every 40 min"
-            right={<ToggleBtn options={viewTableOptions} value={tableView ? 'table' : 'cards'} onChange={v => setTableView(v === 'table')} />}
+            right={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <RegionSelect selectedRegion={selectedRegion} setSelectedRegion={setSelectedRegion} allRegions={allRegions} />
+                <ToggleBtn options={viewTableOptions} value={tableView ? 'table' : 'cards'} onChange={v => setTableView(v === 'table')} />
+              </div>
+            }
           />
           <SearchBar value={search} onChange={setSearch} placeholder="Search by Category Manager, L1 Manager, or Seller…" />
-          {!tableView && <KpiCards metrics={data.teamMetrics} />}
+          {!tableView && <KpiCards metrics={displayData.teamMetrics} />}
           {tableView
-            ? <HierarchicalTableView viewType="admin" l1Groups={data.l1Groups || []} search={search} />
+            ? <HierarchicalTableView viewType="admin" l1Groups={displayData.l1Groups || []} search={search} />
             : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {(data.l1Groups || []).filter((l1: any) => !search || l1.l1_name?.toLowerCase().includes(search.toLowerCase())).map((l1: any) => (
+                {(displayData.l1Groups || []).filter((l1: any) => !search || l1.l1_name?.toLowerCase().includes(search.toLowerCase())).map((l1: any) => (
                   <AccordionCard key={l1.l1_email} title={l1.l1_name} subtitle={`${l1.l2_count} L1 Managers · ${l1.seller_count} sellers`} metrics={l1.metrics} accentColor="#C9A84C" depth={0}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {l1.l2_groups.map((l2: any) => (
@@ -495,21 +631,26 @@ export default function PriorityPage({ session }: Props) {
       )}
 
       {/* ── L1 (CM) VIEW ── */}
-      {isL1 && data?.isL1 && (
+      {isL1 && displayData?.isL1 && (
         <div>
           <PageHeader
             title="Priority Leads"
-            subtitle={`${data.l2Groups?.length || 0} L1 Managers · ${data.totalSellers} sellers`}
+            subtitle={`${displayData.l2Groups?.length || 0} L1 Managers · ${displayData.totalSellers} sellers`}
             note="Updates every 40 min"
-            right={<ToggleBtn options={viewTableOptions} value={tableView ? 'table' : 'cards'} onChange={v => setTableView(v === 'table')} />}
+            right={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <RegionSelect selectedRegion={selectedRegion} setSelectedRegion={setSelectedRegion} allRegions={allRegions} />
+                <ToggleBtn options={viewTableOptions} value={tableView ? 'table' : 'cards'} onChange={v => setTableView(v === 'table')} />
+              </div>
+            }
           />
           <SearchBar value={search} onChange={setSearch} placeholder="Search by L1 Manager or Seller…" />
-          {!tableView && <KpiCards metrics={data.teamMetrics} />}
+          {!tableView && <KpiCards metrics={displayData.teamMetrics} />}
           {tableView
-            ? <HierarchicalTableView viewType="l1" l1Groups={[{ l1_name: 'Team', l2_groups: data.l2Groups || [] }]} search={search} />
+            ? <HierarchicalTableView viewType="l1" l1Groups={[{ l1_name: 'Team', l2_groups: displayData.l2Groups || [] }]} search={search} />
             : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {(data.l2Groups || []).filter((g: any) => !search || g.l2_name?.toLowerCase().includes(search.toLowerCase())).map((group: any) => (
+                {(displayData.l2Groups || []).filter((g: any) => !search || g.l2_name?.toLowerCase().includes(search.toLowerCase())).map((group: any) => (
                   <AccordionCard key={group.l2_email} title={group.l2_name} subtitle={`${group.seller_count} sellers`} metrics={group.metrics} accentColor="#F4631E" depth={0}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {group.sellers.map((seller: any) => (
@@ -526,27 +667,28 @@ export default function PriorityPage({ session }: Props) {
       )}
 
       {/* ── L2 TEAM VIEW ── */}
-      {isL2 && viewMode === 'team' && data?.team && (
+      {isL2 && viewMode === 'team' && displayData?.team && (
         <div>
           <PageHeader
             title="Priority Leads"
-            subtitle={`${data.sellers?.length || 0} seller${(data.sellers?.length || 0) !== 1 ? 's' : ''} · Team View`}
+            subtitle={`${displayData.sellers?.length || 0} seller${(displayData.sellers?.length || 0) !== 1 ? 's' : ''} · Team View`}
             note="Updates every 40 min"
             right={
-              <>
-                <ToggleBtn options={[{ label: 'My Priority', value: 'my' }, { label: `My Team (${(data.sellers || []).length})`, value: 'team' }]} value={viewMode} onChange={v => setViewMode(v as 'my' | 'team')} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <RegionSelect selectedRegion={selectedRegion} setSelectedRegion={setSelectedRegion} allRegions={allRegions} />
+                <ToggleBtn options={[{ label: 'My Priority', value: 'my' }, { label: `My Team (${(displayData.sellers || []).length})`, value: 'team' }]} value={viewMode} onChange={v => setViewMode(v as 'my' | 'team')} />
                 <ToggleBtn options={viewTableOptions} value={tableView ? 'table' : 'cards'} onChange={v => setTableView(v === 'table')} />
-              </>
+              </div>
             }
           />
-          {!tableView && <KpiCards metrics={data.teamMetrics} />}
+          {!tableView && <KpiCards metrics={displayData.teamMetrics} />}
           {tableView
-            ? <HierarchicalTableView viewType="l2" l1Groups={[{ l1_name: 'Team', l2_groups: [{ l2_name: 'Sellers', sellers: data.sellers || [] }] }]} search={search} />
+            ? <HierarchicalTableView viewType="l2" l1Groups={[{ l1_name: 'Team', l2_groups: [{ l2_name: 'Sellers', sellers: displayData.sellers || [] }] }]} search={search} />
             : (
               <>
                 <SearchBar value={search} onChange={setSearch} placeholder="Search seller name…" maxWidth={400} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {(data.sellers || []).filter((s: any) => !search || s.seller_name?.toLowerCase().includes(search.toLowerCase())).map((seller: any) => (
+                  {(displayData.sellers || []).filter((s: any) => !search || s.seller_name?.toLowerCase().includes(search.toLowerCase())).map((seller: any) => (
                     <AccordionCard key={seller.seller_email} title={seller.seller_name} metrics={seller.metrics} accentColor="#F4631E" depth={0}>
                       <LeadsTable leads={seller.leads || []} />
                     </AccordionCard>
@@ -558,16 +700,21 @@ export default function PriorityPage({ session }: Props) {
       )}
 
       {/* ── PERSONAL VIEW ── */}
-      {!isAdmin && !isL1 && !(isL2 && viewMode === 'team' && data?.team) && data?.metrics && (
+      {!isAdmin && !isL1 && !(isL2 && viewMode === 'team' && displayData?.team) && displayData?.metrics && (
         <div>
           <PageHeader
             title="My Priority Leads"
             subtitle="Your high-priority enquiry pipeline"
             note="Updates every 40 min"
-            right={isL2 ? <ToggleBtn options={[{ label: 'My Priority', value: 'my' }, { label: 'My Team', value: 'team' }]} value={viewMode} onChange={v => setViewMode(v as 'my' | 'team')} /> : undefined}
+            right={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <RegionSelect selectedRegion={selectedRegion} setSelectedRegion={setSelectedRegion} allRegions={allRegions} />
+                {isL2 ? <ToggleBtn options={[{ label: 'My Priority', value: 'my' }, { label: 'My Team', value: 'team' }]} value={viewMode} onChange={v => setViewMode(v as 'my' | 'team')} /> : null}
+              </div>
+            }
           />
-          <KpiCards metrics={data.metrics} />
-          <LeadsTable leads={data.leads || []} />
+          <KpiCards metrics={displayData.metrics} />
+          <LeadsTable leads={displayData.leads || []} />
         </div>
       )}
     </div>
