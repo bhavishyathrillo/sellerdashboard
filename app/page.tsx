@@ -37,6 +37,7 @@ import L2SellerViewPage from '@/components/pages/L2SellerViewPage'
 import L1SellerViewPage from '@/components/pages/L1SellerViewPage'
 import KPITab from '@/components/kpi/KPITab'
 import AdoptionPage from '@/components/pages/AdoptionPage'
+import ProfilePage from '@/components/pages/ProfilePage'
 
 type AppState = 'intro' | 'login' | 'pipeline_gate' | 'dashboard'
 
@@ -228,6 +229,7 @@ export default function Home() {
           {activePage === 'calendar' && <CalendarPage session={session} />}
           {activePage === 'ttk' && <TTKPage />}
           {activePage === 'team' && <TeamPage session={session} />}
+          {activePage === 'profile' && <ProfilePage session={session} onBack={() => setActivePage('home')} />}
 
           {/* KPI VIEW TAB */}
           {activePage === 'kpi_view' && (

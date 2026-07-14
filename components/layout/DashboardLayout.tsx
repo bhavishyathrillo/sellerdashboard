@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   LayoutDashboard,
   TrendingUp,
@@ -49,6 +49,8 @@ export default function DashboardLayout({
   session, onLogout, children, activePage, onNavigate
 }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const [profile, setProfile] = useState<{ displayName: string, avatarUrl: string } | null>(null)
+  
   const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session.role)
 
   const isSeller = !['L1', 'L2', 'ADMIN', 'SUPERADMIN', 'MODERATOR'].includes(session.role)
@@ -78,6 +80,25 @@ export default function DashboardLayout({
       default: return 'Seller'
     }
   }
+
+  useEffect(() => {
+    // Fetch initial
+    fetch(`/api/profile?email=${encodeURIComponent(session.email)}`)
+      .then(r => r.json())
+      .then(json => {
+        if (json.success && json.data) {
+          setProfile({ displayName: json.data.display_name, avatarUrl: json.data.avatar_url })
+        }
+      })
+      .catch(console.error)
+
+    // Listen to updates
+    const handleUpdate = (e: any) => {
+      setProfile({ displayName: e.detail.display_name, avatarUrl: e.detail.avatar_url })
+    }
+    window.addEventListener('profile-updated', handleUpdate)
+    return () => window.removeEventListener('profile-updated', handleUpdate)
+  }, [session.email])
 
   return (
     <div className={styles.shell}>
@@ -111,13 +132,21 @@ export default function DashboardLayout({
           })}
         </nav>
         <div className={styles.sidebarBottom}>
-          <div className={styles.userCard}>
+          <div 
+            className={`${styles.userCard} ${activePage === 'profile' ? styles.userCardActive : ''}`} 
+            onClick={() => onNavigate('profile')}
+            style={{ cursor: 'pointer' }}
+          >
             <div className={styles.userAvatar}>
-              {session.name?.charAt(0).toUpperCase()}
+              {profile?.avatarUrl ? (
+                <img src={profile.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+              ) : (
+                session.name?.charAt(0).toUpperCase()
+              )}
             </div>
             {!collapsed && (
               <div className={styles.userInfo}>
-                <p className={styles.userName}>{session.name}</p>
+                <p className={styles.userName}>{profile?.displayName || session.name}</p>
                 <p className={styles.userRole}>
                   {getRoleLabel(session.role)}
                 </p>
