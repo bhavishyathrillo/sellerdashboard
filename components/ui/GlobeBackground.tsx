@@ -7,20 +7,20 @@ const Globe = dynamic(() => import('react-globe.gl'), { ssr: false })
 
 // Thrillophilia destinations
 const DESTINATIONS = [
-  { name: 'Ladakh',    lat: 34.1, lng: 77.5,  home: true },
-  { name: 'Maldives',  lat: 3.2,  lng: 73.2,  home: true },
-  { name: 'Bali',      lat: -8.3, lng: 115.1, home: true },
-  { name: 'Bangkok',   lat: 13.7, lng: 100.5, home: true },
-  { name: 'Dubai',     lat: 25.2, lng: 55.3,  home: false },
-  { name: 'Paris',     lat: 48.8, lng: 2.3,   home: false },
-  { name: 'Tokyo',     lat: 35.6, lng: 139.7, home: false },
-  { name: 'Kenya',     lat: -1.2, lng: 36.8,  home: false },
-  { name: 'London',    lat: 51.5, lng: -0.1,  home: false },
-  { name: 'Singapore', lat: 1.3,  lng: 103.8, home: false },
-  { name: 'Iceland',   lat: 64.1, lng: -21.8, home: false },
-  { name: 'Santorini', lat: 36.4, lng: 25.4,  home: false },
-  { name: 'Sydney',    lat: -33.8,lng: 151.2, home: false },
-  { name: 'Cairo',     lat: 30.0, lng: 31.2,  home: false },
+  { name: 'Ladakh', lat: 34.1, lng: 77.5, home: true },
+  { name: 'Maldives', lat: 3.2, lng: 73.2, home: true },
+  { name: 'Bali', lat: -8.3, lng: 115.1, home: true },
+  { name: 'Bangkok', lat: 13.7, lng: 100.5, home: true },
+  { name: 'Dubai', lat: 25.2, lng: 55.3, home: false },
+  { name: 'Paris', lat: 48.8, lng: 2.3, home: false },
+  { name: 'Tokyo', lat: 35.6, lng: 139.7, home: false },
+  { name: 'Kenya', lat: -1.2, lng: 36.8, home: false },
+  { name: 'London', lat: 51.5, lng: -0.1, home: false },
+  { name: 'Singapore', lat: 1.3, lng: 103.8, home: false },
+  { name: 'Iceland', lat: 64.1, lng: -21.8, home: false },
+  { name: 'Santorini', lat: 36.4, lng: 25.4, home: false },
+  { name: 'Sydney', lat: -33.8, lng: 151.2, home: false },
+  { name: 'Cairo', lat: 30.0, lng: 31.2, home: false },
 ]
 
 // Flight arcs between destinations
@@ -53,15 +53,15 @@ export default function GlobeBackground() {
   const [dims, setDims] = useState({ width: 0, height: 0 })
   const [ready, setReady] = useState(false)
 
-useEffect(() => {
-  const update = () => {
-    const el = containerRef.current
-    if (el) setDims({ width: el.offsetWidth, height: el.offsetHeight })
-  }
-  update()
-  window.addEventListener('resize', update)
-  return () => window.removeEventListener('resize', update)
-}, [])
+  useEffect(() => {
+    const update = () => {
+      const el = containerRef.current
+      if (el) setDims({ width: el.offsetWidth, height: el.offsetHeight })
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   useEffect(() => {
     if (globeRef.current && ready) {
@@ -77,13 +77,13 @@ useEffect(() => {
   }, [ready])
 
   return (
-  <div ref={containerRef} style={{
-  position: 'absolute',
-  inset: 0,
-  zIndex: 0,
-  overflow: 'hidden',
-  pointerEvents: 'none',
-}}>
+    <div ref={containerRef} style={{
+      position: 'absolute',
+      inset: 0,
+      zIndex: 0,
+      overflow: 'hidden',
+      pointerEvents: 'none',
+    }}>
       {dims.width > 0 && (
         <Globe
           ref={globeRef}

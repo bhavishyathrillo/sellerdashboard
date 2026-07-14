@@ -54,6 +54,10 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
 
     {/* LEFT — Globe */}
     <div className={styles.leftPanel}>
+      <div className={styles.auroraContainer}>
+        <div className={styles.auroraOrb1} />
+        <div className={styles.auroraOrb2} />
+      </div>
       <GlobeBackground />
     </div>
 

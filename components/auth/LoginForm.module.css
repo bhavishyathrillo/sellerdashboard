@@ -22,6 +22,47 @@
   justify-content: center;
 }
 
+.auroraContainer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.auroraOrb1, .auroraOrb2 {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  animation: floatOrb 20s infinite ease-in-out alternate;
+}
+
+.auroraOrb1 {
+  width: 600px;
+  height: 600px;
+  background: #FF5200;
+  opacity: 0.15;
+  top: -150px;
+  left: -150px;
+}
+
+.auroraOrb2 {
+  width: 500px;
+  height: 500px;
+  background: #007AFF;
+  opacity: 0.12;
+  bottom: -100px;
+  right: 10%;
+  animation-delay: -7s;
+  animation-duration: 25s;
+}
+
+@keyframes floatOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(8%, 12%) scale(1.1); }
+  100% { transform: translate(-5%, 8%) scale(0.95); }
+}
+
 /* Right side — login */
 .rightPanel {
   width: 480px;
