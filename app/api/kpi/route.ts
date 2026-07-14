@@ -64,139 +64,31 @@ export async function DELETE(req: NextRequest) {
 // ============================================================
 function medArr(a: number[]) { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
 
-async function enrichWithMedians(rows: any[], sc: string, customFrom?: string | null, customTo?: string | null) {
-  if (!rows || !rows.length || !sc) return;
-  const { data: cd } = await supabase.schema('seller_day_to_day').from('cycles').select('start_date, end_date').eq('cycle', sc).limit(1);
-  if (!cd || cd.length === 0) return;
-  const from = customFrom || cd[0].start_date;
-  const to = customTo || cd[0].end_date;
-  const emails = [...new Set(rows.map(r => r.email).filter(Boolean))];
-  if (!emails.length) return;
-
-  const { data: mhlData } = await fetchAll(supabase.schema('seller_day_to_day').from('mhl_daily')
-    .select('seller_email, activity_date, mishandled_count, open_leads_count, available_today')
-    .in('seller_email', emails).gte('activity_date', from).lte('activity_date', to));
-  
-  const mheMap: Record<string, number> = {};
-  if (mhlData) {
-    const sdm: Record<string,Record<string,any>> = {};
-    const validMhl = mhlData.filter((r:any) => r.available_today !== false && r.available_today !== 'false' && new Date(r.activity_date).getDay() !== 0);
-    validMhl.forEach((r:any) => {
-      const e = (r.seller_email || '').toLowerCase();
-      const iso = r.activity_date;
-      if (!sdm[e]) sdm[e] = {};
-      if (!sdm[e][iso]) sdm[e][iso] = { mish: 0, open: 0 };
-      sdm[e][iso].mish += +r.mishandled_count;
-      sdm[e][iso].open += +r.open_leads_count;
-    });
-    Object.keys(sdm).forEach(e => {
-      const days = Object.values(sdm[e]).map((d:any) => d.open > 0 ? (d.mish / d.open) : null).filter(v => v !== null) as number[];
-      const smv = medArr(days);
-      if (smv !== null) mheMap[e] = smv; // fraction
-    });
-    
-    // Attach raw daily data for team median calculations in rcAggregate
-    rows.forEach(r => {
-      const e = (r.email || '').toLowerCase();
-      r._mhl_daily = validMhl.filter((m:any) => (m.seller_email||'').toLowerCase() === e);
-    });
-  }
-
-  const { data: leadsData } = await fetchAll(supabase.schema('seller_day_to_day').from('leads')
-    .select('sales_email_id, call_bucket')
-    .in('sales_email_id', emails).gte('lead_assignment_time', from + 'T00:00:00+05:30').lte('lead_assignment_time', to + 'T23:59:59+05:30'));
-
-  const w15Map: Record<string, number> = {};
-  if (leadsData) {
-    const sd: Record<string,{wIn:number;wTot:number}> = {};
-    leadsData.forEach((r:any) => {
-      const e = (r.sales_email_id || '').toLowerCase();
-      if (!sd[e]) sd[e] = { wIn: 0, wTot: 0 };
-      const b = (r.call_bucket || '').toLowerCase();
-      if (b.includes('within')) { sd[e].wIn++; sd[e].wTot++; }
-      else if (b.includes('beyond') || b.includes('15')) { sd[e].wTot++; }
-    });
-    Object.keys(sd).forEach(e => {
-      if (sd[e].wTot > 0) w15Map[e] = (sd[e].wIn / sd[e].wTot) * 100;
-    });
-  }
-
-  rows.forEach(r => {
-    const e = (r.email || '').toLowerCase();
-    if (mheMap[e] !== undefined) r.mhe_actual = mheMap[e];
-    if (w15Map[e] !== undefined) r.sla_actual = w15Map[e];
-  });
-}
-
-async function getRosterDataWithDeltas(from: string | null, to: string | null, sc: string, l1?: string, l2?: string): Promise<any[]> {
-  if (!from || !to || from === 'null' || to === 'null') {
+async function getRosterDataForDate(date: string | null, sc: string, l1?: string, l2?: string): Promise<any[]> {
+  if (!date || date === 'null') {
     let q = supabase.from('roster').select('*');
     if (sc) q = q.eq('cycle', sc);
     if (l1 && l1 !== 'all') q = q.eq('l1_manager_name', l1);
     if (l2 && l2 !== 'all') q = q.eq('l2_manager_name', l2);
     const { data } = await fetchAll(q);
-    const rows = data || [];
-    await enrichWithMedians(rows, sc, from, to);
-    return rows;
+    return data || [];
   }
 
-  const fromDateObj = new Date(from);
-  fromDateObj.setDate(fromDateObj.getDate() - 1);
-  const baselineDate = fromDateObj.toISOString().split('T')[0];
-
   let dq = supabase.from('roster_daily_logs').select('*')
-    .gte('log_date', baselineDate)
-    .lte('log_date', to);
+    .lte('log_date', date);
+  if (sc) dq = dq.eq('cycle', sc);
+  if (l1 && l1 !== 'all') dq = dq.eq('l1_manager_name', l1);
+  if (l2 && l2 !== 'all') dq = dq.eq('l2_manager_name', l2);
+  
   const { data: dRows } = await fetchAll(dq);
   
   const sellerLatest: Record<string, any> = {};
-  const sellerBaseline: Record<string, any> = {};
   (dRows||[]).forEach((r: any) => {
     const key = (r.email || '').toLowerCase();
     if (!sellerLatest[key] || r.log_date > sellerLatest[key].log_date) sellerLatest[key] = r;
-    if (r.log_date <= baselineDate) {
-      if (!sellerBaseline[key] || r.log_date > sellerBaseline[key].log_date) sellerBaseline[key] = r;
-    }
   });
   
-  let deltaRows = Object.values(sellerLatest).map((latest: any) => {
-    const base = sellerBaseline[(latest.email || '').toLowerCase()];
-    if (!base) return latest;
-    const delta = { ...latest };
-    const fieldsToSubtract = [
-      'bottomline_shb', 'bottomline_actual',
-      'topline_shb', 'topline_actual',
-      'conversion_shb', 'conversion_actual',
-      'unique_leads', 'unique_leads_quoted',
-      'unique_feasibility_sent', 'total_feasibility_sent',
-      'feasibility_passed', 'reworks',
-      'mishandled_count', 'total_lead_instances',
-      'called_within_15_count', 'total_leads',
-      'priority_leads_count', 'leads_shb', 'converted_count'
-    ];
-    fieldsToSubtract.forEach(f => {
-      if (typeof latest[f] === 'number' && typeof base[f] === 'number') {
-        delta[f] = Math.max(0, latest[f] - base[f]);
-      }
-    });
-    const baseTalkN = (base.talk_actual || 0) * (base.talk_call_count || 0);
-    const latestTalkN = (latest.talk_actual || 0) * (latest.talk_call_count || 0);
-    const deltaTalkCallCount = Math.max(0, (latest.talk_call_count || 0) - (base.talk_call_count || 0));
-    if (deltaTalkCallCount > 0) {
-       delta.talk_actual = Math.max(0, (latestTalkN - baseTalkN) / deltaTalkCallCount);
-       delta.talk_call_count = deltaTalkCallCount;
-    } else {
-       delta.talk_actual = null;
-       delta.talk_call_count = 0;
-    }
-    return delta;
-  });
-
-  if (sc) deltaRows = deltaRows.filter((r: any) => r.cycle === sc);
-  if (l1 && l1 !== 'all') deltaRows = deltaRows.filter((r: any) => r.l1_manager_name === l1);
-  if (l2 && l2 !== 'all') deltaRows = deltaRows.filter((r: any) => r.l2_manager_name === l2);
-  await enrichWithMedians(deltaRows, sc, from, to);
-  return deltaRows;
+  return Object.values(sellerLatest);
 }
 
 // ============================================================
@@ -204,21 +96,18 @@ async function getRosterDataWithDeltas(from: string | null, to: string | null, s
 // ============================================================
 async function handleDashboard(req?: NextRequest) {
   try {
-    let from: string | null = null;
-    let to: string | null = null;
+    let date: string | null = null;
     if (req) {
       const u = new URL(req.url);
-      const fromRaw = u.searchParams.get('from');
-      const toRaw = u.searchParams.get('to');
-      from = (fromRaw && fromRaw !== 'null') ? fromRaw : null;
-      to = (toRaw && toRaw !== 'null') ? toRaw : null;
+      const dateRaw = u.searchParams.get('date');
+      date = (dateRaw && dateRaw !== 'null') ? dateRaw : null;
     }
 
     const { data: cd } = await supabase.schema('seller_day_to_day').from('cycles').select('*').order('start_date',{ascending:false});
     const cr: Record<string,{from:string;to:string}> = {}; (cd||[]).forEach((c:any)=>{ cr[c.cycle]={from:c.start_date,to:c.end_date}; });
     const cycles = (cd||[]).map((c:any)=>c.cycle); const lc = cycles[0]||'';
 
-    const sellers = await getRosterDataWithDeltas(from, to, lc);
+    const sellers = await getRosterDataForDate(date, lc);
 
     const mapped = (sellers||[]).map((s:any)=>{
       return {
@@ -380,9 +269,7 @@ function rcAggregate(rows:any[], includeFlag:boolean){
     return s.length%2!==0 ? s[mid] : (s[mid-1]+s[mid])/2;
   }
   
-  const allDaily: any[] = [];
   rows.forEach((r:any)=>{
-    if (r._mhl_daily) allDaily.push(...r._mhl_daily);
     mish+=n0(r.mishandled_count); mishD+=n0(r.total_lead_instances);
     c15+=n0(r.called_within_15_count); c15D+=n0(r.total_leads);
     prio+=n0(r.priority_leads_count);
@@ -398,17 +285,6 @@ function rcAggregate(rows:any[], includeFlag:boolean){
   });
 
   let mishAct = mishD>0?mish/mishD:null;
-  if (allDaily.length > 0) {
-    const dm: Record<string,any> = {};
-    allDaily.forEach((r:any) => {
-       const iso = r.activity_date;
-       if (!dm[iso]) dm[iso] = {mish:0, open:0};
-       dm[iso].mish += +r.mishandled_count;
-       dm[iso].open += +r.open_leads_count;
-    });
-    const days = Object.values(dm).map((d:any) => d.open > 0 ? (d.mish / d.open) : null).filter(v => v !== null) as number[];
-    if (days.length > 0) mishAct = median(days);
-  }
 
   const c15Act = (c15D>0?c15/c15D:null);
   const prioA=c15D>0?prio/c15D:null;
@@ -458,27 +334,18 @@ function rcAggregate(rows:any[], includeFlag:boolean){
 async function handleReportCard(req: NextRequest) {
   try {
     const u = new URL(req.url);
-    const cycle = u.searchParams.get('cycle')||'';
-    const { data: cd } = await supabase.schema('seller_day_to_day').from('cycles').select('cycle').order('start_date',{ascending:false});
-    const cycles = (cd||[]).map((c:any)=>c.cycle); 
-    const sc = cycle||cycles[0]||'';
-
-    const fromRaw = u.searchParams.get('from');
-    const toRaw = u.searchParams.get('to');
-    const from = (fromRaw && fromRaw !== 'null') ? fromRaw : null;
-    const to = (toRaw && toRaw !== 'null') ? toRaw : null;
-
-    const l1 = u.searchParams.get('l1');
-    const l2 = u.searchParams.get('l2');
+    const cycle = u.searchParams.get('cycle') || '';
+    const date = u.searchParams.get('date');
+    const l1f = u.searchParams.get('l1') || '';
+    const l2f = u.searchParams.get('l2') || '';
+    const goal = u.searchParams.get('goal') || '';
+    const haul = u.searchParams.get('haul') || '';
     const reg = u.searchParams.get('reg');
-    const goal = u.searchParams.get('goal');
-    const haul = u.searchParams.get('haul');
 
-    let rows = await getRosterDataWithDeltas(from as any, to as any, sc as any, l1 as any, l2 as any);
-    if (reg && reg !== 'all') rows = rows.filter((r: any) => r.region === reg);
+    let rows = await getRosterDataForDate(date, cycle, l1f, l2f);
     if (goal && goal !== 'all') rows = rows.filter((r: any) => r.goal_type === goal);
     if (haul && haul !== 'all') rows = rows.filter((r: any) => r.haul === haul);
-
+    if (reg && reg !== 'all') rows = rows.filter((r: any) => r.region === reg);
     
     const l1M: Record<string,any> = {}, l2M: Record<string,any> = {}; const regs=new Set<string>();
     (rows||[]).forEach((r:any)=>{
@@ -492,15 +359,15 @@ async function handleReportCard(req: NextRequest) {
     function build(g:any,isL1:boolean){ const agg=rcAggregate(g.rows,true); return {key:g.key,name:g.name,l2:isL1?g.l2:'',regions:[...g.regions].filter(Boolean) as string[],sellers:g.rows.length,subjects:agg.subjects,aggregate:agg.aggregate,grade:agg.grade,chapters:agg.chapters,sellerList:g.rows.map(sellerDetail).sort((a:any,b:any)=>(b.aggregate||0)-(a.aggregate||0))}; }
     const l1Cards = Object.values(l1M).map((g:any)=>build(g,true)).sort((a:any,b:any)=>(b.aggregate||0)-(a.aggregate||0));
     const l2Cards = Object.values(l2M).map((g:any)=>build(g,false)).sort((a:any,b:any)=>(b.aggregate||0)-(a.aggregate||0));
-    return NextResponse.json({generated:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),subjectWeights:SW,hasConviq:false,regions:[...regs].sort(),cycles,selectedCycle:sc,views:{'':{l1:l1Cards,l2:l2Cards}}});
+    const { data: cd } = await supabase.schema('seller_day_to_day').from('cycles').select('cycle').order('start_date',{ascending:false});
+    const cycles = (cd||[]).map((c:any)=>c.cycle);
+    return NextResponse.json({generated:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),subjectWeights:SW,hasConviq:false,regions:[...regs].sort(),cycles,selectedCycle:cycle||cycles[0]||'',views:{'':{l1:l1Cards,l2:l2Cards}}});
   } catch(e:any) { return NextResponse.json({generated:'',subjectWeights:SW,hasConviq:false,regions:[],cycles:[],selectedCycle:'',views:{'':{l1:[],l2:[]}},error:e.message}); }
 }
 
 // ============================================================
-// COMPARE REPORT — queries roster_daily_logs by date range
-// Uses the LATEST snapshot row per seller within the range.
-// Each daily log row is a cumulative snapshot, so the most recent
-// date (e.g. 12 Jul) already has all accumulated actuals + SHBs.
+// COMPARE REPORT
+// Uses the LATEST snapshot row per seller on the requested date.
 // ============================================================
 async function handleCompareReport(req: NextRequest) {
   try {
@@ -509,8 +376,7 @@ async function handleCompareReport(req: NextRequest) {
     const slotsRaw = u.searchParams.get('slots');
     
     // Fallbacks for cmpPopulateNames
-    const from = u.searchParams.get('from') || '2026-07-09';
-    const to = u.searchParams.get('to') || new Date().toISOString().split('T')[0];
+    const date = u.searchParams.get('date') || new Date().toISOString().split('T')[0];
     
     const l1f = u.searchParams.get('l1') || '';
     const l2f = u.searchParams.get('l2') || '';
@@ -518,13 +384,13 @@ async function handleCompareReport(req: NextRequest) {
     const haul = u.searchParams.get('haul') || '';
     const reg = u.searchParams.get('reg') || '';
 
-    let slots: {name:string, from:string, to:string}[] = [];
+    let slots: {name:string, date:string}[] = [];
     if (slotsRaw) {
       try { slots = JSON.parse(slotsRaw); } catch(e) {}
     }
 
     if (slots.length === 0) {
-      let rows = await getRosterDataWithDeltas(from, to, '', l1f, l2f);
+      let rows = await getRosterDataForDate(date, '', l1f, l2f);
       if (goal && goal !== 'all') rows = rows.filter((r: any) => r.goal_type === goal);
       if (haul && haul !== 'all') rows = rows.filter((r: any) => r.haul === haul);
       if (reg && reg !== 'all') rows = rows.filter((r: any) => r.region === reg);
@@ -535,7 +401,7 @@ async function handleCompareReport(req: NextRequest) {
 
     const results: any[] = [];
     await Promise.all(slots.map(async (slot) => {
-      let rows = await getRosterDataWithDeltas(slot.from, slot.to, '', l1f, l2f);
+      let rows = await getRosterDataForDate(slot.date, '', l1f, l2f);
       if (goal && goal !== 'all') rows = rows.filter((r: any) => r.goal_type === goal);
       if (haul && haul !== 'all') rows = rows.filter((r: any) => r.haul === haul);
       if (reg && reg !== 'all') rows = rows.filter((r: any) => r.region === reg);
@@ -545,11 +411,11 @@ async function handleCompareReport(req: NextRequest) {
       if (!sellers.length) return;
 
       const regions = [...new Set(sellers.map((s: any) => s.region).filter(Boolean))];
-      const latestDate = sellers.reduce((best: string, s: any) => s.log_date > best ? s.log_date : best, slot.from);
+      const latestDate = sellers.reduce((best: string, s: any) => s.log_date > best ? s.log_date : best, slot.date);
       const agg = rcAggregate(sellers, level === 'l1');
       results.push({
         name: slot.name, level, sellers: sellers.length, regions,
-        dateRange: { from: slot.from, to: slot.to, snapshotDate: latestDate },
+        dateRange: { date: slot.date, snapshotDate: latestDate },
         subjects: agg.subjects, aggregate: agg.aggregate, grade: agg.grade, chapters: agg.chapters
       });
     }));

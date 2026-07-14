@@ -509,7 +509,7 @@ function api(action,params,method){
 }
 
 // ═══════════════ STATE ═══════════════
-var currentUser=null,dashData=null,allUsers=[],sortState={col:null,dir:'desc'},activeBoxFilter=null,_boxSellers=[],globalFilters={from:'',to:'',l1:'all',l2:'all',reg:'all',goal:'all',haul:'all'},rawCache={},mhlCache={},_rawCacheLatest=null,_adminSellerEmail=null,_selectedCycle=null,_adoptionData=null,_mhlData=null,_editEmail=null;
+var currentUser=null,dashData=null,allUsers=[],sortState={col:null,dir:'desc'},activeBoxFilter=null,_boxSellers=[],globalFilters={from:'',to:'',date:'',l1:'all',l2:'all',reg:'all',goal:'all',haul:'all'},rawCache={},mhlCache={},_rawCacheLatest=null,_adminSellerEmail=null,_selectedCycle=null,_adoptionData=null,_mhlData=null,_editEmail=null;
 var FLAG_COLORS={'1 White':{bg:'rgba(232,232,232,0.15)',color:'#E0E0E0'},'2 Red':{bg:'rgba(255,71,87,0.2)',color:'#FF6B7A'},'3 Yellow':{bg:'rgba(255,183,3,0.2)',color:'#FFB703'},'4 Orange':{bg:'rgba(255,87,34,0.2)',color:'#FF7043'},'5 Green':{bg:'rgba(0,200,151,0.2)',color:'#00C897'},'6 Star':{bg:'rgba(255,215,0,0.2)',color:'#FFD700'}};
 
 var _activePageId=null,RC_LEVEL='l1',RC_CYCLE=null,rcFilters={l1:'all',l2:'all',goal:'all',haul:'all'};
@@ -566,9 +566,9 @@ function onCycleChange(cy){_selectedCycle=cy;saveState();_applyCycleDates();acti
 function buildCycleUI(){var cycles=(dashData&&dashData.cycles)||[];if(!cycles.length)return'';return'<select class="filter-select" style="font-weight:600;color:#FF5200" onchange="onCycleChange(this.value)">'+cycles.map(function(c){return'<option value="'+c+'"'+(c===_selectedCycle?' selected':'')+'>'+c+'</option>';}).join('')+'</select>';}
 
 // ═══════════════ DATE FILTER ═══════════════
-function buildDateUI(view){var df=globalFilters;var r=_cycleRange(_selectedCycle);var minDate='2026-07-09';var cMin=(r&&r.from<minDate)?minDate:(r?r.from:minDate);var mm=' min="'+cMin+'"'+(r?' max="'+r.to+'"':'');return'<div class="date-range-wrap"><span class="date-range-label">From</span><input type="date" class="date-input" id="'+view+'-from" value="'+(df.from||'')+'"'+mm+' onchange="onDateChange(\''+view+'\')"><span class="date-sep">→</span><span class="date-range-label">To</span><input type="date" class="date-input" id="'+view+'-to" value="'+(df.to||'')+'"'+mm+' onchange="onDateChange(\''+view+'\')"><button class="date-clear" onclick="clearDate(\''+view+'\')">✕</button></div>'+((df.from||df.to)?'<span class="date-active-badge">📅 filtered</span>':'');}
-function onDateChange(view){var f=document.getElementById(view+'-from'),t=document.getElementById(view+'-to');if(!f||!t)return;globalFilters.from=f.value;globalFilters.to=t.value;saveState();rawCache={};mhlCache={};RC_DATA=null;refreshDashboard();if(view==='rc'||document.getElementById('page-report').style.display==='block'){RC_DATA=null;rcLoadReportCard();}}
-function clearDate(view){globalFilters.from='';globalFilters.to='';saveState();rawCache={};mhlCache={};RC_DATA=null;refreshDashboard();if(view==='rc'||document.getElementById('page-report').style.display==='block'){RC_DATA=null;rcLoadReportCard();}}
+function buildDateUI(view){var df=globalFilters;var r=_cycleRange(_selectedCycle);var minDate='2026-07-09';var cMin=(r&&r.from<minDate)?minDate:(r?r.from:minDate);var mm=' min="'+cMin+'"'+(r?' max="'+r.to+'"':'');if(view==='rc'){return'<div class="date-range-wrap"><span class="date-range-label">Date</span><input type="date" class="date-input" id="'+view+'-date" value="'+(df.date||'')+'"'+mm+' onchange="onDateChange(\''+view+'\')"><button class="date-clear" onclick="clearDate(\''+view+'\')">✕</button></div>'+(df.date?'<span class="date-active-badge">📅 filtered</span>':'');}return'<div class="date-range-wrap"><span class="date-range-label">From</span><input type="date" class="date-input" id="'+view+'-from" value="'+(df.from||'')+'"'+mm+' onchange="onDateChange(\''+view+'\')"><span class="date-sep">→</span><span class="date-range-label">To</span><input type="date" class="date-input" id="'+view+'-to" value="'+(df.to||'')+'"'+mm+' onchange="onDateChange(\''+view+'\')"><button class="date-clear" onclick="clearDate(\''+view+'\')">✕</button></div>'+((df.from||df.to)?'<span class="date-active-badge">📅 filtered</span>':'');}
+function onDateChange(view){if(view==='rc'){var d=document.getElementById(view+'-date');if(d)globalFilters.date=d.value;}else{var f=document.getElementById(view+'-from'),t=document.getElementById(view+'-to');if(f&&t){globalFilters.from=f.value;globalFilters.to=t.value;}}saveState();rawCache={};mhlCache={};RC_DATA=null;if(view==='rc'||document.getElementById('page-report').style.display==='block'){rcLoadReportCard();}else{refreshDashboard();}}
+function clearDate(view){if(view==='rc'){globalFilters.date='';}else{globalFilters.from='';globalFilters.to='';}saveState();rawCache={};mhlCache={};RC_DATA=null;if(view==='rc'||document.getElementById('page-report').style.display==='block'){rcLoadReportCard();}else{refreshDashboard();}}
 
 // ═══════════════ RAW & MHL FETCH ═══════════════
 function fetchRaw(sellers,view,cb){var emails=sellers.map(function(s){return s.email;});var df=globalFilters;var r=_cycleRange(_selectedCycle);var from=df.from||(r?r.from:null);var to=df.to||(r?r.to:null);var key=emails.slice().sort().join('|')+'||'+(from||'')+'|'+(to||'');if(rawCache[key]){cb(rawCache[key]);return;}api('raw',{emails:emails.join(','),from:from,to:to},'POST').then(function(res){if(res&&res.success)rawCache[key]=res;cb(res||{});}).catch(function(){cb({});});}
@@ -894,8 +894,7 @@ function rcLoadReportCard(){
     reg: '',
     goal: rcFilters.goal||'all',
     haul: rcFilters.haul||'all',
-    from: globalFilters.from || null,
-    to: globalFilters.to || null
+    date: globalFilters.date || null
   };
   api(qs, payload).then(function(d){
     RC_DATA=d;RC_CYCLE=d.selectedCycle||RC_CYCLE;rcSyncCycleDropdown();
@@ -990,7 +989,7 @@ var CMP_SLOT_COUNT=0;
 function cmpAddSlot(){
   CMP_SLOT_COUNT++;
   var todayStr=new Date().toISOString().split('T')[0];
-  CMP_SLOTS.push({id:'cmp-slot-'+CMP_SLOT_COUNT, value:'', from:'2026-07-09', to:todayStr, acOpen:false});
+  CMP_SLOTS.push({id:'cmp-slot-'+CMP_SLOT_COUNT, value:'', date:todayStr, acOpen:false});
   cmpRenderSlots();
 }
 function cmpRemoveSlot(idx){
@@ -1007,12 +1006,9 @@ function cmpRenderSlots(){
         'onfocus="cmpSlotFocus('+i+')" '+
         'onblur="setTimeout(function(){cmpSlotBlur('+i+');},180)"'+
         ' autocomplete="off">'+
-      '<div class="cmp-date-group" style="margin-left:8px; display:inline-flex; align-items:center;">'+
-        '<span style="font-size:11px;color:var(--text-muted);margin-right:4px;">From</span>'+
-        '<input type="date" class="cmp-date-input" value="'+s.from+'" onchange="CMP_SLOTS['+i+'].from=this.value">'+
-        '<span class="cmp-date-sep" style="margin:0 4px;">→</span>'+
-        '<span style="font-size:11px;color:var(--text-muted);margin-right:4px;">To</span>'+
-        '<input type="date" class="cmp-date-input" value="'+s.to+'" onchange="CMP_SLOTS['+i+'].to=this.value">'+
+      '<div class="cmp-date-group" style="margin-left:8px; margin-right:24px; display:inline-flex; align-items:center;">'+
+        '<span style="font-size:11px;color:var(--text-muted);margin-right:4px;">Date</span>'+
+        '<input type="date" class="cmp-date-input" min="2026-07-09" value="'+(s.date||s.to||'')+'" onchange="CMP_SLOTS['+i+'].date=this.value">'+
       '</div>'+
       (CMP_SLOTS.length>2?'<button class="cmp-name-remove" onclick="cmpRemoveSlot('+i+')">×</button>':'')+
       '<div class="cmp-autocomplete" id="cmp-ac-'+i+'" style="display:none"></div>'+
@@ -1039,7 +1035,7 @@ function cmpSlotSelect(idx,name){CMP_SLOTS[idx].value=name;cmpRenderSlots();}
 function cmpRun(){
   var validSlots=CMP_SLOTS.filter(function(s){return s.value.trim();});
   if(!validSlots.length){alert('Please enter at least one manager name to compare.');return;}
-  var slotsJSON = JSON.stringify(validSlots.map(function(s){return {name: s.value.trim(), from: s.from, to: s.to};}));
+  var slotsJSON = JSON.stringify(validSlots.map(function(s){return {name: s.value.trim(), date: s.date||s.to};}));
   var params={
     slots: slotsJSON, level:CMP_LEVEL,
     goal:document.getElementById('cmp-fGoal').value||'all',
