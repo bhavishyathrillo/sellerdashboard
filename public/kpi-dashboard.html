@@ -501,6 +501,33 @@ window.addEventListener('unhandledrejection', function(e) {
 <div class="rc-ov" id="rc-ov2" onclick="if(event.target===this)rcClose2()"><div class="rc-modal"><div class="rc-mh"><div><div class="rc-t" id="rc-t2"></div><div class="rc-s" id="rc-s2"></div></div><button class="rc-x" onclick="rcClose2()">&times;</button></div><div class="rc-mbody" id="rc-b2"></div></div></div>
 
 <script>
+window.showInfoToast = function(msg) {
+  var existing = document.getElementById('info-toast');
+  if(existing) existing.remove();
+  var div = document.createElement('div');
+  div.id = 'info-toast';
+  div.style.position = 'fixed';
+  div.style.top = '50px';
+  div.style.left = '50%';
+  div.style.transform = 'translateX(-50%)';
+  div.style.background = '#222';
+  div.style.color = '#fff';
+  div.style.padding = '12px 24px';
+  div.style.borderRadius = '8px';
+  div.style.border = '1px solid rgba(255,255,255,0.1)';
+  div.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
+  div.style.zIndex = '999999';
+  div.style.fontSize = '14px';
+  div.style.fontWeight = '500';
+  div.style.transition = 'opacity 0.3s ease';
+  div.innerText = msg;
+  document.body.appendChild(div);
+  setTimeout(function(){
+    div.style.opacity = '0';
+    setTimeout(function(){ if(div.parentNode) div.remove(); }, 300);
+  }, 3500);
+};
+
 // ═══════════════ API HELPER ═══════════════
 function api(action,params,method){
   method=method||'GET';var url='/api/kpi?action='+action;
@@ -513,7 +540,7 @@ var currentUser=null,dashData=null,allUsers=[],sortState={col:null,dir:'desc'},a
 var FLAG_COLORS={'1 White':{bg:'rgba(232,232,232,0.15)',color:'#E0E0E0'},'2 Red':{bg:'rgba(255,71,87,0.2)',color:'#FF6B7A'},'3 Yellow':{bg:'rgba(255,183,3,0.2)',color:'#FFB703'},'4 Orange':{bg:'rgba(255,87,34,0.2)',color:'#FF7043'},'5 Green':{bg:'rgba(0,200,151,0.2)',color:'#00C897'},'6 Star':{bg:'rgba(255,215,0,0.2)',color:'#FFD700'}};
 
 var _activePageId=null,RC_LEVEL='l1',RC_CYCLE=null,rcFilters={l1:'all',l2:'all',goal:'all',haul:'all'};
-function loadState(){try{var s=sessionStorage.getItem('kpiState');if(s){var p=JSON.parse(s);if(p.f)Object.assign(globalFilters,p.f);if(p.c)_selectedCycle=p.c;if(p.r)RC_LEVEL=p.r;if(p.p)_activePageId=p.p;if(p.rf)Object.assign(rcFilters,p.rf);if(p.rc)RC_CYCLE=p.rc;}}catch(e){}}
+function loadState(){try{var s=sessionStorage.getItem('kpiState');if(s){var p=JSON.parse(s);if(p.f)Object.assign(globalFilters,p.f);if(p.c)_selectedCycle=p.c;if(p.r)RC_LEVEL=p.r;if(p.p)_activePageId=p.p;if(p.rf)Object.assign(rcFilters,p.rf);if(p.rc)RC_CYCLE=p.rc;}}catch(e){} if(document.getElementById('rc-tabL1')){ document.getElementById('rc-tabL1').classList.toggle('on', RC_LEVEL==='l1'); document.getElementById('rc-tabL2').classList.toggle('on', RC_LEVEL==='l2'); }}
 function saveState(){try{sessionStorage.setItem('kpiState',JSON.stringify({f:globalFilters,c:_selectedCycle,r:RC_LEVEL,p:_activePageId,rf:rcFilters,rc:RC_CYCLE}));}catch(e){}}
 
 // ═══════════════ INIT ═══════════════
@@ -816,13 +843,21 @@ function rcOpenDetail(idx){
           var statusDot=mc>=90?'#4ADE80':mc>=70?'#FB923C':'#F87171';
           var barColor=mc>=90?'rgba(74,222,128,0.5)':mc>=70?'rgba(251,146,60,0.5)':'rgba(248,113,113,0.5)';
           var statusLabel=mc>=90?'On track':mc>=70?'At risk':'Behind';
+          
+          var extraBtn='';
+          if(c.extra && typeof c.extra.wonWithoutFeasibility !== 'undefined'){
+            var svgIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+            extraBtn='<button onclick="window.showInfoToast(\'Won without feasibility: \' + '+c.extra.wonWithoutFeasibility+')" style="background:none;border:none;cursor:pointer;color:inherit;opacity:0.6;display:flex;align-items:center;justify-content:center;margin-left:auto;padding:4px;" title="Click for extra stats" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.6\'">'+svgIcon+'</button>';
+          }
+
           return '<div class="rc-chap">'+
             '<div style="flex:1;padding-right:20px">'+
               '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+
                 '<div style="font-weight:600;font-size:13.5px;color:var(--text-primary)">'+c.label+'</div>'+
                 '<span style="font-size:10px;font-weight:500;color:var(--text-muted);background:rgba(255,255,255,0.04);padding:2px 7px;border-radius:5px;border:1px solid rgba(255,255,255,0.07)">'+c.weight+'%</span>'+
+                extraBtn+
               '</div>'+
-              '<div style="font-size:11.5px;color:var(--text-muted);line-height:1.55;margin-bottom:8px">'+c.detail+'<span style="margin:0 8px;opacity:0.2">·</span>Target: '+c.target+'</div>'+
+              '<div style="font-size:11.5px;color:var(--text-muted);line-height:1.55;margin-bottom:8px">'+c.detail+' <span style="opacity:0.5;font-style:italic">&middot; '+c.formula+'</span><span style="margin:0 8px;opacity:0.2">·</span>Target: '+c.target+'</div>'+
               '<div style="height:3px;background:rgba(255,255,255,0.05);border-radius:99px;overflow:hidden">'+
                 '<div style="width:'+mc+'%;height:100%;background:'+barColor+';border-radius:99px;transition:width 0.9s cubic-bezier(0.4,0,0.2,1)"></div>'+
               '</div>'+
@@ -1040,7 +1075,8 @@ function cmpRun(){
     slots: slotsJSON, level:CMP_LEVEL,
     goal:document.getElementById('cmp-fGoal').value||'all',
     haul:document.getElementById('cmp-fHaul').value||'all',
-    reg:document.getElementById('cmp-fRegion').value||'all'
+    reg:document.getElementById('cmp-fRegion').value||'all',
+    cycle: _selectedCycle || ''
   };
   document.getElementById('cmp-state').style.display='flex';
   document.getElementById('cmp-grid').innerHTML='';
@@ -1145,11 +1181,19 @@ function cmpRenderPanels(results){
         var barCol=mark>=90?'rgba(74,222,128,0.65)':mark>=70?'rgba(251,146,60,0.6)':'rgba(248,113,113,0.55)';
         var scoreCol=mark>=90?'#4ADE80':mark>=70?'#FB923C':'#F87171';
         var statusLabel=mark>=90?'On track':mark>=70?'At risk':'Behind';
+        
+        var extraBtn='';
+        if(c.extra && typeof c.extra.wonWithoutFeasibility !== 'undefined'){
+          var svgIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+          extraBtn='<button onclick="window.showInfoToast(\'Won without feasibility: \' + '+c.extra.wonWithoutFeasibility+')" style="background:none;border:none;cursor:pointer;color:inherit;opacity:0.5;display:flex;align-items:center;justify-content:center;margin-right:12px;padding:4px;" title="Click for extra stats" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.5\'">'+svgIcon+'</button>';
+        }
+
         chapHtml+='<div class="cmp-metric'+(isWinner?' winner':'')+(isLoser?' loser':'')+'">'+
           '<div class="cmp-metric-info">'+
             '<div class="cmp-metric-label">'+c.label+'</div>'+
-            '<div class="cmp-metric-detail" title="'+c.detail+'">'+c.detail+'</div>'+
+            '<div class="cmp-metric-detail" title="'+c.detail+'">'+c.detail+' &middot; <span style="opacity:0.7">'+c.formula+'</span></div>'+
           '</div>'+
+          extraBtn+
           '<div class="cmp-metric-bar-wrap"><div class="cmp-metric-bar" style="width:'+mark+'%;background:'+barCol+'"></div></div>'+
           '<div>'+
             '<div class="cmp-metric-score" style="color:'+scoreCol+'">'+(c.mark!=null?Math.round(c.mark):'NR')+'</div>'+
