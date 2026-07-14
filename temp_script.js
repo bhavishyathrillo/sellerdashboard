@@ -360,7 +360,7 @@ function rcOpenDetail(idx){
         'How scores are calculated'+
       '</h4>'+
       '<p><strong>Chapter score</strong> = Proximity to target (capped at 100).</p>'+
-      '<p style="margin:0"><strong>Overall</strong> = Output &times; 70% + Input &times; 15% + Quotations &times; 15%.</p>'+
+      '<p style="margin:0"><strong>Overall</strong> = Output &times; 70% + Input &times; 30%.</p>'+
     '</div>'+
     '<button class="rc-sellersBtn" onclick="rcOpenSellers()">'+
       'View seller breakdown ('+m.sellers+') &rarr;'+

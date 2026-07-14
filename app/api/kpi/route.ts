@@ -357,7 +357,7 @@ async function handlePingSession(req: NextRequest) {
 // ============================================================
 const BENCH = { mishandled:0.15, called15:0.90, talk:8, flag:0.12, quoted:0.50, quoteFeas:0.30, pass:0.90, quoteConv:0.80, rework:2, priority:0.20 };
 const CHW = { input:{mishandled:.30,called15:.30,talk:.15,priority:.25}, quotations:{quoted:.25,quoteFeas:.15,pass:.25,rework:.15,quoteConv:.20}, output:{bottomline:.30,topline:.15,conversionPct:.25,margin:.15,flag:.15} };
-const SW = { output:.70, input:.15, quotations:.15 };
+const SW = { output:.70, input:.30, quotations:0 };
 const FL = ['','White','Red','Yellow','Orange','Green','Star'];
 
 function n0(v:any){ if(v===null||v===undefined)return 0; if(typeof v==='number')return v; const s=String(v).trim(); if(s===''||s.toUpperCase()==='NA'||s==='-')return 0; return parseFloat(s.replace(/[%,]/g,''))||0; }

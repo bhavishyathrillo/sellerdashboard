@@ -49,7 +49,7 @@ export async function getSellerRawData(email) {
 
 export async function getReportData(cycle) {
   return await fetchJSON(`${BASE_URL}?action=report-card&cycle=${encodeURIComponent(cycle || '')}`) || {
-    generated: formatDate(new Date()), subjectWeights: { output: 0.70, input: 0.15, quotations: 0.15 }, hasConviq: false,
+    generated: formatDate(new Date()), subjectWeights: { output: 0.70, input: 0.30, quotations: 0 }, hasConviq: false,
     regions: [], cycles: [], selectedCycle: '', views: { '': { l1: [], l2: [] } },
   };
 }
