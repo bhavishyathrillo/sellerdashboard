@@ -21,53 +21,55 @@ const CSS = `
 /* Accordion for Daily Breakdown */
 .adp-daily-section {
   margin-top: 20px;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid rgba(255,255,255,0.06);
   padding-top: 15px;
 }
 .adp-daily-title {
   font-size: 0.9rem;
   color: #fff;
   margin-bottom: 10px;
-  font-weight: 500;
+  font-weight: 600;
 }
 .adp-day-card {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 10px;
   margin-bottom: 10px;
   overflow: hidden;
+  transition: background 0.2s;
 }
 .adp-day-hdr {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 15px;
+  padding: 12px 16px;
   cursor: pointer;
 }
 .adp-day-hdr:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.04);
 }
 .adp-day-date {
   font-size: 0.85rem;
   color: #E8E4DD;
-  font-weight: 500;
+  font-weight: 600;
 }
 .adp-day-time {
   font-size: 0.8rem;
   color: #F4631E;
+  font-weight: 600;
 }
 .adp-day-body {
-  padding: 0 15px 10px;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  padding: 0 16px 12px;
+  border-top: 1px solid rgba(255,255,255,0.04);
   margin-top: 5px;
-  padding-top: 10px;
+  padding-top: 12px;
 }
 .adp-day-tab-item {
   display: flex;
   justify-content: space-between;
   font-size: 0.75rem;
-  color: #8E8E93;
-  padding: 4px 0;
+  color: #A19D94;
+  padding: 5px 0;
 }
 
 .adp-hdr {
@@ -75,87 +77,102 @@ const CSS = `
   border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 24px;
 }
 .adp-title h1 {
-  font-size: 1.8rem; font-weight: 900; letter-spacing: -0.02em; margin: 0 0 8px 0;
-  background: linear-gradient(135deg, #F4631E, #F59E0B); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  font-size: 2rem; font-weight: 900; letter-spacing: -0.02em; margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #F4631E 0%, #F59E0B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 4px rgba(244,99,30,0.2));
 }
-.adp-title p { color: #8A8278; font-size: 0.85rem; margin: 0; }
+.adp-title p { color: #A19D94; font-size: 0.9rem; margin: 0; font-weight: 500; }
 
-.adp-filters { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
-.adp-date-grp { display: flex; flex-direction: column; gap: 4px; }
-.adp-date-lbl { font-size: 0.65rem; color: #6A6258; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+.adp-filters { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+.adp-date-grp { display: flex; flex-direction: column; gap: 6px; }
+.adp-date-lbl { font-size: 0.65rem; color: #8A8278; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
 .adp-date-inp { 
-  background: rgba(18,18,18,0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; 
+  background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; 
   padding: 8px 12px; color: #E8E4DD; font-size: 0.8rem; font-family: 'Inter', sans-serif; outline: none;
-  height: 38px; box-sizing: border-box;
+  height: 40px; box-sizing: border-box; transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
 }
 .adp-date-inp::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(100);
-  cursor: pointer;
+  filter: invert(1) brightness(100); cursor: pointer; opacity: 0.6; transition: opacity 0.2s;
 }
-.adp-date-inp:focus { border-color: #F4631E; }
-.adp-btn {
-  background: #F4631E; color: #fff; border: none; padding: 0 20px; border-radius: 8px;
-  font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
-  height: 38px; display: flex; align-items: center; justify-content: center; white-space: nowrap; box-sizing: border-box;
-}
-.adp-btn:hover { background: #e05315; transform: translateY(-1px); }
-.adp-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.adp-date-inp::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+.adp-date-inp:focus { border-color: #F4631E; box-shadow: 0 0 0 2px rgba(244,99,30,0.15); background: rgba(0,0,0,0.6); }
 
-.adp-section { margin-bottom: 40px; }
+.adp-btn {
+  background: linear-gradient(135deg, #F4631E, #D95315); color: #fff; border: none; padding: 0 22px; border-radius: 8px;
+  font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease;
+  height: 40px; display: flex; align-items: center; justify-content: center; white-space: nowrap; box-sizing: border-box;
+  box-shadow: 0 4px 12px rgba(244,99,30,0.2);
+}
+.adp-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(244,99,30,0.3); }
+.adp-btn:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(244,99,30,0.2); }
+.adp-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; background: #555; }
+
+.adp-section { margin-bottom: 48px; }
 .adp-sec-hdr { 
-  font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: #fff; 
-  display: flex; align-items: center; gap: 8px;
+  font-size: 1.15rem; font-weight: 700; margin-bottom: 18px; color: #fff; 
+  display: flex; align-items: center; gap: 10px; letter-spacing: -0.01em;
 }
 .adp-sec-count {
-  background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem;
+  background: rgba(255,255,255,0.08); padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; color: #E8E4DD;
+  backdrop-filter: blur(4px); font-weight: 600;
 }
 
 /* Inactive Grid */
-.adp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; width: 100%; }
+.adp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; width: 100%; }
 .adp-card { 
-  background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px;
-  padding: 14px; display: flex; flex-direction: column; gap: 4px;
+  background: linear-gradient(145deg, rgba(239,68,68,0.08), rgba(239,68,68,0.02)); 
+  border: 1px solid rgba(239,68,68,0.15); border-radius: 12px;
+  padding: 16px; display: flex; flex-direction: column; gap: 6px;
+  transition: all 0.2s ease; backdrop-filter: blur(10px);
 }
-.adp-card-name { font-weight: 600; font-size: 0.9rem; color: #EF4444; }
-.adp-card-role { font-size: 0.7rem; color: #8A8278; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+.adp-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(239,68,68,0.3);
+  box-shadow: 0 6px 20px rgba(239,68,68,0.1);
+}
+.adp-card-name { font-weight: 600; font-size: 0.95rem; color: #FCA5A5; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+.adp-card-role { font-size: 0.7rem; color: rgba(252,165,165,0.7); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
 
-.adp-grid-container { display: flex; flex-direction: column; gap: 16px; align-items: stretch; width: 100%; }
+.adp-grid-container { display: flex; flex-direction: column; gap: 20px; align-items: stretch; width: 100%; }
 .adp-show-more {
-  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;
-  padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
-  transition: all 0.2s; font-family: 'Inter', sans-serif; align-self: center;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: #E8E4DD;
+  padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s ease; font-family: 'Inter', sans-serif; align-self: center;
+  backdrop-filter: blur(8px);
 }
-.adp-show-more:hover { background: rgba(255,255,255,0.1); }
+.adp-show-more:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); transform: translateY(-1px); }
 
 /* Active Table */
 .adp-tbl-wrap { 
-  background: rgba(14,14,14,0.7); border: 1px solid rgba(255,255,255,0.06); 
-  border-radius: 12px; overflow: hidden;
+  background: rgba(20,20,20,0.4); border: 1px solid rgba(255,255,255,0.05); 
+  border-radius: 14px; overflow: hidden; backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
-.adp-tbl { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.adp-tbl { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .adp-tbl th { 
-  text-align: left; padding: 12px 16px; font-size: 0.65rem; color: #8A8278; 
-  text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.02);
+  text-align: left; padding: 14px 18px; font-size: 0.65rem; color: #8A8278; 
+  text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: rgba(0,0,0,0.2);
 }
-.adp-tbl td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #C0B9B0; }
-.adp-tbl tbody tr { transition: background 0.2s; cursor: pointer; }
-.adp-tbl tbody tr:hover { background: rgba(255,255,255,0.04); }
-.adp-time { font-weight: 600; color: #3B82F6; font-variant-numeric: tabular-nums; }
+.adp-tbl td { padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.02); color: #D6D2CC; font-weight: 500; }
+.adp-tbl tbody tr { transition: all 0.2s ease; cursor: pointer; }
+.adp-tbl tbody tr:hover { background: rgba(255,255,255,0.03); }
+.adp-time { font-weight: 700; color: #60A5FA; font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
 .adp-role-badge {
-  display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 0.65rem; font-weight: 700;
-  background: rgba(255,255,255,0.1); color: #fff;
+  display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.65rem; font-weight: 700;
+  background: rgba(255,255,255,0.08); color: #fff; letter-spacing: 0.02em;
 }
-.role-L1 { background: rgba(139, 92, 246, 0.2); color: #C4B5FD; }
-.role-L2 { background: rgba(59, 130, 246, 0.2); color: #93C5FD; }
-.role-ADMIN { background: rgba(245, 158, 11, 0.2); color: #FCD34D; }
+.role-L1 { background: rgba(139, 92, 246, 0.15); color: #DDD6FE; border: 1px solid rgba(139,92,246,0.2); }
+.role-L2 { background: rgba(59, 130, 246, 0.15); color: #BFDBFE; border: 1px solid rgba(59,130,246,0.2); }
+.role-ADMIN { background: rgba(245, 158, 11, 0.15); color: #FDE68A; border: 1px solid rgba(245,158,11,0.2); }
 
 /* Modal */
-.adp-modal-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; animation: adpFade 0.2s; }
+.adp-modal-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 100; display: flex; align-items: center; justify-content: center; animation: adpFade 0.2s; }
 .adp-modal {
-  background: #1A1A1A; width: 400px; border-radius: 12px; padding: 24px;
-  border: 1px solid rgba(255,255,255,0.1); position: relative;
-  max-height: 85vh; overflow-y: auto;
+  background: linear-gradient(180deg, #1A1A1A 0%, #121212 100%); width: 440px; border-radius: 16px; padding: 28px;
+  border: 1px solid rgba(255,255,255,0.08); position: relative;
+  max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
 }
 .adp-modal::-webkit-scrollbar { width: 6px; }
 .adp-modal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
@@ -329,15 +346,31 @@ export default function AdoptionPage({ session }: { session: UserSession }) {
               key={r.value}
               onClick={() => setRoleFilter(r.value)}
               style={{
-                background: roleFilter === r.value ? '#F4631E' : 'transparent',
-                color: roleFilter === r.value ? '#fff' : '#8A8278',
-                border: 'none',
-                padding: '6px 16px',
-                borderRadius: '8px',
+                background: roleFilter === r.value ? 'linear-gradient(135deg, rgba(244,99,30,0.2), rgba(217,83,21,0.1))' : 'rgba(255,255,255,0.03)',
+                color: roleFilter === r.value ? '#F4631E' : '#8A8278',
+                border: `1px solid ${roleFilter === r.value ? 'rgba(244,99,30,0.4)' : 'rgba(255,255,255,0.05)'}`,
+                padding: '8px 20px',
+                borderRadius: '20px',
                 fontSize: '0.8rem',
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'all 0.2s'
+                transition: 'all 0.25s ease',
+                backdropFilter: 'blur(8px)',
+                boxShadow: roleFilter === r.value ? '0 4px 12px rgba(244,99,30,0.1)' : 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (roleFilter !== r.value) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+                  e.currentTarget.style.color = '#fff'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (roleFilter !== r.value) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'
+                  e.currentTarget.style.color = '#8A8278'
+                }
               }}
             >
               {r.label}

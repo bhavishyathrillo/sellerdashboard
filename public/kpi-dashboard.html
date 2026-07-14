@@ -397,7 +397,6 @@ input[type="text"], input[type="email"], select { background: var(--bg-main) !im
 .cmp-metric-bar{height:100%;border-radius:99px;transition:width .8s}
 .cmp-metric-score{width:46px;text-align:right;font-size:17px;font-weight:800;flex-shrink:0;letter-spacing:-0.2px}
 .cmp-metric-grade{font-size:10px;font-weight:600;margin-top:1px;text-align:right}
-.cmp-winner-crown{font-size:11px;margin-left:2px}
 
 /* ─── Snapshot date banner ─── */
 .cmp-snap-bar{display:none !important;}
@@ -1108,7 +1107,7 @@ function cmpRenderPanels(results){
         '<div class="cmp-ring-inner">'+(r.aggregate!=null?Math.round(r.aggregate):'NR')+'</div>'+
       '</div>'+
       '<div class="cmp-panel-info">'+
-        '<div class="cmp-panel-name">'+r.name+(isTopAgg?' <span style="color:#FFD700;font-size:14px" title="Top performer">★</span>':'')+'</div>'+
+        '<div class="cmp-panel-name">'+r.name+'</div>'+
         '<div class="cmp-panel-sub">'+r.sellers+' sellers · '+(r.regions||[]).join(', ')+'</div>'+
         '<div class="cmp-grade-pill" style="background:'+gradeBg+';color:'+gradeCol+'">Grade '+r.grade+'</div>'+
         (snap?'<div class="cmp-snap-badge">📅 as of '+snap+'</div>':'')+
@@ -1155,7 +1154,7 @@ function cmpRenderPanels(results){
         var statusLabel=mark>=90?'On track':mark>=70?'At risk':'Behind';
         chapHtml+='<div class="cmp-metric'+(isWinner?' winner':'')+(isLoser?' loser':'')+'">'+
           '<div class="cmp-metric-info">'+
-            '<div class="cmp-metric-label">'+c.label+(isWinner?' <span class="cmp-winner-crown">👑</span>':'')+'</div>'+
+            '<div class="cmp-metric-label">'+c.label+'</div>'+
             '<div class="cmp-metric-detail" title="'+c.detail+'">'+c.detail+'</div>'+
           '</div>'+
           '<div class="cmp-metric-bar-wrap"><div class="cmp-metric-bar" style="width:'+mark+'%;background:'+barCol+'"></div></div>'+
