@@ -474,7 +474,7 @@ async function handleReportCard(req: NextRequest) {
     const goal = u.searchParams.get('goal');
     const haul = u.searchParams.get('haul');
 
-    let rows = await getRosterDataWithDeltas(from, to, sc, l1, l2);
+    let rows = await getRosterDataWithDeltas(from as any, to as any, sc as any, l1 as any, l2 as any);
     if (reg && reg !== 'all') rows = rows.filter((r: any) => r.region === reg);
     if (goal && goal !== 'all') rows = rows.filter((r: any) => r.goal_type === goal);
     if (haul && haul !== 'all') rows = rows.filter((r: any) => r.haul === haul);

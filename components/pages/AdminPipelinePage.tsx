@@ -116,7 +116,7 @@ export default function AdminPipelinePage() {
   }
 
   useEffect(() => {
-    if (!search.trim() && !dateFrom && !dateTo && dateFilter === 'all') { 
+    if (!search.trim() && !dateFrom && !dateTo && dateFilter === ('all' as any)) { 
       setFilteredResults([]); 
       return 
     }
