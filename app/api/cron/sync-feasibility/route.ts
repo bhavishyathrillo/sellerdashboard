@@ -17,7 +17,21 @@ export async function GET(request: Request) {
 
     console.log('Running daily sync for won_without_feasibility...');
 
-    // Call the database function
+    // Get today's date in IST format (YYYY-MM-DD)
+    const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+    // Step 1: Delete any existing records for today to ensure we OVERWRITE instead of adding duplicates
+    const { error: deleteError } = await supabase.schema('seller_day_to_day')
+      .from('won_without_feasibility_daily')
+      .delete()
+      .eq('log_date', todayIST);
+
+    if (deleteError) {
+      console.error('Error deleting previous stats for today:', deleteError);
+      return NextResponse.json({ success: false, error: deleteError.message }, { status: 500 });
+    }
+
+    // Step 2: Call the database function to insert the fresh data for today
     const { error } = await supabase.rpc('sync_won_without_feasibility');
 
     if (error) {
