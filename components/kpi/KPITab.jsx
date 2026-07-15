@@ -14,7 +14,7 @@ export default function KPITab({ user }) {
         style={{ display: 'none' }}
       />
       <iframe
-        src="/kpi-dashboard.html"
+        src={`/kpi-dashboard.html?v=${Date.now()}`}
         style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
         title="KPI Command Center"
       />
