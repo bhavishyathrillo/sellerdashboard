@@ -328,7 +328,8 @@ function rcAggregate(rows:any[], includeFlag:boolean){
   const c15Act = (c15D>0?c15/c15D:null);
   const prioA=c15D>0?prio/c15D:null;
   const talkAct=talkD>0?talkN/talkD:null, flagAct=includeFlag&&sellers>0?rw/sellers:null;
-  const quotedA=z>0?aa/z:null, qFeasA=aa>0?ac/aa:null, passA=ad>0?ae/ad:null, quoteConvA=ac>0?conv2/ac:null, reworkA=ad>0?ag/ad:null;
+  const adjustedConv2 = Math.max(0, conv2 - wonWithoutFeasibility);
+  const quotedA=z>0?aa/z:null, qFeasA=aa>0?ac/aa:null, passA=ad>0?ae/ad:null, quoteConvA=ac>0?adjustedConv2/ac:null, reworkA=ad>0?ag/ad:null;
   const botAch=botT>0?botA/botT:null, topAch=topT>0?topA/topT:null;
   const convPT=leadsSHB>0?convT/leadsSHB:null, convPA=c15D>0?convA/c15D:null, convPAch=(convPA!==null&&convPT&&convPT>0)?convPA/convPT:null;
   const mAct=topA>0?botA/topA:null, mTgt=topT>0?botT/topT:null, marginAch=(mAct!==null&&mTgt&&mTgt>0)?mAct/mTgt:null;
@@ -349,7 +350,7 @@ function rcAggregate(rows:any[], includeFlag:boolean){
   push('Quotations','quoted','Unique leads quoted','unique quoted / unique leads',quotedA===null?'No data':pF(quotedA)+' of leads quoted ('+Math.round(aa)+' of '+Math.round(z)+')','50%',CHW.quotations.quoted,sc.quoted);
   push('Quotations','quoteFeas','Unique quote to feasibility','sent to feasibility / quoted leads',qFeasA===null?'No data':pF(qFeasA)+' of quoted leads sent to feasibility ('+Math.round(ac)+' of '+Math.round(aa)+')','30%',CHW.quotations.quoteFeas,sc.quoteFeas);
   push('Quotations','pass','Feasibility pass','passed / total sent to feasibility',passA===null?'No data':pF(passA)+' passed ('+Math.round(ae)+' of '+Math.round(ad)+')','95%',CHW.quotations.pass,sc.pass);
-  push('Quotations','quoteConv','Quote to conversion','converted / unique sent to feasibility',quoteConvA===null?'No data':pF(quoteConvA)+' of unique quotes sent to feasibility converted ('+Math.round(conv2)+' of '+Math.round(ac)+')','90%',CHW.quotations.quoteConv,sc.quoteConv, { wonWithoutFeasibility });
+  push('Quotations','quoteConv','Quote to conversion','converted / unique sent to feasibility',quoteConvA===null?'No data':pF(quoteConvA)+' of unique quotes sent to feasibility converted ('+Math.round(adjustedConv2)+' of '+Math.round(ac)+')','90%',CHW.quotations.quoteConv,sc.quoteConv, { wonWithoutFeasibility });
   push('Quotations','rework','Rework rate','total reworks / total sent to feasibility',reworkA===null?'No data':reworkA.toFixed(1)+' reworks per feasibility ('+Math.round(ag)+' reworks, '+Math.round(ad)+' sent to feasibility)','2 or fewer',CHW.quotations.rework,sc.rework);
   push('Output metrics','bottomline','Bottomline (profit)','actual profit / target profit',botT>0?mF(botA)+' of '+mF(botT)+' target ('+pF(botAch)+')':'No data','100% of goal',CHW.output.bottomline,sc.bottomline);
   push('Output metrics','topline','Topline (booking value)','actual booking / target booking',topT>0?mF(topA)+' of '+mF(topT)+' target ('+pF(topAch)+')':'No data','100% of goal',CHW.output.topline,sc.topline);
