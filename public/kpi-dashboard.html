@@ -844,18 +844,21 @@ function rcOpenDetail(idx){
           var barColor=mc>=90?'rgba(74,222,128,0.5)':mc>=70?'rgba(251,146,60,0.5)':'rgba(248,113,113,0.5)';
           var statusLabel=mc>=90?'On track':mc>=70?'At risk':'Behind';
           
-          var extraBtn='';
-          if(c.extra && typeof c.extra.wonWithoutFeasibility !== 'undefined'){
-            var svgIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
-            extraBtn='<button onclick="window.showInfoToast(\'Won without feasibility: \' + '+c.extra.wonWithoutFeasibility+')" style="background:none;border:none;cursor:pointer;color:inherit;opacity:0.6;display:flex;align-items:center;justify-content:center;margin-left:auto;padding:4px;" title="Click for extra stats" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.6\'">'+svgIcon+'</button>';
+          var rowTitle = '';
+          if(c.extra){
+            var msg = [];
+            if (typeof c.extra.wonWithoutFeasibility !== 'undefined') msg.push('Won without feasibility: ' + c.extra.wonWithoutFeasibility);
+            if (typeof c.extra.red !== 'undefined') msg.push('Red flags: ' + c.extra.red);
+            if (typeof c.extra.white !== 'undefined') msg.push('White flags: ' + c.extra.white);
+            if (msg.length > 0) rowTitle = msg.join(' | ');
           }
 
-          return '<div class="rc-chap">'+
+          return '<div class="rc-chap" style="position:relative;" onmouseenter="var t=this.querySelector(\'.tt-block\'); if(t) t.style.opacity=\'1\';" onmouseleave="var t=this.querySelector(\'.tt-block\'); if(t) t.style.opacity=\'0\';">'+
+            (rowTitle ? '<div class="tt-block" style="opacity:0; transition:opacity 0.15s ease; position:absolute; bottom:calc(100% - 15px); left:20px; padding:6px 12px; background:#2A2A2A; border:1px solid #444; color:#FFF; font-size:12.5px; border-radius:5px; white-space:nowrap; z-index:9999; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,0.5);">'+rowTitle+'</div>' : '') +
             '<div style="flex:1;padding-right:20px">'+
               '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+
                 '<div style="font-weight:600;font-size:13.5px;color:var(--text-primary)">'+c.label+'</div>'+
                 '<span style="font-size:10px;font-weight:500;color:var(--text-muted);background:rgba(255,255,255,0.04);padding:2px 7px;border-radius:5px;border:1px solid rgba(255,255,255,0.07)">'+c.weight+'%</span>'+
-                extraBtn+
               '</div>'+
               '<div style="font-size:11.5px;color:var(--text-muted);line-height:1.55;margin-bottom:8px">'+c.detail+' <span style="opacity:0.5;font-style:italic">&middot; '+c.formula+'</span><span style="margin:0 8px;opacity:0.2">·</span>Target: '+c.target+'</div>'+
               '<div style="height:3px;background:rgba(255,255,255,0.05);border-radius:99px;overflow:hidden">'+
@@ -1182,18 +1185,21 @@ function cmpRenderPanels(results){
         var scoreCol=mark>=90?'#4ADE80':mark>=70?'#FB923C':'#F87171';
         var statusLabel=mark>=90?'On track':mark>=70?'At risk':'Behind';
         
-        var extraBtn='';
-        if(c.extra && typeof c.extra.wonWithoutFeasibility !== 'undefined'){
-          var svgIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
-          extraBtn='<button onclick="window.showInfoToast(\'Won without feasibility: \' + '+c.extra.wonWithoutFeasibility+')" style="background:none;border:none;cursor:pointer;color:inherit;opacity:0.5;display:flex;align-items:center;justify-content:center;margin-right:12px;padding:4px;" title="Click for extra stats" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.5\'">'+svgIcon+'</button>';
+        var rowTitle = '';
+        if(c.extra){
+          var msg = [];
+          if (typeof c.extra.wonWithoutFeasibility !== 'undefined') msg.push('Won without feasibility: ' + c.extra.wonWithoutFeasibility);
+          if (typeof c.extra.red !== 'undefined') msg.push('Red flags: ' + c.extra.red);
+          if (typeof c.extra.white !== 'undefined') msg.push('White flags: ' + c.extra.white);
+          if (msg.length > 0) rowTitle = msg.join(' | ');
         }
 
-        chapHtml+='<div class="cmp-metric'+(isWinner?' winner':'')+(isLoser?' loser':'')+'">'+
+        chapHtml+='<div class="cmp-metric'+(isWinner?' winner':'')+(isLoser?' loser':'')+'" style="position:relative;" onmouseenter="var t=this.querySelector(\'.tt-block\'); if(t) t.style.opacity=\'1\';" onmouseleave="var t=this.querySelector(\'.tt-block\'); if(t) t.style.opacity=\'0\';">'+
+          (rowTitle ? '<div class="tt-block" style="opacity:0; transition:opacity 0.15s ease; position:absolute; bottom:calc(100% - 15px); left:20px; padding:6px 12px; background:#2A2A2A; border:1px solid #444; color:#FFF; font-size:12.5px; border-radius:5px; white-space:nowrap; z-index:9999; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,0.5);">'+rowTitle+'</div>' : '') +
           '<div class="cmp-metric-info">'+
             '<div class="cmp-metric-label">'+c.label+'</div>'+
             '<div class="cmp-metric-detail" title="'+c.detail+'">'+c.detail+' &middot; <span style="opacity:0.7">'+c.formula+'</span></div>'+
           '</div>'+
-          extraBtn+
           '<div class="cmp-metric-bar-wrap"><div class="cmp-metric-bar" style="width:'+mark+'%;background:'+barCol+'"></div></div>'+
           '<div>'+
             '<div class="cmp-metric-score" style="color:'+scoreCol+'">'+(c.mark!=null?Math.round(c.mark):'NR')+'</div>'+
