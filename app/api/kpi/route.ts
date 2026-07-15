@@ -312,7 +312,7 @@ function rcAggregate(rows:any[], includeFlag:boolean){
     c15+=n0(r.called_within_15_count); c15D+=n0(r.total_leads);
     prio+=n0(r.priority_leads_count);
     const q=nN(r.talk_actual), al=n0(r.talk_call_count); if(q!==null&&al>0){talkN+=q*al;talkD+=al;}
-    sellers++; const f=nN(r.flag); if(f===1){rw++;redCount++;}else if(f===2){rw++;whiteCount++;}
+    sellers++; const f=nN(r.flag); if(f===1){rw++;whiteCount++;}else if(f===2){rw++;redCount++;}
     aa+=n0(r.unique_leads_quoted); z+=n0(r.unique_leads);
     ac+=n0(r.unique_feasibility_sent); ae+=n0(r.feasibility_passed); ad+=n0(r.total_feasibility_sent); ag+=n0(r.reworks);
     conv2+=n0(r.converted_count);
