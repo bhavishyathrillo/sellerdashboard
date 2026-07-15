@@ -65,6 +65,31 @@ export async function DELETE(req: NextRequest) {
 // ============================================================
 function medArr(a: number[]) { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
 
+// Build email -> {bl_actual_splits, tl_actual_splits} lookup from srs_july
+async function getSrsJulyMap(): Promise<Record<string, {bl: number; tl: number}>> {
+  const { data } = await supabase.from('srs_july').select('seller_email, bl_actual_splits, tl_actual_splits').limit(5000);
+  const map: Record<string, {bl: number; tl: number}> = {};
+  (data || []).forEach((r: any) => {
+    map[(r.seller_email || '').toLowerCase()] = {
+      bl: Number(r.bl_actual_splits) || 0,
+      tl: Number(r.tl_actual_splits) || 0,
+    };
+  });
+  return map;
+}
+
+// Enrich raw roster rows with blActual and tlActual from srs_july
+function enrichWithBlActual(rows: any[], srsMap: Record<string, {bl: number; tl: number}>): any[] {
+  return rows.map((r: any) => {
+    const entry = srsMap[(r.email || '').toLowerCase()];
+    return {
+      ...r,
+      blActual: entry ? entry.bl : (r.bottomline_actual || 0),
+      tlActual: entry ? entry.tl : (r.topline_actual || 0),
+    };
+  });
+}
+
 async function getRosterDataForDate(date: string | null, sc: string, l1?: string, l2?: string): Promise<any[]> {
   const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
   
@@ -145,9 +170,11 @@ async function handleDashboard(req?: NextRequest) {
     const cr: Record<string,{from:string;to:string}> = {}; (cd||[]).forEach((c:any)=>{ cr[c.cycle]={from:c.start_date,to:c.end_date}; });
     const cycles = (cd||[]).map((c:any)=>c.cycle); const lc = cycles[0]||'';
 
-    const sellers = await getRosterDataForDate(date, lc);
+    const [sellers, srsMap] = await Promise.all([getRosterDataForDate(date, lc), getSrsJulyMap()]);
 
     const mapped = (sellers||[]).map((s:any)=>{
+      const emailKey = (s.email || '').toLowerCase();
+      const entry = srsMap[emailKey];
       return {
         cycle: s.cycle || '',
         email: s.email || '',
@@ -162,14 +189,14 @@ async function handleDashboard(req?: NextRequest) {
         mheSHB: s.mhe_shb,
         mheActual: s.mhe_actual,
         blSHB: s.bottomline_shb || 0,
-        blActual: s.bottomline_actual || 0,
+        blActual: entry ? entry.bl : (s.bottomline_actual || 0),
         slaSHB: s.sla_shb || 90,
         talkSHB: s.talk_shb || 8,
         talkActual: s.talk_actual || 0,
         haul: s.haul || '',
         flag: String(s.flag || ''),
         tlSHB: s.topline_shb || 0,
-        tlActual: s.topline_actual || 0,
+        tlActual: entry ? entry.tl : (s.topline_actual || 0),
       };
     });
     const regs=[...new Set(mapped.map((s:any)=>s.region).filter(Boolean))] as string[];
@@ -317,8 +344,8 @@ function rcAggregate(rows:any[], includeFlag:boolean){
     ac+=n0(r.unique_feasibility_sent); ae+=n0(r.feasibility_passed); ad+=n0(r.total_feasibility_sent); ag+=n0(r.reworks);
     conv2+=n0(r.converted_count);
     wonWithoutFeasibility+=n0(r.won_without_feasibility_count);
-    botA+=n0(r.bottomline_actual); botT+=n0(r.bottomline_shb);
-    topA+=n0(r.topline_actual); topT+=n0(r.topline_shb);
+    botA+=n0(r.blActual ?? r.bottomline_actual); botT+=n0(r.bottomline_shb);
+    topA+=n0(r.tlActual ?? r.topline_actual); topT+=n0(r.topline_shb);
     convA+=n0(r.conversion_actual); convT+=n0(r.conversion_shb);
     leadsSHB+=n0(r.leads_shb);
   });
@@ -386,7 +413,8 @@ async function handleReportCard(req: NextRequest) {
     const cycles = (cd||[]).map((c:any)=>c.cycle);
     const activeCycle = cycle || cycles[0] || '';
 
-    let rows = await getRosterDataForDate(date, activeCycle, l1f, l2f);
+    const [rawRows, srsMap] = await Promise.all([getRosterDataForDate(date, activeCycle, l1f, l2f), getSrsJulyMap()]);
+    let rows = enrichWithBlActual(rawRows, srsMap);
     if (goal && goal !== 'all') rows = rows.filter((r: any) => r.goal_type === goal);
     if (haul && haul !== 'all') rows = rows.filter((r: any) => r.haul === haul);
     if (reg && reg !== 'all') rows = rows.filter((r: any) => r.region === reg);
@@ -433,7 +461,8 @@ async function handleCompareReport(req: NextRequest) {
     }
 
     if (slots.length === 0) {
-      let rows = await getRosterDataForDate(date, cycle, l1f, l2f);
+      const [rawRowsC, srsMapC] = await Promise.all([getRosterDataForDate(date, cycle, l1f, l2f), getSrsJulyMap()]);
+      let rows = enrichWithBlActual(rawRowsC, srsMapC);
       if (goal && goal !== 'all') rows = rows.filter((r: any) => r.goal_type === goal);
       if (haul && haul !== 'all') rows = rows.filter((r: any) => r.haul === haul);
       if (reg && reg !== 'all') rows = rows.filter((r: any) => r.region === reg);
@@ -444,7 +473,8 @@ async function handleCompareReport(req: NextRequest) {
 
     const results: any[] = [];
     await Promise.all(slots.map(async (slot) => {
-      let rows = await getRosterDataForDate(slot.date, cycle, l1f, l2f);
+      const [rawSlotRows, srsMapSlot] = await Promise.all([getRosterDataForDate(slot.date, cycle, l1f, l2f), getSrsJulyMap()]);
+      let rows = enrichWithBlActual(rawSlotRows, srsMapSlot);
       if (goal && goal !== 'all') rows = rows.filter((r: any) => r.goal_type === goal);
       if (haul && haul !== 'all') rows = rows.filter((r: any) => r.haul === haul);
       if (reg && reg !== 'all') rows = rows.filter((r: any) => r.region === reg);
