@@ -18,7 +18,11 @@ export async function handleSeller(req: Request) {
       .single()
 
     if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json(data)
+    return NextResponse.json(data, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

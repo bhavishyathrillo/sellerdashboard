@@ -45,7 +45,11 @@ export async function GET(req: Request) {
         l1_name: s['L1 Name']
       }
     })
-    return NextResponse.json(data || [])
+    return NextResponse.json(data || [], {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

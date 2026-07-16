@@ -35,7 +35,11 @@ export async function GET(req: Request) {
   }
 
   if (!allSellers || allSellers.length === 0) {
-    return NextResponse.json({ l2Groups: [] })
+    return NextResponse.json({ l2Groups: [] }, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
   }
 
   // Ensure CM is included in his own team list (optional, but good for completeness)

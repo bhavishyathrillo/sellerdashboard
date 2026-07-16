@@ -29,7 +29,11 @@ export async function GET(req: Request) {
   }
 
   if (!allSellers || allSellers.length === 0) {
-    return NextResponse.json({ members: [] })
+    return NextResponse.json({ members: [] }, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
   }
 
   // Filter: TL and CM must be different. If they are the same, he is a CM.

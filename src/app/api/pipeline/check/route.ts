@@ -12,7 +12,11 @@ export async function GET(req: Request) {
   const date = searchParams.get('date')
 
   if (!email || !date) {
-    return NextResponse.json({ submitted: false })
+    return NextResponse.json({ submitted: false }, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
   }
 
   const { data } = await supabase

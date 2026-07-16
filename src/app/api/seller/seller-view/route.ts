@@ -290,7 +290,11 @@ export async function GET(request: NextRequest) {
       debug_columns: Object.keys(monthRows[0] || {})
     }
 
-    return NextResponse.json(response)
+    return NextResponse.json(response, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
   } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

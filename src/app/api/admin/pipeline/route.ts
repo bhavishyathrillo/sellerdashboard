@@ -11,7 +11,11 @@ export async function GET() {
       supabase.from('pnr_pipeline_submissions').select('*').order('date', { ascending: false })
     ])
 
-    if (!srsData) return NextResponse.json({ l1_data: [] })
+    if (!srsData) return NextResponse.json({ l1_data: [] }, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
 
     const l1Map = new Map<string, any>()
     srsData.forEach((row: any) => {

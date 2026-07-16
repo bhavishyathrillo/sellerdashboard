@@ -19,5 +19,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Seller not found' }, { status: 404 })
   }
 
-  return NextResponse.json(data)
+  return NextResponse.json(data, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
 }

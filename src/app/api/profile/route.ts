@@ -58,7 +58,11 @@ export async function POST(req: Request) {
 
     if (error) throw error
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true }, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
   } catch (error: any) {
     console.error('Error updating profile:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })

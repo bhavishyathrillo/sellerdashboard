@@ -77,7 +77,11 @@ export async function GET() {
       
     const isSunday = new Date(Date.now() + 19800000).getDay() === 0
 
-    if (!rawSrsData) return NextResponse.json({ l1_data: [] })
+    if (!rawSrsData) return NextResponse.json({ l1_data: [] }, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
 
     let srsData = rawSrsData
     if (isSunday) {

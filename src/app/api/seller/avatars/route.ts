@@ -33,7 +33,11 @@ export async function GET(req?: NextRequest) {
       })
     }
 
-    return NextResponse.json(avatarMap)
+    return NextResponse.json(avatarMap, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
   } catch (error: any) {
     console.error('Error fetching avatars:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })

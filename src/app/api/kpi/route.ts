@@ -507,7 +507,11 @@ async function handleConvIQ() {
 // CYCLES
 // ============================================================
 async function handleCycles() {
-  try { const { data } = await supabase.schema('seller_day_to_day').from('cycles').select('*').order('start_date',{ascending:false}); const m: Record<string,{from:string;to:string}> = {}; (data||[]).forEach((c:any)=>{ m[c.cycle]={from:c.start_date,to:c.end_date}; }); return NextResponse.json(m); } catch { return NextResponse.json({}); }
+  try { const { data } = await supabase.schema('seller_day_to_day').from('cycles').select('*').order('start_date',{ascending:false}); const m: Record<string,{from:string;to:string}> = {}; (data||[]).forEach((c:any)=>{ m[c.cycle]={from:c.start_date,to:c.end_date}; }); return NextResponse.json(m, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  }); } catch { return NextResponse.json({}); }
 }
 
 // ============================================================

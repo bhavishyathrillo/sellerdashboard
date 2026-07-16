@@ -10,7 +10,11 @@ export async function GET() {
   try {
     const { data: allRows, error } = await supabase.from('srs_raw').select('*')
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    if (!allRows || allRows.length === 0) return NextResponse.json({ l1_data: [] })
+    if (!allRows || allRows.length === 0) return NextResponse.json({ l1_data: [] }, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
 
     // Build unique L1 map
     const l1Map = new Map<string, string>()

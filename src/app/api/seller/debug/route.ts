@@ -84,7 +84,11 @@ export async function GET(request: NextRequest) {
             error: hourlyError ? hourlyError.message : null
         }
 
-        return NextResponse.json(results)
+        return NextResponse.json(results, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })
     } catch (error) {
         return NextResponse.json({
             error: 'CRASH',

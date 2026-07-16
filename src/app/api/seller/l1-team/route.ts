@@ -34,7 +34,11 @@ export async function GET(req: Request) {
 
   if (!allSellers || allSellers.length === 0) {
     return NextResponse.json({
-      l1_name: email.split('@')[0],
+      l1_name: email.split('@', {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+    }
+  })[0],
       totalSellers: 0,
       l2Groups: [],
       teamTotals: { goal: 0, achieved: 0, shb: 0, requiredDaily: 0, pct: 0, sellers: 0 }
