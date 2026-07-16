@@ -227,7 +227,7 @@ export default function LeaderboardPage({ session }: Props) {
                   <div className={styles.rankNum} style={{color: item.color}}>
                     #{item.rank} {globalRank && <span style={{fontSize:'0.55rem',opacity:0.7}}>(Global #{globalRank})</span>}
                   </div>
-                  <div className={styles.avatarWarp}><Avatar name={s.seller_name} email={s.seller_email} size={70} className={styles.avatarInner} style={{border: 'none'}} /><div className={styles.avatarRing} style={{borderColor: item.color}}/></div>
+                  <div className={styles.avatarWarp}><Avatar name={s.seller_name} email={s.seller_email} size={item.rank === 1 ? 64 : 54} className={styles.avatarInner} style={{border: 'none'}} /><div className={styles.avatarRing} style={{borderColor: item.color}}/></div>
                   <div className={styles.podName}>{s.seller_name}</div><div className={styles.podTeam}>{s.l1_name}</div>
                   <div className={styles.podProgress}><div className={styles.podProgressBar}><div className={styles.podProgressFill} style={{width:`${Math.min(s.goal_achieved_percent||0,100)}%`,background:`linear-gradient(90deg,${item.color},#F4631E)`}}/></div></div>
                   <div className={styles.podStats}><span className={styles.podPct} style={{color: item.color}}>{s.goal_achieved_percent?.toFixed(1)}%</span><span className={styles.podAmt}>{fmt(s.actual_achieved_monthly||0)}</span></div>
@@ -264,7 +264,7 @@ export default function LeaderboardPage({ session }: Props) {
               return (
                 <div key={s.seller_email} className={styles.rankingRow}>
                   <span className={styles.rankingPos}>{teamRank}</span>
-                  <Avatar name={s.seller_name} email={s.seller_email} size={36} className={styles.rankingAvatar} />
+                  <Avatar name={s.seller_name} email={s.seller_email} size={30} className={styles.rankingAvatar} style={{border: 'none'}} />
                   <div className={styles.rankingInfo}>
                     <span className={styles.rankingName}>{s.seller_name}</span>
                     <span className={styles.rankingMeta}>
