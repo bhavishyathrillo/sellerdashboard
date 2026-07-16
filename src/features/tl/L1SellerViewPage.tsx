@@ -923,7 +923,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
               </button>
             )}
           </div>
-          <HourlyViewModal {...{ setShowHourlyView, styles, globalFinalLta, HOUR_SLOTS, hourlyMap }} />
+          {showHourlyView && <HourlyViewModal {...{ setShowHourlyView, styles, globalFinalLta, HOUR_SLOTS, hourlyMap }} />}
         </div>
 
         {/* RTG Breakdown */}
@@ -2319,7 +2319,7 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 }
 
         {/* No Leads Modal */}
-        <NoLeadsModal {...{ setShowNoLeadsModal, processedGroups, globalNoLeads, session }} />
+        {showNoLeadsModal && <NoLeadsModal {...{ setShowNoLeadsModal, processedGroups, globalNoLeads, session }} />}
 
         {/* Monthly Breakdown Modal (4 Cards) */}
         {activeBreakdownCard && (
@@ -2580,10 +2580,10 @@ export default function L1SellerViewPage({ session }: { session: UserSession }) 
 
 
         {/* MHE Trend Modal */}
-        <MheTrendModal {...{ setShowMheTrendModal, date, todayStr, mheDrillSeller, setMheDrillSeller, allMembers, processedGroups, mheExpandedTl, setMheExpandedTl, MheTrendChart }} />
+        {showMheTrendModal && <MheTrendModal {...{ setShowMheTrendModal, date, todayStr, mheDrillSeller, setMheDrillSeller, allMembers, processedGroups, mheExpandedTl, setMheExpandedTl, MheTrendChart }} />}
 
         {/* Goal vs SHB Trend Modal */}
-        <GoalShbTrendModal {...{ setShowGoalShbTrendModal, date, todayStr, goalShbDrillSeller, setGoalShbDrillSeller, allMembers, processedGroups, goalShbExpandedTl, setGoalShbExpandedTl, GoalShbTrendChart }} />
+        {showGoalShbTrendModal && <GoalShbTrendModal {...{ setShowGoalShbTrendModal, date, todayStr, goalShbDrillSeller, setGoalShbDrillSeller, allMembers, processedGroups, goalShbExpandedTl, setGoalShbExpandedTl, GoalShbTrendChart }} />}
 
       </div>
   )
