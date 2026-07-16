@@ -77,7 +77,14 @@ export function useCachedFetch(url: string | null) {
     // Refetch when tab becomes visible
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        fetchData()
+        let shouldFetch = true
+        if (globalCache.has(url)) {
+          const cached = globalCache.get(url)!
+          if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
+            shouldFetch = false
+          }
+        }
+        if (shouldFetch) fetchData()
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
