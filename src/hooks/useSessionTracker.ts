@@ -81,7 +81,7 @@ export function useSessionTracker(email: string | null | undefined, activeTab: s
     // If we changed tabs, commit the time for the old tab
     commitCurrentTime();
 
-    if (!activeTab || document.visibilityState !== 'visible') {
+    if (!activeTab || document.visibilityState !== 'visible' || !document.hasFocus()) {
       lastStartTimeRef.current = null;
     } else {
       lastStartTimeRef.current = performance.now();
