@@ -22,6 +22,8 @@ import {
 import { UserSession } from '@/lib/session'
 import styles from './DashboardLayout.module.css'
 import Image from 'next/image'
+import { useAutoLogout } from '@/hooks/useAutoLogout'
+import { primeCache } from '@/hooks/useCachedFetch'
 
 interface DashboardLayoutProps {
   session: UserSession
@@ -50,6 +52,8 @@ export default function DashboardLayout({
 }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [profile, setProfile] = useState<{ displayName: string, avatarUrl: string } | null>(null)
+  
+  useAutoLogout()
   
   const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session.role)
 
@@ -82,12 +86,25 @@ export default function DashboardLayout({
   }
 
   useEffect(() => {
-    // Fetch initial
+    // Fetch initial profile
     fetch(`/api/profile?email=${encodeURIComponent(session.email)}`)
       .then(r => r.json())
       .then(json => {
         if (json.success && json.data) {
           setProfile({ displayName: json.data.display_name, avatarUrl: json.data.avatar_url })
+        }
+      })
+      .catch(console.error)
+
+    // Prefetch all dashboard data once on load
+    const todayStr = new Date().toISOString().split('T')[0]
+    fetch(`/api/seller/dashboard-all?email=${encodeURIComponent(session.email)}&role=${session.role}&date=${todayStr}`)
+      .then(r => r.json())
+      .then(json => {
+        if (json && !json.error) {
+          Object.entries(json).forEach(([url, data]) => {
+            primeCache(url, data)
+          })
         }
       })
       .catch(console.error)

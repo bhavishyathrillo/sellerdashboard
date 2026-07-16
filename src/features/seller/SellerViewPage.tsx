@@ -5,6 +5,7 @@ import { UserSession } from '@/lib/session'
 import styles from './SellerViewPage.module.css'
 import Loader from '@/components/ui/Loader'
 import { useStickyState } from '@/hooks/useStickyState'
+import { useCachedFetch } from '@/hooks/useCachedFetch'
 
 interface MonthlyTotals {
   total_leads_allotted: number
@@ -200,21 +201,19 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
   const paxChartCanvasRef = useRef<HTMLCanvasElement>(null)
   const paxChartInstance = useRef<any>(null)
 
+  const { data: fetchedData, loading: fetchLoading } = useCachedFetch(
+    `/api/seller/seller-view?email=${encodeURIComponent(session.email)}&date=${selectedDate}`
+  )
+
   useEffect(() => {
-    let cancelled = false
-      ; (async () => {
-        setLoading(true); setError('')
-        try {
-          const res = await fetch(`/api/seller/seller-view?email=${encodeURIComponent(session.email)}&date=${selectedDate}`)
-          const json = await res.json()
-          if (cancelled) return
-          if (!res.ok) { setError(json.error || 'Failed'); return }
-          setData(json)
-        } catch { if (!cancelled) setError('Failed to load data') }
-        finally { if (!cancelled) setLoading(false) }
-      })()
-    return () => { cancelled = true }
-  }, [session.email, selectedDate])
+    setLoading(fetchLoading)
+    if (fetchedData) {
+      setData(fetchedData)
+      setError('')
+    } else if (!fetchLoading && !fetchedData) {
+      setError('Failed to load data')
+    }
+  }, [fetchedData, fetchLoading])
 
   const closeModal = useCallback(() => {
     setClosing(true)

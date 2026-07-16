@@ -9,6 +9,10 @@ interface CacheEntry {
 
 const globalCache = new Map<string, CacheEntry>()
 
+export function primeCache(url: string, data: any) {
+  globalCache.set(url, { data, timestamp: Date.now() })
+}
+
 export function useCachedFetch(url: string | null) {
   const [data, setData] = useState<any>(() => {
     if (url && globalCache.has(url)) {
@@ -54,13 +58,21 @@ export function useCachedFetch(url: string | null) {
     }
 
     // If we already have cached data, show it instantly and skip loading state
+    let isFresh = false
     if (globalCache.has(url)) {
-      setData(globalCache.get(url)!.data)
+      const cached = globalCache.get(url)!
+      setData(cached.data)
       setLoading(false)
+      // If data is less than 5 minutes old, consider it fresh enough to skip the background refetch
+      if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
+        isFresh = true
+      }
     }
 
-    // Always fetch fresh data in background
-    fetchData()
+    // Always fetch fresh data in background unless it is already fresh
+    if (!isFresh) {
+      fetchData()
+    }
 
     // Refetch when tab becomes visible
     const handleVisibilityChange = () => {
