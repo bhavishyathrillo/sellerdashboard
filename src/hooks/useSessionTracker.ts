@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
-// Flush interval: Every 60 seconds we send data to backend
-const FLUSH_INTERVAL_MS = 60000;
+// Flush interval: Every 5 minutes (300 seconds) we send data to backend to save requests
+const FLUSH_INTERVAL_MS = 300000;
 
 const TAB_LABELS: Record<string, string> = {
   'home': 'Overview',
