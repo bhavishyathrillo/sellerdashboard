@@ -4,6 +4,7 @@ import { UserSession } from '@/lib/session'
 import styles from './LeaderboardPage.module.css'
 import Loader from '@/components/ui/Loader'
 import { useCachedFetch } from '@/hooks/useCachedFetch'
+import Avatar from '@/components/ui/Avatar'
 
 interface Seller {
   seller_name: string; seller_email: string
@@ -14,7 +15,6 @@ interface Seller {
 interface Props { session: UserSession }
 
 function fmt(n: number) { if (!n && n !== 0) return '₹0'; if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`; return `₹${n.toFixed(0)}` }
-function initials(n: string) { if (!n) return '?'; return n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() }
 
 const regionDisplay: Record<string, string> = {
   'europe_tours': 'Europe', 'dubai_tours': 'Dubai', 'maldives_tours': 'Maldives',
@@ -227,7 +227,7 @@ export default function LeaderboardPage({ session }: Props) {
                   <div className={styles.rankNum} style={{color: item.color}}>
                     #{item.rank} {globalRank && <span style={{fontSize:'0.55rem',opacity:0.7}}>(Global #{globalRank})</span>}
                   </div>
-                  <div className={styles.avatarWarp}><div className={styles.avatarInner}>{initials(s.seller_name)}</div><div className={styles.avatarRing} style={{borderColor: item.color}}/></div>
+                  <div className={styles.avatarWarp}><Avatar name={s.seller_name} email={s.seller_email} size={70} className={styles.avatarInner} style={{border: 'none'}} /><div className={styles.avatarRing} style={{borderColor: item.color}}/></div>
                   <div className={styles.podName}>{s.seller_name}</div><div className={styles.podTeam}>{s.l1_name}</div>
                   <div className={styles.podProgress}><div className={styles.podProgressBar}><div className={styles.podProgressFill} style={{width:`${Math.min(s.goal_achieved_percent||0,100)}%`,background:`linear-gradient(90deg,${item.color},#F4631E)`}}/></div></div>
                   <div className={styles.podStats}><span className={styles.podPct} style={{color: item.color}}>{s.goal_achieved_percent?.toFixed(1)}%</span><span className={styles.podAmt}>{fmt(s.actual_achieved_monthly||0)}</span></div>
@@ -264,7 +264,7 @@ export default function LeaderboardPage({ session }: Props) {
               return (
                 <div key={s.seller_email} className={styles.rankingRow}>
                   <span className={styles.rankingPos}>{teamRank}</span>
-                  <div className={styles.rankingAvatar}>{initials(s.seller_name)}</div>
+                  <Avatar name={s.seller_name} email={s.seller_email} size={36} className={styles.rankingAvatar} />
                   <div className={styles.rankingInfo}>
                     <span className={styles.rankingName}>{s.seller_name}</span>
                     <span className={styles.rankingMeta}>

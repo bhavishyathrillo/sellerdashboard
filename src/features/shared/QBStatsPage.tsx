@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { UserSession } from '@/lib/session'
 import styles from './QBStatsPage.module.css'
+import Avatar from '@/components/ui/Avatar'
 
 interface Enquiry {
   code: string
@@ -126,7 +127,7 @@ function DrillDownOverlay({ breadcrumb, onBack, sellerName, sellerEmail, childre
   return React.createElement('div', { style: { position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', flexDirection: 'column', background: '#0a0a0a', animation: 'slideIn 0.2s ease-out' } },
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid #1a1a1a', background: '#0d0d0d', flexShrink: 0 } },
       React.createElement('button', { onClick: onBack, style: { background: 'none', border: 'none', color: '#F4631E', fontSize: '1.5rem', cursor: 'pointer', padding: 0, lineHeight: 1 } }, '‹'),
-      React.createElement('span', { className: styles.avatar, style: { background: color + '22', color: color, width: 36, height: 36, fontSize: 14 } }, initials(sellerName)),
+      React.createElement(Avatar, { name: sellerName, size: 36, className: styles.avatar }),
       React.createElement('div', { style: { flex: 1 } }, React.createElement('div', { style: { fontWeight: 700, fontSize: '0.95rem', color: '#F0EDE8' } }, sellerName), React.createElement('div', { style: { fontSize: '0.65rem', color: '#8A8278' } }, sellerEmail + ' · QB Stats'))
     ),
     React.createElement('div', { style: { flex: 1, overflow: 'auto', padding: 20 } }, React.createElement('div', { style: { marginBottom: 8 } }, React.createElement('span', { style: { fontSize: '0.65rem', color: '#5A5650' } }, breadcrumb.join(' › '))), children),
@@ -254,7 +255,7 @@ function SelectDropdown({ options, value, onChange, placeholder, color }: { opti
           var pr = s.sent > 0 ? Math.round((s.passed / s.sent) * 100) : 0; var wp = s.passed > 0 ? Math.round((s.won / s.passed) * 100) : 0
           return React.createElement('tr', { key: s.seller_email, onClick: function () { onSellerClick(s) }, style: { cursor: 'pointer' } },
             React.createElement('td', null, React.createElement('div', { style: alignedCell },
-              React.createElement('span', { className: styles.avatar, style: { background: color + '22', color: color, width: 26, height: 26, fontSize: 10, flexShrink: 0 } }, initials(s.seller_name)),
+              React.createElement(Avatar, { name: s.seller_name, size: 26, className: styles.avatar }),
               React.createElement('span', { style: nameStyle }, s.seller_name),
               React.createElement('span', { style: countStyle }, s.sent + ' sent'),
               React.createElement('span', { style: pillWrap },
@@ -303,7 +304,7 @@ function TeamEnqTable({ sellers, activeBuckets, onClearBuckets, showCmCol }: { s
           React.createElement('td', null, React.createElement('a', { className: styles.enqCode, href: 'https://admin.thrillophilia.com/admin/1/enquiries?code=' + e.code, target: '_blank', rel: 'noreferrer' }, e.code)),
           showCmColumn && React.createElement('td', null, React.createElement('span', { style: { fontSize: '0.7rem', color: '#F4631E' } }, e.cmName || '—')),
           showL1Column && React.createElement('td', null, React.createElement('span', { style: { fontSize: '0.7rem', color: '#C9A84C' } }, e.l1Name || '—')),
-          React.createElement('td', null, React.createElement('div', { className: styles.sellerCell }, React.createElement('span', { className: styles.avatar, style: { background: color + '22', color: color, width: 20, height: 20, fontSize: 9 } }, initials(e.sellerName)), React.createElement('span', { style: { fontSize: 11 } }, e.sellerName))),
+          React.createElement('td', null, React.createElement('div', { className: styles.sellerCell }, React.createElement(Avatar, { name: e.sellerName, size: 20, className: styles.avatar }), React.createElement('span', { style: { fontSize: 11 } }, e.sellerName))),
           React.createElement('td', null, React.createElement('span', { className: styles.pill + ' ' + (e.feasibilityStatus === 'Passed' ? styles.pillPass : styles.pillFail) }, e.feasibilityStatus)),
           React.createElement('td', null, React.createElement('span', { className: styles.pill + ' ' + (e.leadStatus === 'Open' ? styles.pillOpen : e.leadStatus === 'Won' ? styles.pillWon : styles.pillLost) }, e.leadStatus))
         )
@@ -371,7 +372,7 @@ function CatManagerView({ l1Sellers, managerName, cmEmail, breadcrumb, onBack }:
             var pr = s.sent > 0 ? Math.round((s.passed / s.sent) * 100) : 0; var wp = s.passed > 0 ? Math.round((s.won / s.passed) * 100) : 0
             return React.createElement('tr', { key: s.seller_email, onClick: function () { setDrillSeller(s) }, style: { cursor: 'pointer' } },
               React.createElement('td', null, React.createElement('div', { style: alignedCell },
-                React.createElement('span', { className: styles.avatar, style: { background: color + '22', color: color, width: 26, height: 26, fontSize: 10, flexShrink: 0 } }, initials(s.seller_name)),
+                React.createElement(Avatar, { name: s.seller_name, size: 26, className: styles.avatar }),
                 React.createElement('span', { style: nameStyle }, s.seller_name),
                 React.createElement('span', { style: countStyle }, s.sent + ' sent'),
                 React.createElement('span', { style: pillWrap },
@@ -390,7 +391,7 @@ function CatManagerView({ l1Sellers, managerName, cmEmail, breadcrumb, onBack }:
             var tpr = tts > 0 ? Math.round((ttp / tts) * 100) : 0; var ttw = group.sellers.reduce((a, s) => a + s.won, 0); var twp = ttp > 0 ? Math.round((ttw / ttp) * 100) : 0
             return React.createElement('tr', { key: group.email, onClick: function () { setDrillManager(group) }, style: { cursor: 'pointer' } },
               React.createElement('td', null, React.createElement('div', { style: alignedCell },
-                React.createElement('span', { className: styles.avatar, style: { background: color + '22', color: color, width: 26, height: 26, fontSize: 10, flexShrink: 0 } }, initials(group.name)),
+                React.createElement(Avatar, { name: group.name, size: 26, className: styles.avatar }),
                 React.createElement('span', { style: nameStyle }, group.name),
                 React.createElement('span', { style: countStyle }, group.sellers.length + ' seller' + (group.sellers.length !== 1 ? 's' : '')),
                 React.createElement('span', { style: pillWrap },
@@ -482,7 +483,7 @@ function AdminView({ qbSellers }: { qbSellers: SellerQbData[] }) {
             var ttw = cm.sellers.reduce((a, s) => a + s.won, 0), twp = ttp > 0 ? Math.round((ttw / ttp) * 100) : 0
             return React.createElement('tr', { key: cm.email, onClick: function () { setDrillCM(cm) }, style: { cursor: 'pointer' } },
               React.createElement('td', null, React.createElement('div', { style: alignedCell },
-                React.createElement('span', { className: styles.avatar, style: { background: cm.color + '22', color: cm.color, width: 26, height: 26, fontSize: 10, flexShrink: 0 } }, initials(cm.name)),
+                React.createElement(Avatar, { name: cm.name, size: 26, className: styles.avatar }),
                 React.createElement('span', { style: nameStyle }, cm.name),
                 React.createElement('span', { style: countStyle }, cm.sellers.length + ' seller' + (cm.sellers.length !== 1 ? 's' : '')),
                 React.createElement('span', { style: pillWrap },
@@ -505,7 +506,7 @@ function AdminView({ qbSellers }: { qbSellers: SellerQbData[] }) {
             var color = avatarColor(group.name)
             return React.createElement('tr', { key: group.email, onClick: function () { setDrillL1(group) }, style: { cursor: 'pointer' } },
               React.createElement('td', null, React.createElement('div', { style: alignedCell },
-                React.createElement('span', { className: styles.avatar, style: { background: color + '22', color: color, width: 26, height: 26, fontSize: 10, flexShrink: 0 } }, initials(group.name)),
+                React.createElement(Avatar, { name: group.name, size: 26, className: styles.avatar }),
                 React.createElement('span', { style: nameStyle }, group.name),
                 React.createElement('span', { style: countStyle }, group.sellers.length + ' seller' + (group.sellers.length !== 1 ? 's' : '')),
                 React.createElement('span', { style: pillWrap },
@@ -527,7 +528,7 @@ function AdminView({ qbSellers }: { qbSellers: SellerQbData[] }) {
             var color = avatarColor(s.seller_name)
             return React.createElement('tr', { key: s.seller_email, onClick: function () { setDrillSeller(s) }, style: { cursor: 'pointer' } },
               React.createElement('td', null, React.createElement('div', { style: alignedCell },
-                React.createElement('span', { className: styles.avatar, style: { background: color + '22', color: color, width: 26, height: 26, fontSize: 10, flexShrink: 0 } }, initials(s.seller_name)),
+                React.createElement(Avatar, { name: s.seller_name, size: 26, className: styles.avatar }),
                 React.createElement('span', { style: nameStyle }, s.seller_name),
                 React.createElement('span', { style: countStyle }, s.sent + ' sent'),
                 React.createElement('span', { style: pillWrap },

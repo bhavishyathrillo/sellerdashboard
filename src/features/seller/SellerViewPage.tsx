@@ -187,7 +187,7 @@ export default function SellerViewPage({ session, headerCenterContent }: { sessi
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedDate, setSelectedDate] = useStickyState(todayStr(), 'SellerView_selectedDate')
-  const [activeTile, setActiveTile] = useStickyState<string | null>(null, 'SellerView_activeTile')
+  const [activeTile, setActiveTile] = useState<string | null>(null)
   const [activeBlock, setActiveBlock] = useState<{ hour: string; start: number; end: number; leads: number; eligible: boolean; isBreak: boolean; isLateAllocation: boolean; isReady: boolean; isOrbitOnly: boolean } | null>(null)
   const [closing, setClosing] = useState(false)
   const [showHourlyView, setShowHourlyView] = useStickyState(false, 'SellerView_showHourlyView')

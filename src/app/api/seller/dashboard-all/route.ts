@@ -5,6 +5,7 @@ import { GET as getPriority } from '@/app/api/priority-leads/route'
 import { GET as getLeaderboard } from '@/app/api/seller/leaderboard/route'
 import { GET as getMHL } from '@/app/api/mhl/route'
 import { GET as getPipeline } from '@/app/api/pipeline/route'
+import { GET as getAvatars } from '@/app/api/seller/avatars/route'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -25,7 +26,8 @@ export async function GET(req: NextRequest) {
     `/api/priority-leads?${p1.toString()}`,
     `/api/seller/leaderboard?${pLeaderboard.toString()}`,
     `/api/mhl?${p1.toString()}`,
-    `/api/pipeline?${p1.toString()}`
+    `/api/pipeline?${p1.toString()}`,
+    `/api/seller/avatars`
   ]
 
   const baseUrl = new URL(req.url).origin
@@ -38,7 +40,8 @@ export async function GET(req: NextRequest) {
       getPriority(requests[2]),
       getLeaderboard(requests[3]),
       getMHL(requests[4]),
-      getPipeline(requests[5])
+      getPipeline(requests[5]),
+      getAvatars(requests[6])
     ])
 
     const jsonResults = await Promise.all(responses.map(res => res.json()))
