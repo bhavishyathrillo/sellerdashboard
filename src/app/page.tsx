@@ -6,7 +6,7 @@ import IntroScreen from '@/components/ui/IntroScreen'
 import LoginForm from '@/features/auth/LoginForm'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import PipelineGate from '@/components/ui/PipelineGate'
-import ThrillNews from '@/components/ui/ThrillNews'
+
 import { getSession, saveSession, clearSession, UserSession } from '@/lib/session'
 
 import { SessionTracker } from '@/hooks/useSessionTracker'
@@ -152,7 +152,7 @@ export default function Home() {
           onNavigate={handleNavigate}
         >
           <SessionTracker email={session.email} activeTab={activePage} />
-          {!isAdmin && <ThrillNews email={session.email} role={session.role} />}
+
           {/* AutoRefresh removed to save Vercel Quota */}
 
           {activePage === 'selectPersona' && isAdmin && (
