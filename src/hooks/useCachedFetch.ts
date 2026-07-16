@@ -8,15 +8,53 @@ interface CacheEntry {
 }
 
 const globalCache = new Map<string, CacheEntry>()
+const LOCAL_STORAGE_PREFIX = 'thrillo_cache_'
+const CACHE_DURATION = 20 * 60 * 1000
+
+function getFromLocalCache(url: string): CacheEntry | null {
+  try {
+    const item = localStorage.getItem(LOCAL_STORAGE_PREFIX + url)
+    if (item) {
+      const parsed = JSON.parse(item) as CacheEntry
+      if (Date.now() - parsed.timestamp < CACHE_DURATION) {
+        return parsed
+      } else {
+        localStorage.removeItem(LOCAL_STORAGE_PREFIX + url)
+      }
+    }
+  } catch (e) {
+    // Ignore errors
+  }
+  return null
+}
+
+function saveToLocalCache(url: string, entry: CacheEntry) {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_PREFIX + url, JSON.stringify(entry))
+  } catch (e) {
+    console.warn('LocalStorage quota exceeded or unavailable. Falling back to memory cache.')
+  }
+}
 
 export function primeCache(url: string, data: any) {
-  globalCache.set(url, { data, timestamp: Date.now() })
+  const entry = { data, timestamp: Date.now() }
+  globalCache.set(url, entry)
+  saveToLocalCache(url, entry)
 }
 
 export function useCachedFetch(url: string | null) {
   const [data, setData] = useState<any>(() => {
-    if (url && globalCache.has(url)) {
+    if (!url) return null
+    if (globalCache.has(url)) {
       return globalCache.get(url)!.data
+    }
+    // Check local storage for persistent cache on hard refresh
+    if (typeof window !== 'undefined') {
+      const local = getFromLocalCache(url)
+      if (local) {
+        globalCache.set(url, local)
+        return local.data
+      }
     }
     return null
   })
@@ -45,7 +83,10 @@ export function useCachedFetch(url: string | null) {
 
         if (cancelled) return
 
-        globalCache.set(url, { data: newData, timestamp: Date.now() })
+        const entry = { data: newData, timestamp: Date.now() }
+        globalCache.set(url, entry)
+        saveToLocalCache(url, entry)
+        
         setData(newData)
         setLoading(false)
       } catch (err) {
@@ -59,12 +100,17 @@ export function useCachedFetch(url: string | null) {
 
     // If we already have cached data, show it instantly and skip loading state
     let isFresh = false
-    if (globalCache.has(url)) {
-      const cached = globalCache.get(url)!
+    let cached = globalCache.get(url)
+    if (!cached && typeof window !== 'undefined') {
+      cached = getFromLocalCache(url)
+      if (cached) globalCache.set(url, cached)
+    }
+
+    if (cached) {
       setData(cached.data)
       setLoading(false)
-      // If data is less than 5 minutes old, consider it fresh enough to skip the background refetch
-      if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
+      // If data is less than 20 minutes old, consider it fresh enough to skip the background refetch
+      if (Date.now() - cached.timestamp < CACHE_DURATION) {
         isFresh = true
       }
     }
@@ -78,9 +124,11 @@ export function useCachedFetch(url: string | null) {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         let shouldFetch = true
-        if (globalCache.has(url)) {
-          const cached = globalCache.get(url)!
-          if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
+        let currentCached = globalCache.get(url)
+        if (!currentCached && typeof window !== 'undefined') currentCached = getFromLocalCache(url)
+        
+        if (currentCached) {
+          if (Date.now() - currentCached.timestamp < CACHE_DURATION) {
             shouldFetch = false
           }
         }
@@ -89,10 +137,10 @@ export function useCachedFetch(url: string | null) {
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    // Poll every 10 minutes if tab is active
+    // Poll every 20 minutes if tab is active
     const intervalId = setInterval(() => {
       if (!document.hidden) fetchData()
-    }, 10 * 60 * 1000)
+    }, CACHE_DURATION)
 
     return () => {
       cancelled = true

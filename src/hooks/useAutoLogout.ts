@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 
-const INACTIVITY_TIMEOUT = 2 * 60 * 60 * 1000 // 2 hours in milliseconds
+const INACTIVITY_TIMEOUT = 60 * 60 * 1000 // 1 hour in milliseconds
 
 export function useAutoLogout() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)

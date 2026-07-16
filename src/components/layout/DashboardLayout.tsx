@@ -96,18 +96,6 @@ export default function DashboardLayout({
       })
       .catch(console.error)
 
-    // Prefetch all dashboard data once on load
-    const todayStr = new Date().toISOString().split('T')[0]
-    fetch(`/api/seller/dashboard-all?email=${encodeURIComponent(session.email)}&role=${session.role}&date=${todayStr}`)
-      .then(r => r.json())
-      .then(json => {
-        if (json && !json.error) {
-          Object.entries(json).forEach(([url, data]) => {
-            primeCache(url, data)
-          })
-        }
-      })
-      .catch(console.error)
 
     // Listen to updates
     const handleUpdate = (e: any) => {

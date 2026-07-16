@@ -7,7 +7,7 @@ import LoginForm from '@/features/auth/LoginForm'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import PipelineGate from '@/components/ui/PipelineGate'
 import ThrillNews from '@/components/ui/ThrillNews'
-import AutoRefresh from '@/components/ui/AutoRefresh'
+
 import { getSession, saveSession, clearSession, UserSession } from '@/lib/session'
 
 import { SessionTracker } from '@/hooks/useSessionTracker'
@@ -154,7 +154,7 @@ export default function Home() {
         >
           <SessionTracker email={session.email} activeTab={activePage} />
           {!isAdmin && <ThrillNews email={session.email} role={session.role} />}
-          <AutoRefresh interval={300000} />
+
 
           {activePage === 'selectPersona' && isAdmin && (
             <SelectPersonaPage session={session} />
