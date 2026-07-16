@@ -15,7 +15,7 @@ interface RoadmapData {
 interface Props { session: UserSession; viewMode?: 'my' | 'team' }
 
 function fmt(n: number) { if (!n && n !== 0) return '—'; if (n >= 1000) return `₹${(n/1000).toFixed(1)}K`; return `₹${n.toFixed(0)}` }
-function initials(n: string) { if (!n) return '?'; return n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() }
+
 
 function ChevronDown() {
   return (

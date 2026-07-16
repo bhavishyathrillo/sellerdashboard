@@ -6,29 +6,19 @@ import { useStickyState } from '@/hooks/useStickyState'
 import styles from './PriorityPage.module.css'
 import QBStatsPage from '@/features/shared/QBStatsPage'
 import { useCachedFetch } from '@/hooks/useCachedFetch'
+import Avatar from '@/components/ui/Avatar'
 
 interface PriorityLead { lead_id: string; seller_email: string | null; stage: string | null; lead_status: string | null; planned_region: string | null; final_status: string | null; dials_today: number; answered_seconds_today: number; updated_at: string | null }
 interface Props { session: UserSession }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 function fmtDuration(seconds: number) { if (!seconds || seconds === 0) return '0s'; const mins = Math.floor(seconds / 60); const secs = seconds % 60; return mins > 0 ? `${mins}m ${secs}s` : `${secs}s` }
-function initials(name: string) { return (name || '?').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() }
-function avatarColor(name: string) { const colors = ['#F4631E','#C9A84C','#22C55E','#3B82F6','#A78BFA','#EC4899','#14B8A6','#F97316']; let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0; return colors[h % colors.length] }
 
 function ChevronDown() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg> }
 function ChevronRight() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg> }
 function SearchIcon() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> }
 
-// ── Avatar ────────────────────────────────────────────────────────────────
-function Avatar({ name, size = 30 }: { name: string; size?: number }) {
-  const color = avatarColor(name)
-  return (
-    <span style={{ width: size, height: size, borderRadius: '50%', background: color + '22', color, border: `1.5px solid ${color}44`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.37, fontWeight: 700, flexShrink: 0 }}>
-      {initials(name)}
-    </span>
-  )
-}
-
+// ── Avatar is now imported from @/components/ui/Avatar ──────────────────────
 // ── Lead ID link ──────────────────────────────────────────────────────────
 function LeadIdLink({ leadId }: { leadId: string }) {
   return <a href={`https://admin.thrillophilia.com/admin/1/enquiries?code=${leadId}`} target="_blank" rel="noopener noreferrer" style={{ color: '#F4631E', textDecoration: 'none', fontFamily: "'SF Mono','Fira Code',monospace", fontSize: '0.72rem', fontWeight: 600 }}>{leadId}</a>
