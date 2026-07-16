@@ -230,14 +230,16 @@ export default function AdoptionPage({ session }: { session: UserSession }) {
   const { data: fetchedData, loading: isFetching } = useCachedFetch(`/api/admin/adoption?from=${fromDate}&to=${toDate}&email=${encodeURIComponent(session.email)}&role=${session.role}`)
 
   useEffect(() => {
-    if (fetchedData) {
+    if (isFetching) {
+      setLoading(true)
+    } else if (fetchedData) {
       if (fetchedData.success) {
         setData(fetchedData.data)
       } else {
         alert(fetchedData.error || 'Failed to fetch adoption data')
       }
       setLoading(false)
-    } else if (!isFetching) {
+    } else {
       setLoading(false)
     }
   }, [fetchedData, isFetching])

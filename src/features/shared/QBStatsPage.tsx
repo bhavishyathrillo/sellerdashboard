@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useEffect, useState, useMemo, useRef } from 'react'
+import { useCachedFetch } from '@/hooks/useCachedFetch'
+import Loader from '@/components/ui/Loader'
 import { UserSession } from '@/lib/session'
 import styles from './QBStatsPage.module.css'
 import Avatar from '@/components/ui/Avatar'
@@ -652,7 +654,7 @@ export default function QBStatsPage({ session }: QBStatsPageProps) {
       React.createElement('p', { className: styles.subtitle }, sub + ' · This month')
     ),
     React.createElement(QBContextBanner, { role: bannerRole }),
-    loading && React.createElement('div', { className: styles.loading }, 'Loading...'),
+    loading && React.createElement(Loader, { text: 'Loading...' }),
     error && React.createElement('div', { className: styles.emptyState, style: { color: '#F87171' } }, 'Failed: ' + error),
     !loading && !error && React.createElement(React.Fragment, null,
       isSeller && myQbData && React.createElement(SellerView, { data: myQbData }),

@@ -131,14 +131,16 @@ export default function ProfilePage({ session, onBack }: { session: UserSession,
   const { data: fetchedData, loading: isFetching } = useCachedFetch(`/api/profile?email=${encodeURIComponent(session.email)}`)
 
   useEffect(() => {
-    if (fetchedData) {
+    if (isFetching) {
+      setLoading(true)
+    } else if (fetchedData) {
       if (fetchedData.success && fetchedData.data) {
         setDisplayName(fetchedData.data.display_name || '')
         setMobileNumber(fetchedData.data.mobile_number || '')
         setAvatarUrl(fetchedData.data.avatar_url || '')
       }
       setLoading(false)
-    } else if (!isFetching) {
+    } else {
       setLoading(false)
     }
   }, [fetchedData, isFetching])

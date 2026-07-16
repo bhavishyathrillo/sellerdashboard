@@ -115,10 +115,12 @@ export default function AdminPerformancePage() {
   const { data: fetchedData, loading: isFetching } = useAdminPerformance()
 
   useEffect(() => { 
-    if (fetchedData) {
+    if (isFetching) {
+      setLoading(true)
+    } else if (fetchedData) {
       setL1Data(fetchedData.l1_data || [])
       setLoading(false)
-    } else if (!isFetching) {
+    } else {
       setLoading(false)
     }
   }, [fetchedData, isFetching])

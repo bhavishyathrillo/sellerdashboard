@@ -73,10 +73,12 @@ export default function AdminPipelinePage() {
   const { data: fetchedData, loading: isFetching } = useCachedFetch('/api/admin/pipeline')
 
   useEffect(() => {
-    if (fetchedData) {
+    if (isFetching) {
+      setLoading(true)
+    } else if (fetchedData) {
       setL1Data(fetchedData.l1_data || [])
       setLoading(false)
-    } else if (!isFetching) {
+    } else {
       setLoading(false)
     }
   }, [fetchedData, isFetching])

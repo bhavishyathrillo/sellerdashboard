@@ -54,7 +54,7 @@ export default function RewardsPage({ session }: Props) {
       }
     }, [fetchedL1, isFetchingL1])
 
-    if (l1Loading) return (<div className={styles.loadingWrap}><div className={styles.loadingSpinner}/><p>Loading team rewards...</p></div>)
+    if (l1Loading) return <Loader text="Loading team rewards..." />
     if (!l1Rewards) return (<div className={styles.page}><FloatingParticles /><div style={{textAlign:'center',padding:'80px',color:'#8A8278'}}>No rewards data found</div></div>)
 
     const bothSelected = showPremium && showStandard

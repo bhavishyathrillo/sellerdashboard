@@ -99,6 +99,7 @@ export async function GET() {
               flag: s.seller_flag || 'No Flag',
               region: s.region || '',
               haul: s.haul || '',
+              duration_in_org_months: s.duration_in_org_months || 0,
               defined_goal: 'bottomline', // default or use logic if present
               july_data: {
                 bl_goal: Number(s.bottomline_goal) || 0,

@@ -97,7 +97,9 @@ export default function PipelinePage({ session }: PipelinePageProps) {
   const { data: fetchedData, loading: isFetching } = useCachedFetch(`/api/pipeline?${params}`)
 
   useEffect(() => {
-    if (fetchedData) {
+    if (isFetching) {
+      setLoading(true)
+    } else if (fetchedData) {
       if (fetchedData.error) {
         setError(fetchedData.error)
       } else {
@@ -105,7 +107,7 @@ export default function PipelinePage({ session }: PipelinePageProps) {
         setHistory(fetchedData.history || [])
       }
       setLoading(false)
-    } else if (!isFetching) {
+    } else {
       setLoading(false)
     }
   }, [fetchedData, isFetching])

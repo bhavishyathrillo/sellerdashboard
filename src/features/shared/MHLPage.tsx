@@ -169,7 +169,9 @@ export default function MHLPage({ session }: HomePageProps) {
   const { data: fetchedData, loading: isFetching } = useCachedFetch(`/api/mhl?${params}`)
 
   useEffect(() => {
-    if (fetchedData) {
+    if (isFetching) {
+      setLoading(true)
+    } else if (fetchedData) {
       if (fetchedData.error) {
         setError(fetchedData.error || 'Failed to load')
       } else {
@@ -178,7 +180,7 @@ export default function MHLPage({ session }: HomePageProps) {
         setOpenCountMap(fetchedData.openCountMap || {})
       }
       setLoading(false)
-    } else if (!isFetching) {
+    } else {
       setLoading(false)
     }
   }, [fetchedData, isFetching])

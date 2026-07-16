@@ -116,12 +116,14 @@ export default function AdminHygienePage() {
   const { data: fetchedData, loading: isFetching } = useAdminHygiene()
 
   useEffect(() => {
-    if (fetchedData) {
+    if (isFetching) {
+      setLoading(true)
+    } else if (fetchedData) {
       setData(fetchedData)
       setMonthName(fetchedData.month || '')
       setAllSrsSellers(fetchedData._srsSellers || [])
       setLoading(false)
-    } else if (!isFetching) {
+    } else {
       setLoading(false)
     }
   }, [fetchedData, isFetching])

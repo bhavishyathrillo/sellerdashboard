@@ -6,6 +6,7 @@ import { useStickyState } from '@/hooks/useStickyState'
 import styles from './PriorityPage.module.css'
 import QBStatsPage from '@/features/shared/QBStatsPage'
 import { useCachedFetch } from '@/hooks/useCachedFetch'
+import Loader from '@/components/ui/Loader'
 import Avatar from '@/components/ui/Avatar'
 
 interface PriorityLead { lead_id: string; seller_email: string | null; stage: string | null; lead_status: string | null; planned_region: string | null; final_status: string | null; dials_today: number; answered_seconds_today: number; updated_at: string | null }
@@ -455,10 +456,12 @@ export default function PriorityPage({ session }: Props) {
   const { data: fetchedData, loading: isFetching } = useCachedFetch(`/api/priority-leads?${params}`)
 
   useEffect(() => {
-    if (fetchedData) {
+    if (isFetching) {
+      setLoading(true)
+    } else if (fetchedData) {
       if (!fetchedData.error) setData(fetchedData)
       setLoading(false)
-    } else if (!isFetching) {
+    } else {
       setLoading(false)
     }
   }, [fetchedData, isFetching])

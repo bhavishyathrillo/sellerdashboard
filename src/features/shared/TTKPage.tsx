@@ -1,5 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useCachedFetch } from '@/hooks/useCachedFetch'
+import Loader from '@/components/ui/Loader'
 import styles from './TTKPage.module.css'
 
 export default function TTKPage() {
@@ -9,7 +11,7 @@ export default function TTKPage() {
     fetch('/api/seller/ttk').then(r => r.json()).then(setData)
   }, [])
 
-  if (!data) return <div className={styles.loading}>Loading...</div>
+  if (!data) return <Loader text="Loading..." />
 
   return (
     <div className={styles.page}>

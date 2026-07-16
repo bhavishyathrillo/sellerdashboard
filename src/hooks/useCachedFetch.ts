@@ -113,6 +113,8 @@ export function useCachedFetch(url: string | null) {
       if (Date.now() - cached.timestamp < CACHE_DURATION) {
         isFresh = true
       }
+    } else {
+      setLoading(true) // Ensure loader shows immediately for new URLs without cache
     }
 
     // Always fetch fresh data in background unless it is already fresh

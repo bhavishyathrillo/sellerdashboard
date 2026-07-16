@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useStickyState } from '@/hooks/useStickyState'
 import { useAdminMHL } from '@/lib/services/apiHooks'
+import Loader from '@/components/ui/Loader'
 
 interface Lead {
   id: number
@@ -203,10 +204,12 @@ export default function AdminMHLPage() {
   const { data: fetchedData, loading: isFetching } = useAdminMHL()
 
   useEffect(() => {
-    if (fetchedData) {
+    if (isFetching) {
+      setLoading(true)
+    } else if (fetchedData) {
       setRawL1Data(fetchedData.l1_data || [])
       setLoading(false)
-    } else if (!isFetching) {
+    } else {
       setLoading(false)
     }
   }, [fetchedData, isFetching])
@@ -280,7 +283,7 @@ export default function AdminMHLPage() {
       </div>
 
       {loading ? (
-        <div className="ov-loading"><div className="ov-spinner"/><p>Fetching Hierarchy...</p></div>
+        <Loader text="Fetching Hierarchy..." />
       ) : (viewMode === 'table' || search.trim()) ? (
         <div className="ov-tbl-wrap">
           <table className="ov-tbl">

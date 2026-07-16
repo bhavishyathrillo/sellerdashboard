@@ -14,10 +14,12 @@ export default function TeamPage({ session }: Props) {
   const { data: fetchedData, loading: isFetching } = useCachedFetch(`/api/seller/team?email=${encodeURIComponent(session.email)}&role=${session.role}`)
 
   useEffect(() => {
-    if (fetchedData) {
+    if (isFetching) {
+      setLoading(true)
+    } else if (fetchedData) {
       setData(fetchedData)
       setLoading(false)
-    } else if (!isFetching) {
+    } else {
       setLoading(false)
     }
   }, [fetchedData, isFetching])

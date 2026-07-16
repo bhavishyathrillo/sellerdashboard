@@ -600,10 +600,12 @@ const CSS = `
   const { data: fetchedData, loading: isFetching } = useAdminLTA(dateFrom, selectedCategory)
 
   useEffect(() => {
-    if (fetchedData) {
+    if (isFetching) {
+      setLoading(true)
+    } else if (fetchedData) {
       setData(fetchedData)
       setLoading(false)
-    } else if (!isFetching) {
+    } else {
       setLoading(false)
     }
   }, [fetchedData, isFetching])
