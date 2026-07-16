@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
-// Flush interval: Every 5 minutes (300 seconds) we send data to backend to save requests
-const FLUSH_INTERVAL_MS = 300000;
+// Flush interval: Every 2 hours we send data to backend to save Vercel Edge requests
+const FLUSH_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
 const TAB_LABELS: Record<string, string> = {
   'home': 'Overview',
