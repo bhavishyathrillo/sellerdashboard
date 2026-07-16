@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   const requests = urls.map(url => new NextRequest(new URL(url, baseUrl)))
 
   try {
-    const responses = await Promise.all([
+    const responses = await Promise.allSettled([
       getOverview(requests[0]),
       getSellerView(requests[1]),
       getPriority(requests[2]),
@@ -44,14 +44,27 @@ export async function GET(req: NextRequest) {
       getAvatars(requests[6])
     ])
 
-    const jsonResults = await Promise.all(responses.map(res => res.json()))
+    const jsonResults = await Promise.all(responses.map(async (res) => {
+      if (res.status === 'fulfilled' && res.value.ok) {
+        try {
+          return await res.value.json()
+        } catch (e) {
+          return { error: 'Failed to parse JSON' }
+        }
+      }
+      return { error: res.status === 'rejected' ? res.reason : 'Request failed' }
+    }))
 
     const responseMap: Record<string, any> = {}
     urls.forEach((url, i) => {
       responseMap[url] = jsonResults[i]
     })
 
-    return NextResponse.json(responseMap)
+    return NextResponse.json(responseMap, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
+      }
+    })
   } catch (err) {
     console.error('Error in dashboard-all', err)
     return NextResponse.json({ error: 'Failed to fetch dashboard data' }, { status: 500 })
