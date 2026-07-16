@@ -14,12 +14,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // 1. Cleanup old data (keep only current month)
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-    await supabase
-      .from('user_action_logs')
-      .delete()
-      .lt('created_at', startOfMonth);
 
     // 2. Insert new action
     const { error } = await supabase.from('user_action_logs').insert({
