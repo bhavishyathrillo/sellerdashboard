@@ -871,6 +871,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                <thead>
                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                    <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Seller</th>
+                   <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Region</th>
+                   <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>CM</th>
                    <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>BL Goal</th>
                    <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>BL Achieved</th>
                    <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>BL %</th>
@@ -905,6 +907,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                    return (
                      <tr key={i} style={{ borderBottom: i < bucketModal.sellers.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', background: 'transparent' }} className="ov-tr-hover">
                        <td style={{ padding: '8px', color: '#FFF', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{s.seller_name}</td>
+                       <td style={{ padding: '8px', color: '#B0A898', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{s.region}</td>
+                       <td style={{ padding: '8px', color: '#D4AF37', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{s.cmName}</td>
                        <td style={{ padding: '8px', color: '#B0A898', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(blGoal)}</td>
                        <td style={{ padding: '8px', color: '#E8E4DD', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(blAch)}</td>
                        <td style={{ padding: '8px', color: blPct >= 100 ? '#22C55E' : blPct >= 50 ? '#EAB308' : '#EF4444', fontSize: '0.75rem', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>{blPct.toFixed(1)}%</td>
@@ -918,7 +922,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                    )
                  })}
                  {bucketModal.sellers.length === 0 && (
-                   <tr><td colSpan={9} style={{ padding: '16px', textAlign: 'center', color: '#8A8278', fontSize: '0.8rem' }}>No sellers found</td></tr>
+                   <tr><td colSpan={11} style={{ padding: '16px', textAlign: 'center', color: '#8A8278', fontSize: '0.8rem' }}>No sellers found</td></tr>
                  )}
                </tbody>
              </table>
