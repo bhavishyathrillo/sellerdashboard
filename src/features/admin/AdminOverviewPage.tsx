@@ -873,7 +873,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                   style={{ background: '#2C2822', color: '#E8E4DD', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '6px 12px', fontSize: '0.8rem', outline: 'none' }}
                 >
                   <option value="All">All CMs</option>
-                  {Array.from(new Set(bucketModal.sellers.map((s: any) => s.cmName))).filter(Boolean).sort().map((cm: any) => (
+                  {Array.from(new Set(bucketModal.sellers.filter((s: any) => modalRegionFilter === 'All' || s.region === modalRegionFilter).map((s: any) => s.cmName))).filter(Boolean).sort().map((cm: any) => (
                     <option key={cm} value={cm}>{cm}</option>
                   ))}
                 </select>
@@ -883,7 +883,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                   style={{ background: '#2C2822', color: '#E8E4DD', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '6px 12px', fontSize: '0.8rem', outline: 'none' }}
                 >
                   <option value="All">All Regions</option>
-                  {Array.from(new Set(bucketModal.sellers.map((s: any) => s.region))).filter(Boolean).sort().map((reg: any) => (
+                  {Array.from(new Set(bucketModal.sellers.filter((s: any) => modalCmFilter === 'All' || s.cmName === modalCmFilter).map((s: any) => s.region))).filter(Boolean).sort().map((reg: any) => (
                     <option key={reg} value={reg}>{reg}</option>
                   ))}
                 </select>
