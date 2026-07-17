@@ -1149,9 +1149,9 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'transparent' }}>
                 <th style={{ padding: '10px 16px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>BUCKET</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>TOTAL SELLER</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL SHB MISS</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>TL SHB MISS</th>
+                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'center', whiteSpace: 'nowrap' }}>TOTAL</th>
+                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'center', whiteSpace: 'nowrap' }}>&lt; BL SHB</th>
+                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'center', whiteSpace: 'nowrap' }}>&lt; TL SHB</th>
                 <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL GOAL</th>
                 <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL ACHIEVED</th>
                 <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL%</th>
@@ -1269,13 +1269,13 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: flagColor(b.name), flexShrink: 0 }} />
                         {b.name}
                       </td>
-                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name, sellers: b.sellers }); }} style={{ padding: '12px 10px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name, sellers: b.sellers }); }} style={{ padding: '12px 10px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.count}</span>
                       </td>
-                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< BL SHB)', sellers: b.sellers.filter((s: any) => (s.blAch || 0) < (s.blShb || 0)) }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< BL SHB)', sellers: b.sellers.filter((s: any) => (s.blAch || 0) < (s.blShb || 0)) }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.blMissCount}</span>
                       </td>
-                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< TL SHB)', sellers: b.sellers.filter((s: any) => (s.tlAch || 0) < (s.tlShb || 0)) }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< TL SHB)', sellers: b.sellers.filter((s: any) => (s.tlAch || 0) < (s.tlShb || 0)) }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.tlMissCount}</span>
                       </td>
                       <td style={{ padding: '12px 10px', color: '#B0A898', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.blGoal)}</td>
