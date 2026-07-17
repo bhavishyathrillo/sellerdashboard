@@ -357,6 +357,13 @@ const CSS = `
   line-height: 1;
   color: #F9FAFB;
 }
+.ov-panel-val-sm {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: #F9FAFB;
+}
 .ov-panel-pct {
   display: inline-flex;
   align-items: center;
@@ -955,9 +962,9 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                 arrow: gBlA >= gBlS ? '▲' : '▼', 
                 pctColor: gBlA >= gBlS ? '#22C55E' : '#EF4444' 
               },
-              { lbl: 'Cancellation Impact', val: gBlCan, c: '#EF4444', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> },
-              { lbl: 'Escalation Impact', val: gBlEsc, c: '#EF4444', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
-              { lbl: 'Old Booking Earnings', val: gBlOld, c: '#3B82F6', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> }
+              { lbl: 'Cancellation Impact', val: gBlCan, c: '#EF4444', sm: true, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> },
+              { lbl: 'Escalation Impact', val: gBlEsc, c: '#EF4444', sm: true, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
+              { lbl: 'Old Booking Earnings', val: gBlOld, c: '#3B82F6', sm: true, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> }
             ].map(k => (
               <div key={k.lbl} className="ov-panel-col" style={k.c ? { background: `radial-gradient(circle at top right, ${k.c}15 0%, transparent 70%)` } : {}}>
                 <div className="ov-panel-lbl" style={k.c ? { color: k.c } : {}}>
@@ -995,9 +1002,9 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                 arrow: gTlA >= gTlS ? '▲' : '▼', 
                 pctColor: gTlA >= gTlS ? '#22C55E' : '#EF4444' 
               },
-              { lbl: 'Cancellation Impact', val: gTlCan, c: '#EF4444', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> },
-              { lbl: 'Escalation Impact', val: gTlEsc, c: '#EF4444', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
-              { lbl: 'Old Booking Earnings', val: gTlOld, c: '#3B82F6', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> }
+              { lbl: 'Cancellation Impact', val: gTlCan, c: '#EF4444', sm: true, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> },
+              { lbl: 'Escalation Impact', val: gTlEsc, c: '#EF4444', sm: true, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
+              { lbl: 'Old Booking Earnings', val: gTlOld, c: '#3B82F6', sm: true, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> }
             ].map(k => (
               <div key={k.lbl} className="ov-panel-col" style={k.c ? { background: `radial-gradient(circle at top right, ${k.c}15 0%, transparent 70%)` } : {}}>
                 <div className="ov-panel-lbl" style={k.c ? { color: k.c } : {}}>

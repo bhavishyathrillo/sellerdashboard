@@ -107,7 +107,13 @@ export async function GET() {
                 bl_ach: Number(s.bl_actual_splits) || 0,
                 tl_goal: Number(s.topline_goal_this_month) || 0,
                 tl_shb: Number(s.topline_should_have_been) || 0,
-                tl_ach: Number(s.tl_actual_splits) || 0
+                tl_ach: Number(s.tl_actual_splits) || 0,
+                cancellation_impact: Number(s.cancellation_impact) || 0,
+                escalation_impacts: Number(s.escalation_impacts) || 0,
+                old_bookings_earnings: Number(s.old_bookings_earnings) || 0,
+                topline_cancellation_impact: Number(s.topline_cancellation_impact) || 0,
+                topline_escalation_impact: Number(s.topline_escalation_impact) || 0,
+                topline_old_booking_earnings_impact: Number(s.topline_old_booking_earnings_impact) || 0
               }
             }
           })
