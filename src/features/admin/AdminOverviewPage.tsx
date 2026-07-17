@@ -1169,8 +1169,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                       allFilteredSellers.push({
                         ...s,
                         cmName: cm.l1_name,
-                        l2Name: cm.l2Name || 'Unknown L2',
-                        region: reg.region_name
+                        l2Name: cm.l2Name || 'Unknown L2'
                       })
                     })
                   })
