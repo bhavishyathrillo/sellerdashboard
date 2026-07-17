@@ -327,7 +327,7 @@ const CSS = `
 .ov-panel-col:hover {
   background: rgba(255,255,255,0.02);
 }
-.ov-panel-col:not(:last-child)::after {
+.ov-panel-col:not(:nth-child(3n)):not(:last-child)::after {
   content: '';
   position: absolute;
   top: 25%;
@@ -335,6 +335,9 @@ const CSS = `
   right: 0;
   width: 1px;
   background: linear-gradient(180deg, transparent, rgba(255,255,255,0.1), transparent);
+}
+.ov-panel-col:nth-child(n+4) {
+  border-top: 1px solid rgba(255,255,255,0.05);
 }
 .ov-panel-lbl {
   font-size: 0.7rem;
@@ -675,6 +678,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
   }
   const flagTable = apiData?.flagTable || { columns: [], rows: [] }
   let gBlG = 0, gBlS = 0, gBlA = 0, gTlG = 0, gTlS = 0, gTlA = 0
+  let gBlCan = 0, gBlEsc = 0, gBlOld = 0, gTlCan = 0, gTlEsc = 0, gTlOld = 0
 
   const formatRegionName = (region: string) => {
     if (!region || region === 'All') return 'All';
@@ -736,6 +740,13 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
         const j = s.july_data || {}
         const blG = j.bl_goal||0, blS = j.bl_shb||0, blA = j.bl_ach||0
         const tlG = j.tl_goal||0, tlS = j.tl_shb||0, tlA = j.tl_ach||0
+        
+        const blCan = j.cancellation_impact||0, blEsc = j.escalation_impacts||0, blOld = j.old_bookings_earnings||0
+        const tlCan = j.topline_cancellation_impact||0, tlEsc = j.topline_escalation_impact||0, tlOld = j.topline_old_booking_earnings_impact||0
+
+        gBlCan += blCan; gBlEsc += blEsc; gBlOld += blOld;
+        gTlCan += tlCan; gTlEsc += tlEsc; gTlOld += tlOld;
+
         rBG += blG; rBS += blS; rBA += blA
         rTG += tlG; rTS += tlS; rTA += tlA
         cBG += blG; cBS += blS; cBA += blA
@@ -944,6 +955,9 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                 arrow: gBlA >= gBlS ? '▲' : '▼', 
                 pctColor: gBlA >= gBlS ? '#22C55E' : '#EF4444' 
               },
+              { lbl: 'Cancellation Impact', val: gBlCan, c: '#EF4444', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> },
+              { lbl: 'Escalation Impact', val: gBlEsc, c: '#EF4444', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
+              { lbl: 'Old Booking Earnings', val: gBlOld, c: '#3B82F6', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> }
             ].map(k => (
               <div key={k.lbl} className="ov-panel-col" style={k.c ? { background: `radial-gradient(circle at top right, ${k.c}15 0%, transparent 70%)` } : {}}>
                 <div className="ov-panel-lbl" style={k.c ? { color: k.c } : {}}>
@@ -981,6 +995,9 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                 arrow: gTlA >= gTlS ? '▲' : '▼', 
                 pctColor: gTlA >= gTlS ? '#22C55E' : '#EF4444' 
               },
+              { lbl: 'Cancellation Impact', val: gTlCan, c: '#EF4444', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> },
+              { lbl: 'Escalation Impact', val: gTlEsc, c: '#EF4444', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
+              { lbl: 'Old Booking Earnings', val: gTlOld, c: '#3B82F6', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> }
             ].map(k => (
               <div key={k.lbl} className="ov-panel-col" style={k.c ? { background: `radial-gradient(circle at top right, ${k.c}15 0%, transparent 70%)` } : {}}>
                 <div className="ov-panel-lbl" style={k.c ? { color: k.c } : {}}>
