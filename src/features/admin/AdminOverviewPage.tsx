@@ -1149,7 +1149,9 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'transparent' }}>
                 <th style={{ padding: '10px 16px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>BUCKET</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>COUNT</th>
+                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>TOTAL SELLER</th>
+                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL SHB MISS</th>
+                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>TL SHB MISS</th>
                 <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL GOAL</th>
                 <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL ACHIEVED</th>
                 <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL%</th>
@@ -1178,11 +1180,11 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                 const buckets: Record<string, any> = {}
                 if (bucketView === 'flag') {
                   ['6 Star 🌟', '5 Green', '4 Orange', '3 Yellow', '2 Red'].forEach(b => {
-                    buckets[b] = { name: b, count: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, sellers: [] }
+                    buckets[b] = { name: b, count: 0, blMissCount: 0, tlMissCount: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, sellers: [] }
                   })
                 } else {
                   ['New Joiners', '1-3 months', '4-6 months', '7-12 months', '13+ months'].forEach(b => {
-                    buckets[b] = { name: b, count: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, sellers: [] }
+                    buckets[b] = { name: b, count: 0, blMissCount: 0, tlMissCount: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, sellers: [] }
                   })
                 }
 
@@ -1200,10 +1202,12 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                   }
                   
                   if (!buckets[bKey]) {
-                    buckets[bKey] = { name: bKey, count: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, sellers: [] }
+                    buckets[bKey] = { name: bKey, count: 0, blMissCount: 0, tlMissCount: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, sellers: [] }
                   }
                   
                   buckets[bKey].count += 1
+                  if ((s.blAch || 0) < (s.blShb || 0)) buckets[bKey].blMissCount += 1
+                  if ((s.tlAch || 0) < (s.tlShb || 0)) buckets[bKey].tlMissCount += 1
                   buckets[bKey].sellers.push(s)
                   buckets[bKey].blGoal += (s.blGoal || 0)
                   buckets[bKey].blShb += (s.blShb || 0)
@@ -1265,7 +1269,15 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: flagColor(b.name), flexShrink: 0 }} />
                         {b.name}
                       </td>
-                      <td style={{ padding: '12px 10px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{b.count}</td>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name, sellers: b.sellers }); }} style={{ padding: '12px 10px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.count}</span>
+                      </td>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< BL SHB)', sellers: b.sellers.filter((s: any) => (s.blAch || 0) < (s.blShb || 0)) }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.blMissCount}</span>
+                      </td>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< TL SHB)', sellers: b.sellers.filter((s: any) => (s.tlAch || 0) < (s.tlShb || 0)) }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.tlMissCount}</span>
+                      </td>
                       <td style={{ padding: '12px 10px', color: '#B0A898', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.blGoal)}</td>
                       <td style={{ padding: '12px 10px', color: '#E8E4DD', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.blAch)}</td>
                       <td style={{ padding: '12px 10px', color: blPct >= 100 ? '#22C55E' : blPct >= 50 ? '#EAB308' : '#EF4444', fontSize: '0.75rem', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>{blPct.toFixed(1)}%</td>
