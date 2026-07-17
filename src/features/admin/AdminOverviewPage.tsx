@@ -9,10 +9,12 @@ import Loader from '@/components/ui/Loader'
 /* ─── helpers ─── */
 function fmt(n: number) {
   if (!n && n !== 0) return '₹0'
-  if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)}Cr`
-  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`
-  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`
-  return `₹${n.toFixed(0)}`
+  const absN = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (absN >= 10000000) return `${sign}₹${(absN / 10000000).toFixed(2)}Cr`
+  if (absN >= 100000) return `${sign}₹${(absN / 100000).toFixed(2)}L`
+  if (absN >= 1000) return `${sign}₹${(absN / 1000).toFixed(1)}K`
+  return `${sign}₹${absN.toFixed(0)}`
 }
 
 function pct(ach: number, goal: number) {
