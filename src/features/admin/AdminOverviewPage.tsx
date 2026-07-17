@@ -657,6 +657,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
   const [cmOpen, setCmOpen] = useState(false)
   const [bucketView, setBucketView] = useState<'flag' | 'tenure'>('flag')
   const [bucketModal, setBucketModal] = useState<{ bucketName: string, sellers: any[] } | null>(null)
+  const [modalCmFilter, setModalCmFilter] = useState<string>('All')
+  const [modalRegionFilter, setModalRegionFilter] = useState<string>('All')
   const adminName = session?.name || 'Admin'
 
   const { data: fetchedData, loading: fetchLoading } = useAdminOverview()
@@ -864,7 +866,29 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
               <h2 style={{ fontSize: '1.1rem', color: '#E8E4DD', fontWeight: 600 }}>
                 Sellers in Bucket: <span style={{ color: '#F4631E' }}>{bucketModal.bucketName}</span>
               </h2>
-              <button onClick={() => setBucketModal(null)} style={{ background: 'none', border: 'none', color: '#E8E4DD', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <select 
+                  value={modalCmFilter} 
+                  onChange={e => setModalCmFilter(e.target.value)}
+                  style={{ background: '#2C2822', color: '#E8E4DD', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '6px 12px', fontSize: '0.8rem', outline: 'none' }}
+                >
+                  <option value="All">All CMs</option>
+                  {Array.from(new Set(bucketModal.sellers.map((s: any) => s.cmName))).filter(Boolean).sort().map((cm: any) => (
+                    <option key={cm} value={cm}>{cm}</option>
+                  ))}
+                </select>
+                <select 
+                  value={modalRegionFilter} 
+                  onChange={e => setModalRegionFilter(e.target.value)}
+                  style={{ background: '#2C2822', color: '#E8E4DD', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '6px 12px', fontSize: '0.8rem', outline: 'none' }}
+                >
+                  <option value="All">All Regions</option>
+                  {Array.from(new Set(bucketModal.sellers.map((s: any) => s.region))).filter(Boolean).sort().map((reg: any) => (
+                    <option key={reg} value={reg}>{reg}</option>
+                  ))}
+                </select>
+                <button onClick={() => { setBucketModal(null); setModalCmFilter('All'); setModalRegionFilter('All'); }} style={{ background: 'none', border: 'none', color: '#E8E4DD', cursor: 'pointer', fontSize: '1.2rem', marginLeft: '8px' }}>✕</button>
+              </div>
            </div>
            <div style={{ overflowX: 'auto' }}>
              <table className="ov-tbl" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', minWidth: '800px' }}>
@@ -884,7 +908,10 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                  </tr>
                </thead>
                <tbody>
-                 {bucketModal.sellers.map((s, i) => {
+                 {bucketModal.sellers
+                   .filter((s: any) => modalCmFilter === 'All' || s.cmName === modalCmFilter)
+                   .filter((s: any) => modalRegionFilter === 'All' || s.region === modalRegionFilter)
+                   .map((s: any, i: number) => {
                    const blGoal = s.blGoal || 0;
                    const blAch = s.blAch || 0;
                    const blShb = s.blShb || 0;
@@ -921,8 +948,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                      </tr>
                    )
                  })}
-                 {bucketModal.sellers.length === 0 && (
-                   <tr><td colSpan={11} style={{ padding: '16px', textAlign: 'center', color: '#8A8278', fontSize: '0.8rem' }}>No sellers found</td></tr>
+                 {bucketModal.sellers.filter((s: any) => (modalCmFilter === 'All' || s.cmName === modalCmFilter) && (modalRegionFilter === 'All' || s.region === modalRegionFilter)).length === 0 && (
+                   <tr><td colSpan={11} style={{ padding: '16px', textAlign: 'center', color: '#8A8278', fontSize: '0.8rem' }}>No sellers found for selected filters</td></tr>
                  )}
                </tbody>
              </table>
@@ -1139,7 +1166,12 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                 processed.forEach((cm: any) => {
                   cm.regions.forEach((reg: any) => {
                     reg.sellers.forEach((s: any) => {
-                      allFilteredSellers.push(s)
+                      allFilteredSellers.push({
+                        ...s,
+                        cmName: cm.l1_name,
+                        l2Name: cm.l2Name || 'Unknown L2',
+                        region: reg.region_name
+                      })
                     })
                   })
                 })
