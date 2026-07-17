@@ -656,6 +656,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
   const [regionOpen, setRegionOpen] = useState(false)
   const [cmOpen, setCmOpen] = useState(false)
   const [bucketView, setBucketView] = useState<'flag' | 'tenure'>('flag')
+  const [bucketModal, setBucketModal] = useState<{ bucketName: string, sellers: any[] } | null>(null)
   const adminName = session?.name || 'Admin'
 
   const { data: fetchedData, loading: fetchLoading } = useAdminOverview()
@@ -1072,11 +1073,11 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                 const buckets: Record<string, any> = {}
                 if (bucketView === 'flag') {
                   ['6 Star 🌟', '5 Green', '4 Orange', '3 Yellow', '2 Red'].forEach(b => {
-                    buckets[b] = { name: b, count: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0 }
+                    buckets[b] = { name: b, count: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, sellers: [] }
                   })
                 } else {
                   ['New Joiners', '1-3 months', '4-6 months', '7-12 months', '13+ months'].forEach(b => {
-                    buckets[b] = { name: b, count: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0 }
+                    buckets[b] = { name: b, count: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, sellers: [] }
                   })
                 }
 
@@ -1098,6 +1099,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                   }
                   
                   buckets[bKey].count += 1
+                  buckets[bKey].sellers.push(s)
                   buckets[bKey].blGoal += (s.blGoal || 0)
                   buckets[bKey].blShb += (s.blShb || 0)
                   buckets[bKey].blAch += (s.blAch || 0)
@@ -1153,7 +1155,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                   const tlShortPct = b.tlShb > 0 && tlShort > 0 ? `(${(tlShort / b.tlShb * 100).toFixed(1)}%)` : ''
 
                   return (
-                    <tr key={b.name} style={{ borderBottom: i < sortedBuckets.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none', background: 'transparent' }}>
+                    <tr key={b.name} onClick={() => setBucketModal({ bucketName: b.name, sellers: b.sellers })} style={{ borderBottom: i < sortedBuckets.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none', background: 'transparent', cursor: 'pointer' }} className="ov-tr-hover">
                       <td style={{ padding: '12px 16px', fontWeight: 600, color: '#E8E4DD', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: flagColor(b.name), flexShrink: 0 }} />
                         {b.name}
