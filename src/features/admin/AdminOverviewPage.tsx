@@ -1095,7 +1095,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                   }
                   
                   if (!buckets[bKey]) {
-                    buckets[bKey] = { name: bKey, count: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0 }
+                    buckets[bKey] = { name: bKey, count: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, sellers: [] }
                   }
                   
                   buckets[bKey].count += 1
