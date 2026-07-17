@@ -856,6 +856,76 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
         </div>
       </div>
     )}
+
+    {bucketModal && (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setBucketModal(null)}>
+        <div style={{ background: '#1A1815', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '1100px', maxHeight: '80vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
+           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '1.1rem', color: '#E8E4DD', fontWeight: 600 }}>
+                Sellers in Bucket: <span style={{ color: '#F4631E' }}>{bucketModal.bucketName}</span>
+              </h2>
+              <button onClick={() => setBucketModal(null)} style={{ background: 'none', border: 'none', color: '#E8E4DD', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+           </div>
+           <div style={{ overflowX: 'auto' }}>
+             <table className="ov-tbl" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', minWidth: '800px' }}>
+               <thead>
+                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                   <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Seller</th>
+                   <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>BL Goal</th>
+                   <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>BL Achieved</th>
+                   <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>BL %</th>
+                   <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>BL Shortfall</th>
+                   <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>TL Goal</th>
+                   <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>TL Achieved</th>
+                   <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>TL %</th>
+                   <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>TL Shortfall</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 {bucketModal.sellers.map((s, i) => {
+                   const blGoal = s.blGoal || 0;
+                   const blAch = s.blAch || 0;
+                   const blShb = s.blShb || 0;
+                   const tlGoal = s.tlGoal || 0;
+                   const tlAch = s.tlAch || 0;
+                   const tlShb = s.tlShb || 0;
+
+                   const blPct = blGoal > 0 ? (blAch / blGoal) * 100 : 0;
+                   const tlPct = tlGoal > 0 ? (tlAch / tlGoal) * 100 : 0;
+                   const blShort = blShb - blAch;
+                   const tlShort = tlShb - tlAch;
+
+                   const formatCurrency = (val: number) => {
+                     if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)}Cr`
+                     if (val >= 100000) return `₹${(val / 100000).toFixed(2)}L`
+                     if (val >= 1000) return `₹${(val / 1000).toFixed(1)}K`
+                     return `₹${val.toFixed(0)}`
+                   }
+
+                   return (
+                     <tr key={i} style={{ borderBottom: i < bucketModal.sellers.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', background: 'transparent' }} className="ov-tr-hover">
+                       <td style={{ padding: '8px', color: '#FFF', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{s.seller_name}</td>
+                       <td style={{ padding: '8px', color: '#B0A898', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(blGoal)}</td>
+                       <td style={{ padding: '8px', color: '#E8E4DD', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(blAch)}</td>
+                       <td style={{ padding: '8px', color: blPct >= 100 ? '#22C55E' : blPct >= 50 ? '#EAB308' : '#EF4444', fontSize: '0.75rem', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>{blPct.toFixed(1)}%</td>
+                       <td style={{ padding: '8px', color: blShort > 0 ? '#EF4444' : '#22C55E', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{blShort > 0 ? formatCurrency(blShort) : '-'}</td>
+                       
+                       <td style={{ padding: '8px', color: '#B0A898', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(tlGoal)}</td>
+                       <td style={{ padding: '8px', color: '#E8E4DD', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(tlAch)}</td>
+                       <td style={{ padding: '8px', color: tlPct >= 100 ? '#22C55E' : tlPct >= 50 ? '#EAB308' : '#EF4444', fontSize: '0.75rem', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>{tlPct.toFixed(1)}%</td>
+                       <td style={{ padding: '8px', color: tlShort > 0 ? '#EF4444' : '#22C55E', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{tlShort > 0 ? formatCurrency(tlShort) : '-'}</td>
+                     </tr>
+                   )
+                 })}
+                 {bucketModal.sellers.length === 0 && (
+                   <tr><td colSpan={9} style={{ padding: '16px', textAlign: 'center', color: '#8A8278', fontSize: '0.8rem' }}>No sellers found</td></tr>
+                 )}
+               </tbody>
+             </table>
+           </div>
+        </div>
+      </div>
+    )}
     <div className="ov">
 
       {/* ── Header ── */}
