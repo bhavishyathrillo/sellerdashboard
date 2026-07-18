@@ -205,9 +205,11 @@ export default function RewardsPage({ session }: Props) {
       const prizes = selectedWheel === 'PREMIUM' ? PREMIUM_PRIZES : STANDARD_PRIZES
       const prizeIndex = prizes.indexOf(data.result)
       const arcSize = (2 * Math.PI) / prizes.length
-      const targetPrizeAngle = prizeIndex >= 0 ? prizeIndex * arcSize + arcSize / 2 : Math.random() * 2 * Math.PI
-      const fullSpins = (Math.floor(Math.random() * 3) + 3) * 2 * Math.PI
-      const targetAngle = wheelAngle + fullSpins + (2 * Math.PI - targetPrizeAngle + (wheelAngle % (2 * Math.PI)))
+      const targetPrizeAngle = prizeIndex >= 0 ? prizeIndex * arcSize + arcSize / 2 : Math.random() * 2 * Math.PI;
+      const fullSpins = (Math.floor(Math.random() * 3) + 3) * 2 * Math.PI;
+      let delta = (2 * Math.PI - targetPrizeAngle) - (wheelAngle % (2 * Math.PI));
+      if (delta < 0) delta += 2 * Math.PI;
+      const targetAngle = wheelAngle + fullSpins + delta;
       
       const duration = 3000; const start = performance.now(); const startAngle = wheelAngle
       function animate(now: number) {
