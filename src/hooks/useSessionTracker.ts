@@ -71,9 +71,9 @@ export function useSessionTracker(email: string | null | undefined, activeTab: s
       if (elapsedSec > 0) {
         accumulatedTimeRef.current[activeTab] = (accumulatedTimeRef.current[activeTab] || 0) + elapsedSec;
       }
+      // Update start time to now only if we were already actively tracking
+      lastStartTimeRef.current = performance.now();
     }
-    // Update start time to now
-    lastStartTimeRef.current = performance.now();
   };
 
   // Handle activeTab changes
