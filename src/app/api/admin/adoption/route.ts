@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+export const runtime = 'edge';
+
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
@@ -18,7 +20,7 @@ export async function GET(req: NextRequest) {
       supabase.from('seller_credentials').select('email, name, status'),
       supabase.from('roles').select('email, role'),
       supabase.from('srs_raw').select('l1_email, l2_email, seller_email, seller_name'),
-      supabase.from('user_session_logs').select('user_email, date, tabs_time').gte('date', from).lte('date', to)
+      supabase.rpc('get_aggregated_sessions', { start_date: from, end_date: to })
     ];
 
     if (requesterRole === 'L1' && requesterEmail) {
