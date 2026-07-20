@@ -880,10 +880,23 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                     return `₹${val.toFixed(0)}`
                   }
                   const pct = bucketModal.bucketShortfall > 0 && currentShortfall > 0 ? ((currentShortfall / bucketModal.bucketShortfall) * 100).toFixed(1) + '%' : '0%';
+                  
+                  let overallShortfall = 0;
+                  if (bucketModal.shortfallType === 'BL') {
+                    overallShortfall = Math.max(0, gBlS - gBlA);
+                  } else {
+                    overallShortfall = Math.max(0, gTlS - gTlA);
+                  }
+                  const overallPct = overallShortfall > 0 && currentShortfall > 0 ? ((currentShortfall / overallShortfall) * 100).toFixed(1) + '%' : '0%';
+
                   return (
                     <div style={{ fontSize: '0.85rem', color: '#8A8278' }}>
                       Contributing Shortfall: <span style={{ color: '#EF4444', fontWeight: 600 }}>{formatCur(currentShortfall)}</span> 
-                      {currentShortfall > 0 && <span style={{ marginLeft: '6px', fontSize: '0.75rem' }}>({pct} of bucket total)</span>}
+                      {currentShortfall > 0 && (
+                        <span style={{ marginLeft: '6px', fontSize: '0.75rem' }}>
+                          ({pct} of bucket total) <span style={{ marginLeft: '4px', color: '#B0A898' }}>({overallPct} of overall total)</span>
+                        </span>
+                      )}
                     </div>
                   )
                 })()}
