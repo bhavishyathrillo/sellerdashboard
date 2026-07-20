@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       supabase.from('seller_credentials').select('email, name, status'),
       supabase.from('roles').select('email, role'),
       supabase.from('srs_raw').select('l1_email, l2_email, seller_email, seller_name'),
-      supabase.rpc('get_aggregated_sessions', { start_date: from, end_date: to })
+      supabase.from('user_session_logs').select('*').gte('date', from).lte('date', to)
     ];
 
     if (requesterRole === 'L1' && requesterEmail) {

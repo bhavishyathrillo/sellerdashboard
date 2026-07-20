@@ -994,8 +994,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                This is the <strong>Gross Shortfall</strong> of only the underachieving sellers in your list. It completely ignores overachievers. This tells you exactly how much money is being missed by the people in that specific list.
              </div>
              <div>
-               <strong style={{ color: '#F4631E' }}>% of Overall Contributing Shortfall:</strong><br />
-               Shows how the Gross Shortfall of the listed sellers compares to the <strong>total shortfall of all contributing sellers</strong> (i.e., all sellers who have a shortfall) across the entire organization.
+               <strong style={{ color: '#F4631E' }}>% CONTRIBUTION IN SHORTFALL:</strong><br />
+               Shows how the Net Shortfall of this bucket compares to the <strong>Net Shortfall of the entire organization</strong>. This calculation explicitely takes all sellers into account, allowing overachievers to shrink the total shortfall!
              </div>
            </div>
         </div>
@@ -1346,17 +1346,17 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'transparent' }}>
                 <th style={{ padding: '10px 16px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>BUCKET</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'center', whiteSpace: 'nowrap' }}>TOTAL</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'center', whiteSpace: 'nowrap' }}>&lt; BL SHB</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'center', whiteSpace: 'nowrap' }}>&lt; TL SHB</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL GOAL</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL ACHIEVED</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL%</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL SHORTFALL</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>TL GOAL</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>TL ACHIEVED</th>
-                <th style={{ padding: '10px 10px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>TL%</th>
-                <th style={{ padding: '10px 16px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>TL SHORTFALL</th>
+                <th style={{ padding: '10px 6px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'center', whiteSpace: 'nowrap' }}>TOTAL</th>
+                <th style={{ padding: '10px 6px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'center', whiteSpace: 'nowrap' }}>&lt; BL SHB</th>
+                <th style={{ padding: '10px 6px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'center', whiteSpace: 'nowrap' }}>&lt; TL SHB</th>
+                <th style={{ padding: '10px 6px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL GOAL</th>
+                <th style={{ padding: '10px 6px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL ACHIEVED</th>
+                <th style={{ padding: '10px 6px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>% CONTRIBUTION IN<br/>SHORTFALL</th>
+                <th style={{ padding: '10px 6px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>BL SHORTFALL</th>
+                <th style={{ padding: '10px 6px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>TL GOAL</th>
+                <th style={{ padding: '10px 6px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>TL ACHIEVED</th>
+                <th style={{ padding: '10px 6px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>% CONTRIBUTION IN<br/>SHORTFALL</th>
+                <th style={{ padding: '10px 12px', fontWeight: 600, color: '#8A8278', fontSize: '0.65rem', letterSpacing: '0.05em', textAlign: 'right', whiteSpace: 'nowrap' }}>TL SHORTFALL</th>
               </tr>
             </thead>
             <tbody>
@@ -1377,13 +1377,18 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                 const buckets: Record<string, any> = {}
                 if (bucketView === 'flag') {
                   ['6 Star 🌟', '5 Green', '4 Orange', '3 Yellow', '2 Red'].forEach(b => {
-                    buckets[b] = { name: b, count: 0, blMissCount: 0, tlMissCount: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, sellers: [] }
+                    buckets[b] = { name: b, count: 0, blMissCount: 0, tlMissCount: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, blGrossShortfall: 0, tlGrossShortfall: 0, sellers: [] }
                   })
                 } else {
                   ['New Joiners', '1-3 months', '4-6 months', '7-12 months', '13+ months'].forEach(b => {
-                    buckets[b] = { name: b, count: 0, blMissCount: 0, tlMissCount: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, sellers: [] }
+                    buckets[b] = { name: b, count: 0, blMissCount: 0, tlMissCount: 0, blGoal: 0, blShb: 0, blAch: 0, tlGoal: 0, tlShb: 0, tlAch: 0, blGrossShortfall: 0, tlGrossShortfall: 0, sellers: [] }
                   })
                 }
+
+                let overallBlShb = 0;
+                let overallBlAch = 0;
+                let overallTlShb = 0;
+                let overallTlAch = 0;
 
                 allFilteredSellers.forEach(s => {
                   let bKey = 'Unknown'
@@ -1412,7 +1417,15 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                   buckets[bKey].tlGoal += (s.tlGoal || 0)
                   buckets[bKey].tlShb += (s.tlShb || 0)
                   buckets[bKey].tlAch += (s.tlAch || 0)
+
+                  overallBlShb += (s.blShb || 0);
+                  overallBlAch += (s.blAch || 0);
+                  overallTlShb += (s.tlShb || 0);
+                  overallTlAch += (s.tlAch || 0);
                 })
+
+                const overallBlNetShortfall = Math.max(0, overallBlShb - overallBlAch);
+                const overallTlNetShortfall = Math.max(0, overallTlShb - overallTlAch);
 
                 const sortedBuckets = Object.values(buckets)
                   .sort((a: any, b: any) => {
@@ -1449,10 +1462,11 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                 }
 
                 return sortedBuckets.map((b: any, i: number) => {
-                  const blPct = b.blGoal > 0 ? (b.blAch / b.blGoal) * 100 : 0
-                  const tlPct = b.tlGoal > 0 ? (b.tlAch / b.tlGoal) * 100 : 0
                   const blShort = b.blShb - b.blAch
                   const tlShort = b.tlShb - b.tlAch
+                  
+                  const blPct = overallBlNetShortfall > 0 && blShort > 0 ? (blShort / overallBlNetShortfall) * 100 : 0
+                  const tlPct = overallTlNetShortfall > 0 && tlShort > 0 ? (tlShort / overallTlNetShortfall) * 100 : 0
                   
                   const blShortStr = blShort > 0 ? formatCurrency(blShort) : '-'
                   const tlShortStr = tlShort > 0 ? formatCurrency(tlShort) : '-'
@@ -1466,24 +1480,24 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: flagColor(b.name), flexShrink: 0 }} />
                         {b.name}
                       </td>
-                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name, sellers: b.sellers }); }} style={{ padding: '12px 10px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name, sellers: b.sellers }); }} style={{ padding: '12px 6px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.count}</span>
                       </td>
-                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< BL SHB)', sellers: b.sellers.filter((s: any) => (s.blAch || 0) < (s.blShb || 0)), bucketShortfall: b.sellers.reduce((a: number, s: any) => a + Math.max(0, (s.blShb || 0) - (s.blAch || 0)), 0), shortfallType: 'BL' }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< BL SHB)', sellers: b.sellers.filter((s: any) => (s.blAch || 0) < (s.blShb || 0)), bucketShortfall: b.sellers.reduce((a: number, s: any) => a + Math.max(0, (s.blShb || 0) - (s.blAch || 0)), 0), shortfallType: 'BL' }); }} style={{ padding: '12px 6px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.blMissCount}</span>
                       </td>
-                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< TL SHB)', sellers: b.sellers.filter((s: any) => (s.tlAch || 0) < (s.tlShb || 0)), bucketShortfall: b.sellers.reduce((a: number, s: any) => a + Math.max(0, (s.tlShb || 0) - (s.tlAch || 0)), 0), shortfallType: 'TL' }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< TL SHB)', sellers: b.sellers.filter((s: any) => (s.tlAch || 0) < (s.tlShb || 0)), bucketShortfall: b.sellers.reduce((a: number, s: any) => a + Math.max(0, (s.tlShb || 0) - (s.tlAch || 0)), 0), shortfallType: 'TL' }); }} style={{ padding: '12px 6px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.tlMissCount}</span>
                       </td>
-                      <td style={{ padding: '12px 10px', color: '#B0A898', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.blGoal)}</td>
-                      <td style={{ padding: '12px 10px', color: '#E8E4DD', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.blAch)}</td>
-                      <td style={{ padding: '12px 10px', color: blPct >= 100 ? '#22C55E' : blPct >= 50 ? '#EAB308' : '#EF4444', fontSize: '0.75rem', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>{blPct.toFixed(1)}%</td>
-                      <td style={{ padding: '12px 10px', color: blShort > 0 ? '#EF4444' : '#22C55E', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '12px 6px', color: '#B0A898', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.blGoal)}</td>
+                      <td style={{ padding: '12px 6px', color: '#E8E4DD', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.blAch)}</td>
+                      <td style={{ padding: '12px 6px', color: '#E8E4DD', fontSize: '0.75rem', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>{blPct.toFixed(1)}%</td>
+                      <td style={{ padding: '12px 6px', color: blShort > 0 ? '#EF4444' : '#22C55E', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {blShortStr} <span style={{ color: '#5A5650', fontSize: '0.65rem', marginLeft: '4px' }}>{blShortPct}</span>
                       </td>
-                      <td style={{ padding: '12px 10px', color: '#B0A898', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.tlGoal)}</td>
-                      <td style={{ padding: '12px 10px', color: '#E8E4DD', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.tlAch)}</td>
-                      <td style={{ padding: '12px 10px', color: tlPct >= 100 ? '#22C55E' : tlPct >= 50 ? '#EAB308' : '#EF4444', fontSize: '0.75rem', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>{tlPct.toFixed(1)}%</td>
+                      <td style={{ padding: '12px 6px', color: '#B0A898', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.tlGoal)}</td>
+                      <td style={{ padding: '12px 6px', color: '#E8E4DD', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.tlAch)}</td>
+                      <td style={{ padding: '12px 6px', color: '#E8E4DD', fontSize: '0.75rem', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>{tlPct.toFixed(1)}%</td>
                       <td style={{ padding: '12px 16px', color: tlShort > 0 ? '#EF4444' : '#22C55E', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {tlShortStr} <span style={{ color: '#5A5650', fontSize: '0.65rem', marginLeft: '4px' }}>{tlShortPct}</span>
                       </td>
