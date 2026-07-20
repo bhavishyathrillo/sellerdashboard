@@ -106,15 +106,41 @@ const CSS = `
   margin: 0 auto;
   padding: 32px 28px 48px;
   color: #F0EDE8;
-  animation: ovFadeIn 0.45s ease both;
+  animation: ovFadeIn 0.6s ease both;
+  position: relative;
 }
 
-@keyframes ovFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+/* Subtle animated mesh background */
+.ov::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: 
+    radial-gradient(ellipse 600px 400px at 10% 20%, rgba(244,99,30,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 500px at 90% 80%, rgba(34,197,94,0.03) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 300px at 50% 50%, rgba(212,175,55,0.03) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+  animation: ovMeshFloat 20s ease-in-out infinite alternate;
+}
+
+@keyframes ovMeshFloat { 
+  0% { opacity: 0.6; } 
+  50% { opacity: 1; } 
+  100% { opacity: 0.7; } 
+}
+@keyframes ovFadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes ovShimmer { 0%{background-position:0% center} 100%{background-position:200% center} }
 @keyframes ovPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 @keyframes ovSpin { to{transform:rotate(360deg)} }
 @keyframes ovSlide { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
 @keyframes ovCount { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
+@keyframes ovGlow { 0%,100%{box-shadow: 0 0 20px rgba(212,175,55,0.08)} 50%{box-shadow: 0 0 40px rgba(212,175,55,0.15)} }
+@keyframes ovBorderShimmer { 
+  0% { border-color: rgba(255,255,255,0.06); }
+  50% { border-color: rgba(212,175,55,0.15); }
+  100% { border-color: rgba(255,255,255,0.06); }
+}
 
 /* ── Header ── */
 .ov-hdr {
@@ -129,21 +155,23 @@ const CSS = `
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(19, 17, 14, 0.95);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(180deg, rgba(19, 17, 14, 0.98) 0%, rgba(19, 17, 14, 0.92) 100%);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
   padding: 32px 28px 24px 28px;
   margin: -32px -28px 40px -28px;
 }
 .ov-hdr h1 {
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #D4AF37 0%, #F5E6A3 50%, #D4AF37 100%);
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #C9A84C 0%, #F5E6A3 30%, #D4AF37 60%, #F5E6A3 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0 0 8px;
-  animation: ovShimmer 5s linear infinite;
+  animation: ovShimmer 4s linear infinite;
+  text-shadow: none;
 }
 .ov-hdr-sub {
   display: flex;
@@ -158,7 +186,7 @@ const CSS = `
   border-radius: 50%;
   background: #22C55E;
   animation: ovPulse 2.2s ease infinite;
-  box-shadow: 0 0 8px rgba(34,197,94,0.6);
+  box-shadow: 0 0 12px rgba(34,197,94,0.7), 0 0 4px rgba(34,197,94,0.4);
   flex-shrink: 0;
 }
 
@@ -172,14 +200,31 @@ const CSS = `
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 20px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.07);
+  padding: 16px 22px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 16px;
-  min-width: 160px;
+  min-width: 170px;
+  transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
+  position: relative;
+  overflow: hidden;
 }
+.ov-ring-wrap::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.02) 100%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.ov-ring-wrap:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212,175,55,0.25);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 20px rgba(212,175,55,0.06);
+}
+.ov-ring-wrap:hover::before { opacity: 1; }
 .ov-ring-pct {
-  font-size: 1.7rem;
+  font-size: 1.8rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -187,9 +232,10 @@ const CSS = `
 .ov-ring-label {
   font-size: 0.65rem;
   color: #8A8278;
-  font-weight: 500;
+  font-weight: 600;
   margin-top: 4px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 .ov-ring-sub {
   font-size: 0.7rem;
@@ -209,39 +255,41 @@ const CSS = `
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #E8E4DD;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
   height: 38px;
 }
 .ov-region-btn:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(212, 175, 55, 0.4);
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.1);
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.1), 0 4px 12px rgba(0,0,0,0.2);
+  transform: translateY(-1px);
 }
 .ov-region-menu {
   position: absolute;
   top: 100%;
   left: 0;
   margin-top: 8px;
-  background: #151515;
+  background: rgba(21, 21, 21, 0.95);
+  backdrop-filter: blur(20px);
   border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 8px;
   min-width: 180px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1);
   display: flex;
   flex-direction: column;
   gap: 4px;
   opacity: 0;
   transform: translateY(-10px) scale(0.95);
   pointer-events: none;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   max-height: 400px;
   overflow-y: auto;
 }
@@ -252,7 +300,7 @@ const CSS = `
 }
 .ov-region-item {
   padding: 8px 12px;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 0.8rem;
   color: #B0A898;
   cursor: pointer;
@@ -261,6 +309,7 @@ const CSS = `
 .ov-region-item:hover {
   background: rgba(212, 175, 55, 0.1);
   color: #D4AF37;
+  padding-left: 16px;
 }
 .ov-region-item.active {
   background: rgba(212, 175, 55, 0.15);
@@ -295,74 +344,104 @@ const CSS = `
 }
 
 .ov-panel {
-  background: linear-gradient(180deg, rgba(25, 23, 20, 0.8) 0%, rgba(15, 14, 12, 0.8) 100%);
+  background: linear-gradient(180deg, rgba(28, 26, 22, 0.9) 0%, rgba(18, 16, 14, 0.95) 100%);
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
+  border-radius: 20px;
   margin-bottom: 24px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  backdrop-filter: blur(12px);
+  box-shadow: 
+    0 2px 4px rgba(0,0,0,0.1),
+    0 8px 24px rgba(0,0,0,0.25),
+    0 24px 48px rgba(0,0,0,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  backdrop-filter: blur(16px);
   overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+  position: relative;
+}
+.ov-panel:hover {
+  border-color: rgba(255,255,255,0.1);
+  box-shadow: 
+    0 2px 4px rgba(0,0,0,0.1),
+    0 12px 32px rgba(0,0,0,0.3),
+    0 32px 64px rgba(0,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  transform: translateY(-2px);
 }
 .ov-panel-header {
-  padding: 14px 20px;
-  background: rgba(255,255,255,0.02);
+  padding: 16px 24px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02) 0%, transparent 100%);
   border-bottom: 1px solid rgba(255,255,255,0.05);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  position: relative;
+}
+.ov-panel-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, currentColor, transparent);
+  opacity: 0.15;
 }
 .ov-panel-body {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
 }
 .ov-panel-col {
-  padding: 24px 28px;
+  padding: 28px 32px;
   position: relative;
-  transition: background 0.3s ease;
+  transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
   display: flex;
   flex-direction: column;
 }
 .ov-panel-col:hover {
-  background: rgba(255,255,255,0.02);
+  background: rgba(255,255,255,0.025);
 }
 .ov-panel-col:not(:nth-child(3n)):not(:last-child)::after {
   content: '';
   position: absolute;
-  top: 25%;
-  bottom: 25%;
+  top: 20%;
+  bottom: 20%;
   right: 0;
   width: 1px;
-  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.1), transparent);
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.08), transparent);
 }
 .ov-panel-col:nth-child(n+4) {
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid rgba(255,255,255,0.04);
 }
 .ov-panel-lbl {
   font-size: 0.7rem;
   font-weight: 600;
   color: #8A8278;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 .ov-panel-val {
-  font-size: 2.2rem;
+  font-size: 2.4rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   line-height: 1;
   color: #F9FAFB;
+  transition: transform 0.3s;
+}
+.ov-panel-col:hover .ov-panel-val {
+  transform: scale(1.02);
 }
 .ov-panel-val-sm {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   line-height: 1;
   color: #F9FAFB;
 }
@@ -370,12 +449,13 @@ const CSS = `
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 700;
-  margin-top: 14px;
+  margin-top: 16px;
   align-self: flex-start;
+  backdrop-filter: blur(8px);
 }
 
 /* ── Search ── */
@@ -396,20 +476,22 @@ const CSS = `
 .ov-search {
   width: 100%;
   padding: 13px 44px 13px 44px;
-  background: #111111;
-  border: 1px solid #1E1E1E;
-  border-radius: 12px;
+  background: rgba(17, 17, 17, 0.8);
+  border: 1px solid rgba(30, 30, 30, 0.8);
+  border-radius: 14px;
   color: #F0EDE8;
   font-size: 0.85rem;
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+  backdrop-filter: blur(8px);
 }
 .ov-search::placeholder { color: #5A5448; }
 .ov-search:focus {
   border-color: rgba(212,175,55,0.4);
-  box-shadow: 0 0 0 3px rgba(212,175,55,0.06);
+  box-shadow: 0 0 0 4px rgba(212,175,55,0.06), 0 4px 16px rgba(0,0,0,0.2);
+  background: rgba(17, 17, 17, 0.95);
 }
 .ov-search-x {
   position: absolute;
@@ -432,10 +514,12 @@ const CSS = `
 
 /* ── Table ── */
 .ov-tbl-wrap {
-  background: #111111;
-  border: 1px solid #1E1E1E;
-  border-radius: 16px;
+  background: rgba(17, 17, 17, 0.8);
+  border: 1px solid rgba(30, 30, 30, 0.8);
+  border-radius: 20px;
   overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03);
+  backdrop-filter: blur(8px);
 }
 .ov-tbl {
   width: 100%;
@@ -443,7 +527,7 @@ const CSS = `
   font-size: 0.82rem;
 }
 .ov-tbl thead tr {
-  background: rgba(255,255,255,0.02);
+  background: linear-gradient(90deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%);
 }
 .ov-tbl th {
   padding: 14px 18px;
@@ -453,23 +537,31 @@ const CSS = `
   color: #6A6258;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  border-bottom: 1px solid #1E1E1E;
+  border-bottom: 1px solid rgba(30,30,30,0.8);
   white-space: nowrap;
 }
 .ov-tbl th:first-child { text-align: left; }
 .ov-tbl td {
   padding: 14px 18px;
   text-align: right;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.025);
   vertical-align: middle;
 }
 .ov-tbl td:first-child { text-align: left; }
 .ov-tbl tr:last-child td { border-bottom: none; }
 
+/* Hover row effect for all table rows */
+.ov-tr-hover {
+  transition: background 0.2s;
+}
+.ov-tr-hover:hover {
+  background: rgba(212,175,55,0.03) !important;
+}
+
 /* CM Row */
 .ov-cm {
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.25s;
 }
 .ov-cm:hover { background: rgba(212,175,55,0.04) !important; }
 .ov-cm-open { background: rgba(212,175,55,0.025) !important; }
@@ -483,21 +575,22 @@ const CSS = `
   font-size: 0.86rem;
 }
 .ov-chev {
-  width: 22px; height: 22px;
-  border-radius: 7px;
+  width: 24px; height: 24px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 0.48rem;
   flex-shrink: 0;
-  transition: transform 0.3s ease, background 0.2s;
+  transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
   background: rgba(212,175,55,0.1);
   color: #D4AF37;
   border: 1px solid rgba(212,175,55,0.15);
 }
 .ov-chev-open {
   transform: rotate(90deg);
-  background: rgba(212,175,55,0.18);
+  background: rgba(212,175,55,0.2);
+  box-shadow: 0 0 8px rgba(212,175,55,0.15);
 }
 .ov-badge {
   font-size: 0.58rem;
@@ -514,7 +607,7 @@ const CSS = `
   display: inline-flex;
   align-items: center;
   padding: 3px 9px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 700;
   font-size: 0.78rem;
 }
@@ -523,10 +616,10 @@ const CSS = `
 
 /* Progress */
 .ov-prog {
-  height: 3px;
-  width: 52px;
+  height: 4px;
+  width: 56px;
   background: rgba(255,255,255,0.05);
-  border-radius: 3px;
+  border-radius: 4px;
   overflow: hidden;
   display: inline-block;
   margin-left: 8px;
@@ -534,17 +627,26 @@ const CSS = `
 }
 .ov-prog-fill {
   height: 100%;
-  border-radius: 3px;
-  transition: width 1s cubic-bezier(0.16,1,0.3,1);
+  border-radius: 4px;
+  transition: width 1.2s cubic-bezier(0.16,1,0.3,1);
+  position: relative;
+}
+.ov-prog-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 20px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+  border-radius: 4px;
 }
 
 /* Region Row */
 .ov-reg {
   cursor: pointer;
-  animation: ovSlide 0.25s ease both;
-  transition: background 0.2s;
+  animation: ovSlide 0.3s ease both;
+  transition: all 0.25s;
 }
-.ov-reg:hover { background: rgba(244,99,30,0.03) !important; }
+.ov-reg:hover { background: rgba(244,99,30,0.04) !important; }
 .ov-reg-name {
   display: flex;
   align-items: center;
@@ -555,21 +657,22 @@ const CSS = `
   font-size: 0.8rem;
 }
 .ov-reg-chev {
-  width: 18px; height: 18px;
-  border-radius: 5px;
+  width: 20px; height: 20px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 0.42rem;
   flex-shrink: 0;
-  transition: transform 0.3s ease, background 0.2s;
+  transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
   background: rgba(244,99,30,0.08);
   color: #F4631E;
   border: 1px solid rgba(244,99,30,0.12);
 }
 .ov-reg-chev-open {
   transform: rotate(90deg);
-  background: rgba(244,99,30,0.14);
+  background: rgba(244,99,30,0.15);
+  box-shadow: 0 0 6px rgba(244,99,30,0.12);
 }
 .ov-reg-cnt {
   font-size: 0.6rem;
@@ -579,10 +682,10 @@ const CSS = `
 
 /* Seller Row */
 .ov-sel {
-  animation: ovSlide 0.2s ease both;
-  transition: background 0.2s;
+  animation: ovSlide 0.25s ease both;
+  transition: all 0.2s;
 }
-.ov-sel:hover { background: rgba(255,255,255,0.02) !important; }
+.ov-sel:hover { background: rgba(255,255,255,0.025) !important; }
 .ov-sel-name {
   padding-left: 48px;
   color: #8A8278;
@@ -596,15 +699,16 @@ const CSS = `
   width: 6px; height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 5px currentColor;
+  box-shadow: 0 0 6px currentColor;
 }
 
 /* Flag Table */
 .ov-flag-tbl-wrap {
   overflow-x: auto;
-  background: #111111;
-  border-radius: 12px;
-  border: 1px solid #1E1E1E;
+  background: rgba(17, 17, 17, 0.8);
+  border-radius: 16px;
+  border: 1px solid rgba(30,30,30,0.8);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
 }
 
 /* Loading */
@@ -617,7 +721,7 @@ const CSS = `
   gap: 16px;
 }
 .ov-spinner {
-  width: 40px; height: 40px;
+  width: 44px; height: 44px;
   border: 3px solid rgba(212,175,55,0.1);
   border-top-color: #D4AF37;
   border-radius: 50%;
@@ -629,6 +733,12 @@ const CSS = `
   font-weight: 600;
   letter-spacing: 0.04em;
 }
+
+/* ── Scrollbar ── */
+.ov ::-webkit-scrollbar { width: 6px; height: 6px; }
+.ov ::-webkit-scrollbar-track { background: transparent; }
+.ov ::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.15); border-radius: 3px; }
+.ov ::-webkit-scrollbar-thumb:hover { background: rgba(212,175,55,0.3); }
 
 @media (max-width: 900px) {
   .ov-kpi-row { grid-template-columns: repeat(2, 1fr); }
@@ -823,8 +933,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
   return (
     <><style>{CSS}</style>
     {flagModal && (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setFlagModal(null)}>
-        <div style={{ background: '#1A1815', padding: '24px', borderRadius: '12px', width: '80%', maxWidth: '800px', maxHeight: '80vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setFlagModal(null)}>
+        <div style={{ background: 'linear-gradient(180deg, rgba(28,25,22,0.98) 0%, rgba(20,18,15,0.99) 100%)', padding: '28px', borderRadius: '20px', width: '80%', maxWidth: '800px', maxHeight: '80vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' }} onClick={e => e.stopPropagation()}>
            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.1rem', color: '#E8E4DD', fontWeight: 600 }}>
                 {flagModal.cmName === 'ALL' ? `All Sellers` : `Sellers under ${flagModal.cmName}`}
@@ -861,8 +971,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
     )}
 
     {termsModal && (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setTermsModal(false)}>
-        <div style={{ background: '#1A1815', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setTermsModal(false)}>
+        <div style={{ background: 'linear-gradient(180deg, rgba(28,25,22,0.98) 0%, rgba(20,18,15,0.99) 100%)', padding: '28px', borderRadius: '20px', width: '90%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' }} onClick={e => e.stopPropagation()}>
            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.2rem', color: '#E8E4DD', fontWeight: 600 }}>
                 Table Terms & Calculations
@@ -897,8 +1007,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
     )}
 
     {bucketModal && (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setBucketModal(null)}>
-        <div style={{ background: '#1A1815', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '1100px', maxHeight: '80vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setBucketModal(null)}>
+        <div style={{ background: 'linear-gradient(180deg, rgba(28,25,22,0.98) 0%, rgba(20,18,15,0.99) 100%)', padding: '28px', borderRadius: '20px', width: '90%', maxWidth: '1100px', maxHeight: '80vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' }} onClick={e => e.stopPropagation()}>
            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <h2 style={{ fontSize: '1.1rem', color: '#E8E4DD', fontWeight: 600 }}>
@@ -942,7 +1052,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                 <select 
                   value={modalCmFilter} 
                   onChange={e => setModalCmFilter(e.target.value)}
-                  style={{ background: '#2C2822', color: '#E8E4DD', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '6px 12px', fontSize: '0.8rem', outline: 'none' }}
+                  style={{ background: 'rgba(30,28,24,0.9)', color: '#E8E4DD', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '8px 14px', fontSize: '0.8rem', outline: 'none', transition: 'all 0.2s', cursor: 'pointer' }}
                 >
                   <option value="All">All CMs</option>
                   {Array.from(new Set(bucketModal.sellers.filter((s: any) => modalRegionFilter === 'All' || s.region === modalRegionFilter).map((s: any) => s.cmName))).filter(Boolean).sort().map((cm: any) => (
@@ -952,7 +1062,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                 <select 
                   value={modalRegionFilter} 
                   onChange={e => setModalRegionFilter(e.target.value)}
-                  style={{ background: '#2C2822', color: '#E8E4DD', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '6px 12px', fontSize: '0.8rem', outline: 'none' }}
+                  style={{ background: 'rgba(30,28,24,0.9)', color: '#E8E4DD', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '8px 14px', fontSize: '0.8rem', outline: 'none', transition: 'all 0.2s', cursor: 'pointer' }}
                 >
                   <option value="All">All Regions</option>
                   {Array.from(new Set(bucketModal.sellers.filter((s: any) => modalCmFilter === 'All' || s.cmName === modalCmFilter).map((s: any) => s.region))).filter(Boolean).sort().map((reg: any) => (
@@ -1199,28 +1309,29 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
       </div>
 
       {/* ── SELLER BUCKETS ── */}
-      <div className="ov-kpi-sec" style={{ marginTop: '32px', marginBottom: '24px', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', background: '#13110E', padding: '0' }}>
+      <div className="ov-kpi-sec" style={{ marginTop: '32px', marginBottom: '24px', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '20px', background: 'linear-gradient(180deg, rgba(22,20,17,0.95) 0%, rgba(15,14,12,0.98) 100%)', padding: '0', boxShadow: '0 8px 32px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)', overflow: 'hidden' }}>
         <div style={{ padding: '24px 24px 0 24px' }}>
-          <div style={{ color: '#8A8278', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            Seller Buckets
-            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.05)' }} />
+          <div style={{ color: '#8A8278', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span style={{ background: 'linear-gradient(90deg, #D4AF37, #B0A898)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Seller Buckets</span>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(212,175,55,0.2), transparent)' }} />
           </div>
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setBucketView('flag')} style={{ background: bucketView === 'flag' ? 'rgba(244,99,30,0.1)' : 'transparent', color: bucketView === 'flag' ? '#F4631E' : '#8A8278', border: bucketView === 'flag' ? '1px solid #F4631E' : '1px solid rgba(255,255,255,0.1)', padding: '6px 16px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+              <button onClick={() => setBucketView('flag')} style={{ background: bucketView === 'flag' ? 'linear-gradient(135deg, rgba(244,99,30,0.15) 0%, rgba(244,99,30,0.08) 100%)' : 'rgba(255,255,255,0.02)', color: bucketView === 'flag' ? '#F4631E' : '#8A8278', border: bucketView === 'flag' ? '1px solid rgba(244,99,30,0.4)' : '1px solid rgba(255,255,255,0.08)', padding: '7px 18px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)', boxShadow: bucketView === 'flag' ? '0 0 16px rgba(244,99,30,0.1)' : 'none' }}>
                 Flag View
               </button>
-              <button onClick={() => setBucketView('tenure')} style={{ background: bucketView === 'tenure' ? 'rgba(244,99,30,0.1)' : 'transparent', color: bucketView === 'tenure' ? '#F4631E' : '#8A8278', border: bucketView === 'tenure' ? '1px solid #F4631E' : '1px solid rgba(255,255,255,0.1)', padding: '6px 16px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+              <button onClick={() => setBucketView('tenure')} style={{ background: bucketView === 'tenure' ? 'linear-gradient(135deg, rgba(244,99,30,0.15) 0%, rgba(244,99,30,0.08) 100%)' : 'rgba(255,255,255,0.02)', color: bucketView === 'tenure' ? '#F4631E' : '#8A8278', border: bucketView === 'tenure' ? '1px solid rgba(244,99,30,0.4)' : '1px solid rgba(255,255,255,0.08)', padding: '7px 18px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)', boxShadow: bucketView === 'tenure' ? '0 0 16px rgba(244,99,30,0.1)' : 'none' }}>
                 Tenure View
               </button>
             </div>
             <button 
               onClick={() => setTermsModal(true)} 
-              style={{ background: 'transparent', color: '#8A8278', border: '1px solid rgba(255,255,255,0.1)', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.9rem', fontStyle: 'italic', fontWeight: 600 }}
+              style={{ background: 'rgba(255,255,255,0.03)', color: '#8A8278', border: '1px solid rgba(255,255,255,0.08)', width: '32px', height: '32px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)', fontSize: '0.85rem', fontStyle: 'italic', fontWeight: 700 }}
               title="View Terms & Calculations"
-              onMouseEnter={(e) => { e.currentTarget.style.color = '#F4631E'; e.currentTarget.style.borderColor = '#F4631E'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#8A8278'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#F4631E'; e.currentTarget.style.borderColor = 'rgba(244,99,30,0.4)'; e.currentTarget.style.background = 'rgba(244,99,30,0.08)'; e.currentTarget.style.boxShadow = '0 0 12px rgba(244,99,30,0.1)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#8A8278'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'scale(1)'; }}
             >
               i
             </button>
