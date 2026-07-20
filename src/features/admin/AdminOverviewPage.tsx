@@ -656,7 +656,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
   const [regionOpen, setRegionOpen] = useState(false)
   const [cmOpen, setCmOpen] = useState(false)
   const [bucketView, setBucketView] = useState<'flag' | 'tenure'>('flag')
-  const [bucketModal, setBucketModal] = useState<{ bucketName: string, sellers: any[] } | null>(null)
+  const [bucketModal, setBucketModal] = useState<{ bucketName: string, sellers: any[], bucketShortfall?: number, shortfallType?: 'BL'|'TL' } | null>(null)
   const [modalCmFilter, setModalCmFilter] = useState<string>('All')
   const [modalRegionFilter, setModalRegionFilter] = useState<string>('All')
   const adminName = session?.name || 'Admin'
@@ -863,9 +863,31 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setBucketModal(null)}>
         <div style={{ background: '#1A1815', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '1100px', maxHeight: '80vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '1.1rem', color: '#E8E4DD', fontWeight: 600 }}>
-                Sellers in Bucket: <span style={{ color: '#F4631E' }}>{bucketModal.bucketName}</span>
-              </h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <h2 style={{ fontSize: '1.1rem', color: '#E8E4DD', fontWeight: 600 }}>
+                  Sellers in Bucket: <span style={{ color: '#F4631E' }}>{bucketModal.bucketName}</span>
+                </h2>
+                {bucketModal.shortfallType && bucketModal.bucketShortfall !== undefined && (() => {
+                  const modalSellersFiltered = bucketModal.sellers.filter((s: any) => (modalCmFilter === 'All' || s.cmName === modalCmFilter) && (modalRegionFilter === 'All' || s.region === modalRegionFilter));
+                  const currentShortfall = modalSellersFiltered.reduce((acc: number, s: any) => {
+                    if (bucketModal.shortfallType === 'BL') return acc + Math.max(0, (s.blShb || 0) - (s.blAch || 0));
+                    return acc + Math.max(0, (s.tlShb || 0) - (s.tlAch || 0));
+                  }, 0);
+                  const formatCur = (val: number) => {
+                    if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)}Cr`
+                    if (val >= 100000) return `₹${(val / 100000).toFixed(2)}L`
+                    if (val >= 1000) return `₹${(val / 1000).toFixed(1)}K`
+                    return `₹${val.toFixed(0)}`
+                  }
+                  const pct = bucketModal.bucketShortfall > 0 && currentShortfall > 0 ? ((currentShortfall / bucketModal.bucketShortfall) * 100).toFixed(1) + '%' : '0%';
+                  return (
+                    <div style={{ fontSize: '0.85rem', color: '#8A8278' }}>
+                      Contributing Shortfall: <span style={{ color: '#EF4444', fontWeight: 600 }}>{formatCur(currentShortfall)}</span> 
+                      {currentShortfall > 0 && <span style={{ marginLeft: '6px', fontSize: '0.75rem' }}>({pct} of bucket total)</span>}
+                    </div>
+                  )
+                })()}
+              </div>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <select 
                   value={modalCmFilter} 
@@ -1272,10 +1294,10 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                       <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name, sellers: b.sellers }); }} style={{ padding: '12px 10px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.count}</span>
                       </td>
-                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< BL SHB)', sellers: b.sellers.filter((s: any) => (s.blAch || 0) < (s.blShb || 0)) }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< BL SHB)', sellers: b.sellers.filter((s: any) => (s.blAch || 0) < (s.blShb || 0)), bucketShortfall: Math.max(0, b.blShb - b.blAch), shortfallType: 'BL' }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.blMissCount}</span>
                       </td>
-                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< TL SHB)', sellers: b.sellers.filter((s: any) => (s.tlAch || 0) < (s.tlShb || 0)) }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< TL SHB)', sellers: b.sellers.filter((s: any) => (s.tlAch || 0) < (s.tlShb || 0)), bucketShortfall: Math.max(0, b.tlShb - b.tlAch), shortfallType: 'TL' }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.tlMissCount}</span>
                       </td>
                       <td style={{ padding: '12px 10px', color: '#B0A898', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.blGoal)}</td>
