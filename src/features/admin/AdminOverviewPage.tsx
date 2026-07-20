@@ -657,6 +657,7 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
   const [cmOpen, setCmOpen] = useState(false)
   const [bucketView, setBucketView] = useState<'flag' | 'tenure'>('flag')
   const [bucketModal, setBucketModal] = useState<{ bucketName: string, sellers: any[], bucketShortfall?: number, shortfallType?: 'BL'|'TL' } | null>(null)
+  const [termsModal, setTermsModal] = useState(false)
   const [modalCmFilter, setModalCmFilter] = useState<string>('All')
   const [modalRegionFilter, setModalRegionFilter] = useState<string>('All')
   const adminName = session?.name || 'Admin'
@@ -855,6 +856,42 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                )}
              </tbody>
            </table>
+        </div>
+      </div>
+    )}
+
+    {termsModal && (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setTermsModal(false)}>
+        <div style={{ background: '#1A1815', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
+           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '1.2rem', color: '#E8E4DD', fontWeight: 600 }}>
+                Table Terms & Calculations
+              </h2>
+              <button onClick={() => setTermsModal(false)} style={{ background: 'none', border: 'none', color: '#E8E4DD', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+           </div>
+           
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', color: '#B0A898', fontSize: '0.9rem', lineHeight: '1.5' }}>
+             <div>
+               <strong style={{ color: '#F4631E' }}>&lt; BL SHB / &lt; TL SHB:</strong><br />
+               Number of sellers who have NOT met their Bottomline (BL) or Topline (TL) "Should Have Been" (SHB) targets. Click these numbers to see exactly who these sellers are.
+             </div>
+             <div>
+               <strong style={{ color: '#F4631E' }}>BL / TL SHORTFALL:</strong><br />
+               The <strong>Net Shortfall</strong> for the entire bucket. This takes the sum of everyone's SHB target in the bucket, minus the sum of everyone's Achieved in the bucket. Because some sellers overachieve, their extra numbers reduce the total shortfall of the bucket!
+             </div>
+             <div>
+               <strong style={{ color: '#F4631E' }}>Contributing Shortfall (Inside Modal):</strong><br />
+               This is the <strong>Gross Shortfall</strong> of only the underachieving sellers in your list. It completely ignores overachievers. This tells you exactly how much money is being missed by the people in that specific list.
+             </div>
+             <div>
+               <strong style={{ color: '#F4631E' }}>% of Bucket Total:</strong><br />
+               Shows how the Gross Shortfall of the listed sellers compares to the Net Shortfall of the bucket. Because overachievers shrink the bucket's Net Shortfall, this percentage can be over 100%.
+             </div>
+             <div>
+               <strong style={{ color: '#F4631E' }}>% of Overall Total:</strong><br />
+               Shows how the Gross Shortfall of the listed sellers compares to the Net Shortfall of the <strong>entire organization</strong> across all buckets combined.
+             </div>
+           </div>
         </div>
       </div>
     )}
@@ -1169,12 +1206,23 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
             <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.05)' }} />
           </div>
           
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-            <button onClick={() => setBucketView('flag')} style={{ background: bucketView === 'flag' ? 'rgba(244,99,30,0.1)' : 'transparent', color: bucketView === 'flag' ? '#F4631E' : '#8A8278', border: bucketView === 'flag' ? '1px solid #F4631E' : '1px solid rgba(255,255,255,0.1)', padding: '6px 16px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
-              Flag View
-            </button>
-            <button onClick={() => setBucketView('tenure')} style={{ background: bucketView === 'tenure' ? 'rgba(244,99,30,0.1)' : 'transparent', color: bucketView === 'tenure' ? '#F4631E' : '#8A8278', border: bucketView === 'tenure' ? '1px solid #F4631E' : '1px solid rgba(255,255,255,0.1)', padding: '6px 16px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
-              Tenure View
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setBucketView('flag')} style={{ background: bucketView === 'flag' ? 'rgba(244,99,30,0.1)' : 'transparent', color: bucketView === 'flag' ? '#F4631E' : '#8A8278', border: bucketView === 'flag' ? '1px solid #F4631E' : '1px solid rgba(255,255,255,0.1)', padding: '6px 16px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+                Flag View
+              </button>
+              <button onClick={() => setBucketView('tenure')} style={{ background: bucketView === 'tenure' ? 'rgba(244,99,30,0.1)' : 'transparent', color: bucketView === 'tenure' ? '#F4631E' : '#8A8278', border: bucketView === 'tenure' ? '1px solid #F4631E' : '1px solid rgba(255,255,255,0.1)', padding: '6px 16px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+                Tenure View
+              </button>
+            </div>
+            <button 
+              onClick={() => setTermsModal(true)} 
+              style={{ background: 'transparent', color: '#8A8278', border: '1px solid rgba(255,255,255,0.1)', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.9rem', fontStyle: 'italic', fontWeight: 600 }}
+              title="View Terms & Calculations"
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#F4631E'; e.currentTarget.style.borderColor = '#F4631E'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#8A8278'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+            >
+              i
             </button>
           </div>
         </div>
