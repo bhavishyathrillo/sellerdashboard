@@ -990,8 +990,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                The <strong>Net Shortfall</strong> for the entire bucket. This takes the sum of everyone's SHB target in the bucket, minus the sum of everyone's Achieved in the bucket. Because some sellers overachieve, their extra numbers reduce the total shortfall of the bucket!
              </div>
              <div>
-               <strong style={{ color: '#F4631E' }}>Contributing Shortfall (Inside Modal):</strong><br />
-               This is the <strong>Gross Shortfall</strong> of only the underachieving sellers in your list. It completely ignores overachievers. This tells you exactly how much money is being missed by the people in that specific list.
+               <strong style={{ color: '#F4631E' }}>Net Shortfall (Inside Modal):</strong><br />
+               This is the <strong>Net Shortfall</strong> of the specific sellers currently shown in your list. It takes the sum of their SHB target minus the sum of their Achieved. By explicitly taking all shown sellers into account, overachievers in this filtered list will shrink the total shortfall!
              </div>
              <div>
                <strong style={{ color: '#F4631E' }}>% CONTRIBUTION IN SHORTFALL:</strong><br />
@@ -1012,10 +1012,16 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                 </h2>
                 {bucketModal.shortfallType && bucketModal.bucketShortfall !== undefined && (() => {
                   const modalSellersFiltered = bucketModal.sellers.filter((s: any) => (modalCmFilter === 'All' || s.cmName === modalCmFilter) && (modalRegionFilter === 'All' || s.region === modalRegionFilter));
-                  const currentShortfall = modalSellersFiltered.reduce((acc: number, s: any) => {
-                    if (bucketModal.shortfallType === 'BL') return acc + Math.max(0, (s.blShb || 0) - (s.blAch || 0));
-                    return acc + Math.max(0, (s.tlShb || 0) - (s.tlAch || 0));
-                  }, 0);
+                  
+                  const currentShortfall = (() => {
+                     let shb = 0; let ach = 0;
+                     modalSellersFiltered.forEach((s: any) => {
+                       shb += bucketModal.shortfallType === 'BL' ? (s.blShb || 0) : (s.tlShb || 0);
+                       ach += bucketModal.shortfallType === 'BL' ? (s.blAch || 0) : (s.tlAch || 0);
+                     });
+                     return Math.max(0, shb - ach);
+                  })();
+
                   const formatCur = (val: number) => {
                     if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)}Cr`
                     if (val >= 100000) return `₹${(val / 100000).toFixed(2)}L`
@@ -1026,25 +1032,22 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                   let overallShortfall = 0;
                   const allSellersFlat: any[] = [];
                   processed.forEach((cm: any) => cm.regions.forEach((r: any) => r.sellers.forEach((s: any) => allSellersFlat.push(s))));
-                  if (bucketModal.shortfallType === 'BL') {
-                    overallShortfall = allSellersFlat.reduce((a: number, s: any) => {
-                      const sf = Math.max(0, (s.blShb || 0) - (s.blAch || 0));
-                      return sf > 0 ? a + sf : a;
-                    }, 0);
-                  } else {
-                    overallShortfall = allSellersFlat.reduce((a: number, s: any) => {
-                      const sf = Math.max(0, (s.tlShb || 0) - (s.tlAch || 0));
-                      return sf > 0 ? a + sf : a;
-                    }, 0);
-                  }
+                  
+                  let tShb = 0; let tAch = 0;
+                  allSellersFlat.forEach((s: any) => {
+                     tShb += bucketModal.shortfallType === 'BL' ? (s.blShb || 0) : (s.tlShb || 0);
+                     tAch += bucketModal.shortfallType === 'BL' ? (s.blAch || 0) : (s.tlAch || 0);
+                  });
+                  overallShortfall = Math.max(0, tShb - tAch);
+
                   const overallPct = overallShortfall > 0 && currentShortfall > 0 ? ((currentShortfall / overallShortfall) * 100).toFixed(1) + '%' : '0%';
 
                   return (
                     <div style={{ fontSize: '0.85rem', color: '#8A8278' }}>
-                      Contributing Shortfall: <span style={{ color: '#EF4444', fontWeight: 600 }}>{formatCur(currentShortfall)}</span> 
+                      Net Shortfall: <span style={{ color: '#EF4444', fontWeight: 600 }}>{formatCur(currentShortfall)}</span> 
                       {currentShortfall > 0 && (
                         <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: '#B0A898' }}>
-                          ({overallPct} of overall contributing shortfall)
+                          ({overallPct} contribution in shortfall)
                         </span>
                       )}
                     </div>
