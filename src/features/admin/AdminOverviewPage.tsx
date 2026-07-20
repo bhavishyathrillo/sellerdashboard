@@ -994,12 +994,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                This is the <strong>Gross Shortfall</strong> of only the underachieving sellers in your list. It completely ignores overachievers. This tells you exactly how much money is being missed by the people in that specific list.
              </div>
              <div>
-               <strong style={{ color: '#F4631E' }}>% of Bucket Total:</strong><br />
-               Shows how the Gross Shortfall of the listed sellers compares to the Net Shortfall of the bucket. Because overachievers shrink the bucket's Net Shortfall, this percentage can be over 100%.
-             </div>
-             <div>
-               <strong style={{ color: '#F4631E' }}>% of Overall Total:</strong><br />
-               Shows how the Gross Shortfall of the listed sellers compares to the Net Shortfall of the <strong>entire organization</strong> across all buckets combined.
+               <strong style={{ color: '#F4631E' }}>% of Overall Contributing Shortfall:</strong><br />
+               Shows how the Gross Shortfall of the listed sellers compares to the <strong>total shortfall of all contributing sellers</strong> (i.e., all sellers who have a shortfall) across the entire organization.
              </div>
            </div>
         </div>
@@ -1026,13 +1022,20 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                     if (val >= 1000) return `₹${(val / 1000).toFixed(1)}K`
                     return `₹${val.toFixed(0)}`
                   }
-                  const pct = bucketModal.bucketShortfall > 0 && currentShortfall > 0 ? ((currentShortfall / bucketModal.bucketShortfall) * 100).toFixed(1) + '%' : '0%';
                   
                   let overallShortfall = 0;
+                  const allSellersFlat: any[] = [];
+                  processed.forEach((cm: any) => cm.regions.forEach((r: any) => r.sellers.forEach((s: any) => allSellersFlat.push(s))));
                   if (bucketModal.shortfallType === 'BL') {
-                    overallShortfall = Math.max(0, gBlS - gBlA);
+                    overallShortfall = allSellersFlat.reduce((a: number, s: any) => {
+                      const sf = Math.max(0, (s.blShb || 0) - (s.blAch || 0));
+                      return sf > 0 ? a + sf : a;
+                    }, 0);
                   } else {
-                    overallShortfall = Math.max(0, gTlS - gTlA);
+                    overallShortfall = allSellersFlat.reduce((a: number, s: any) => {
+                      const sf = Math.max(0, (s.tlShb || 0) - (s.tlAch || 0));
+                      return sf > 0 ? a + sf : a;
+                    }, 0);
                   }
                   const overallPct = overallShortfall > 0 && currentShortfall > 0 ? ((currentShortfall / overallShortfall) * 100).toFixed(1) + '%' : '0%';
 
@@ -1040,8 +1043,8 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                     <div style={{ fontSize: '0.85rem', color: '#8A8278' }}>
                       Contributing Shortfall: <span style={{ color: '#EF4444', fontWeight: 600 }}>{formatCur(currentShortfall)}</span> 
                       {currentShortfall > 0 && (
-                        <span style={{ marginLeft: '6px', fontSize: '0.75rem' }}>
-                          ({pct} of bucket total) <span style={{ marginLeft: '4px', color: '#B0A898' }}>({overallPct} of overall total)</span>
+                        <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: '#B0A898' }}>
+                          ({overallPct} of overall contributing shortfall)
                         </span>
                       )}
                     </div>
@@ -1466,10 +1469,10 @@ export default function AdminOverviewPage({ session }: { session?: any }) {
                       <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name, sellers: b.sellers }); }} style={{ padding: '12px 10px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.count}</span>
                       </td>
-                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< BL SHB)', sellers: b.sellers.filter((s: any) => (s.blAch || 0) < (s.blShb || 0)), bucketShortfall: Math.max(0, b.blShb - b.blAch), shortfallType: 'BL' }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< BL SHB)', sellers: b.sellers.filter((s: any) => (s.blAch || 0) < (s.blShb || 0)), bucketShortfall: b.sellers.reduce((a: number, s: any) => a + Math.max(0, (s.blShb || 0) - (s.blAch || 0)), 0), shortfallType: 'BL' }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.blMissCount}</span>
                       </td>
-                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< TL SHB)', sellers: b.sellers.filter((s: any) => (s.tlAch || 0) < (s.tlShb || 0)), bucketShortfall: Math.max(0, b.tlShb - b.tlAch), shortfallType: 'TL' }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <td onClick={(e) => { e.stopPropagation(); setBucketModal({ bucketName: b.name + ' (< TL SHB)', sellers: b.sellers.filter((s: any) => (s.tlAch || 0) < (s.tlShb || 0)), bucketShortfall: b.sellers.reduce((a: number, s: any) => a + Math.max(0, (s.tlShb || 0) - (s.tlAch || 0)), 0), shortfallType: 'TL' }); }} style={{ padding: '12px 10px', color: '#EF4444', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{b.tlMissCount}</span>
                       </td>
                       <td style={{ padding: '12px 10px', color: '#B0A898', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(b.blGoal)}</td>
