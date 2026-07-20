@@ -368,7 +368,7 @@ const CSS = `
   transform: translateY(-2px);
 }
 .ov-panel-header {
-  padding: 16px 24px;
+  padding: 10px 20px;
   background: linear-gradient(90deg, rgba(255,255,255,0.02) 0%, transparent 100%);
   border-bottom: 1px solid rgba(255,255,255,0.05);
   display: flex;
@@ -395,7 +395,7 @@ const CSS = `
   grid-template-columns: repeat(3, 1fr);
 }
 .ov-panel-col {
-  padding: 28px 32px;
+  padding: 16px 20px;
   position: relative;
   transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
   display: flex;
@@ -417,18 +417,18 @@ const CSS = `
   border-top: 1px solid rgba(255,255,255,0.04);
 }
 .ov-panel-lbl {
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 600;
   color: #8A8278;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 .ov-panel-val {
-  font-size: 2.4rem;
+  font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -439,7 +439,7 @@ const CSS = `
   transform: scale(1.02);
 }
 .ov-panel-val-sm {
-  font-size: 1.6rem;
+  font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -448,12 +448,12 @@ const CSS = `
 .ov-panel-pct {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: 8px;
-  font-size: 0.75rem;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-size: 0.65rem;
   font-weight: 700;
-  margin-top: 16px;
+  margin-top: 8px;
   align-self: flex-start;
   backdrop-filter: blur(8px);
 }
