@@ -445,7 +445,7 @@ export default function PriorityPage({ session }: Props) {
   const [viewMode, setViewMode] = useState<'my' | 'team'>('my')
   const [tableView, setTableView] = useState(false)
   const [search, setSearch] = useState('')
-  const [activeTab, setActiveTab] = useState<'priority' | 'qb'>('priority')
+  const [activeTab, setActiveTab] = useState<'priority' | 'qb'>('qb')
   const [selectedRegion, setSelectedRegion] = useStickyState('All', 'PriorityPage_region')
 
   const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session.role)
@@ -562,7 +562,6 @@ export default function PriorityPage({ session }: Props) {
   if (activeTab === 'qb') {
     return (
       <div style={{ padding: 20, maxWidth: 1100, margin: '0 auto', color: '#F0EDE8' }}>
-        <TabToggle active="qb" onChange={setActiveTab} />
         <QBStatsPage session={session} />
       </div>
     )
@@ -583,7 +582,6 @@ export default function PriorityPage({ session }: Props) {
 
   return (
     <div style={{ padding: 20, maxWidth: 1100, margin: '0 auto', color: '#F0EDE8' }}>
-      <TabToggle active="priority" onChange={setActiveTab} />
 
       {/* ── ADMIN VIEW ── */}
       {isAdmin && displayData?.admin && (

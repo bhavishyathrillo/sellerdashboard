@@ -32,7 +32,7 @@ function getCosmeticRole(role: string): string {
 const personaTabs = [
   { id: 'home', label: 'Overview' },
   { id: 'pipeline', label: 'Pipeline' },
-  { id: 'priority', label: 'Priority/QB' },
+  { id: 'priority', label: 'QB Stats' },
   { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'seller-view', label: 'LTA' },
   { id: 'rewards', label: 'Rewards' },

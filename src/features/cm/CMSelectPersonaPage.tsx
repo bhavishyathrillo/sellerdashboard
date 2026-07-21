@@ -24,7 +24,7 @@ interface Props {
 const personaTabs = [
   { id: 'home', label: 'Overview' },
   { id: 'seller-view', label: 'LTA' },
-  { id: 'priority', label: 'Priority/QB' },
+  { id: 'priority', label: 'QB Stats' },
   { id: 'leaderboard', label: 'Leaderboard' },
   { id: 'rewards', label: 'Rewards' },
   { id: 'mhl', label: 'MHL' },

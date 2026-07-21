@@ -36,7 +36,7 @@ interface DashboardLayoutProps {
 const navItems = [
   { id: 'home',        label: 'Overview',          Icon: LayoutDashboard },
   { id: 'seller-view', label: 'LTA',               Icon: TrendingUp },
-  { id: 'priority',    label: 'Priority/QB Stats', Icon: Zap },
+  { id: 'priority',    label: 'QB Stats', Icon: Zap },
   { id: 'leaderboard', label: 'Leaderboard',       Icon: Trophy },
   { id: 'performance', label: 'Performance',       Icon: BarChart2,  adminOnly: false },
   { id: 'rewards',     label: 'Rewards',           Icon: Gift,       adminOnly: false },
