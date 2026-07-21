@@ -306,6 +306,9 @@ async function handlePingSession(req: NextRequest) {
 // ============================================================
 const BENCH = { mishandled:0.15, called15:0.90, talk:8, flag:0.12, quoted:0.50, quoteFeas:0.30, pass:0.95, quoteConv:0.90, rework:2, priority:0.20 };
 const CHW = { input:{mishandled:.30,called15:.30,talk:.15,priority:.25}, quotations:{quoted:.25,quoteFeas:.15,pass:.25,rework:.15,quoteConv:.20}, output:{bottomline:.30,topline:.15,conversionPct:.25,margin:.15,flag:.15} };
+// From 2026-07-20 onwards: mishandled and priority are removed; weights redistributed to called15 (2/3) and talk (1/3)
+const CHW_POST_CUTOFF = { input:{called15:.667,talk:.333}, quotations:{quoted:.25,quoteFeas:.15,pass:.25,rework:.15,quoteConv:.20}, output:{bottomline:.30,topline:.15,conversionPct:.25,margin:.15,flag:.15} };
+const KPI_CUTOFF_DATE = '2026-07-20';
 const SW = { output:.70, input:.30, quotations:0 };
 const FL = ['','White','Red','Yellow','Orange','Green','Star'];
 
@@ -320,7 +323,7 @@ function pF(x:number|null){ return x===null?'-':Math.round(x*100)+'%'; }
 function iF(x:number){ return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,','); }
 function mF(x:number|null){ if(x===null||x===undefined)return'-'; const a=Math.abs(x); if(a>=1e7)return'Rs '+(x/1e7).toFixed(2)+' Cr'; if(a>=1e5)return'Rs '+(x/1e5).toFixed(2)+' L'; if(a>=1e3)return'Rs '+(x/1e3).toFixed(1)+'K'; return'Rs '+Math.round(x); }
 
-function rcAggregate(rows:any[], includeFlag:boolean){
+function rcAggregate(rows:any[], includeFlag:boolean, refDate?:string|null){
   let mish=0,mishD=0,c15=0,c15D=0,talkN=0,talkD=0,rw=0,redCount=0,whiteCount=0,sellers=0,prio=0,aa=0,z=0,ac=0,ae=0,ad=0,ag=0,conv2=0,botA=0,botT=0,topA=0,topT=0,convA=0,convT=0,leadsSHB=0,wonWithoutFeasibility=0;
   function median(arr:number[]):number|null{
     if(!arr.length)return null;
@@ -355,8 +358,15 @@ function rcAggregate(rows:any[], includeFlag:boolean){
   const botAch=botT>0?botA/botT:null, topAch=topT>0?topA/topT:null;
   const convPT=leadsSHB>0?convT/leadsSHB:null, convPA=c15D>0?convA/c15D:null, convPAch=(convPA!==null&&convPT&&convPT>0)?convPA/convPT:null;
   const mAct=topA>0?botA/topA:null, mTgt=topT>0?botT/topT:null, marginAch=(mAct!==null&&mTgt&&mTgt>0)?mAct/mTgt:null;
+  // Determine if mishandled & priority should be excluded (from 2026-07-20 onwards)
+  const usePostCutoff = !!refDate && refDate >= KPI_CUTOFF_DATE;
+  const hw = usePostCutoff ? CHW_POST_CUTOFF : CHW;
+
   const sc:Record<string,number|null>={
-    mishandled:scLo(mishAct,BENCH.mishandled), called15:scHi(c15Act,BENCH.called15), priority:scHi(prioA,BENCH.priority), talk:scHi(talkAct,BENCH.talk),
+    mishandled: usePostCutoff ? null : scLo(mishAct,BENCH.mishandled),
+    called15:scHi(c15Act,BENCH.called15),
+    priority: usePostCutoff ? null : scHi(prioA,BENCH.priority),
+    talk:scHi(talkAct,BENCH.talk),
     flag:includeFlag?scLo(flagAct,BENCH.flag):null, quoted:scHi(quotedA,BENCH.quoted), quoteFeas:scHi(qFeasA,BENCH.quoteFeas),
     pass:scHi(passA,BENCH.pass), quoteConv:scHi(quoteConvA,BENCH.quoteConv), rework:scLo(reworkA,BENCH.rework),
     bottomline:scHi(botAch,1), topline:scHi(topAch,1), conversionPct:scHi(convPAch,1), margin:scHi(marginAch,1)
@@ -365,29 +375,33 @@ function rcAggregate(rows:any[], includeFlag:boolean){
   function push(subj:string,key:string,label:string,formula:string,detail:string,target:string,weight:number,mark:number|null,extra?:any){
     ch.push({subject:subj,key,label,formula,detail,target,weight:Math.round(weight*100),mark:r1(mark),grade:grd(mark),extra});
   }
-  push('Input metrics','mishandled','Mishandled leads','mishandled / open leads',mishAct===null?'No data':pF(mishAct)+' mishandled ('+Math.round(mish)+' of '+Math.round(mishD)+')','below 15%',CHW.input.mishandled,sc.mishandled);
-  push('Input metrics','called15','Call within 15 min','called in 15 min / total leads',c15Act===null?'No data':pF(c15Act)+' of leads called within 15 min ('+Math.round(c15)+' of '+Math.round(c15D)+')','90%',CHW.input.called15,sc.called15);
-  push('Input metrics','priority','Priority leads created','priority leads / total leads',prioA===null?'No data':pF(prioA)+' of leads are priority ('+Math.round(prio)+' of '+Math.round(c15D)+')','20%',CHW.input.priority,sc.priority);
-  push('Input metrics','talk','First call talk time','call-weighted median / 8 min',talkAct===null?'No data':talkAct.toFixed(1)+' min median','8 min or more',CHW.input.talk,sc.talk);
-  push('Quotations','quoted','Unique leads quoted','unique quoted / unique leads',quotedA===null?'No data':pF(quotedA)+' of leads quoted ('+Math.round(aa)+' of '+Math.round(z)+')','50%',CHW.quotations.quoted,sc.quoted);
-  push('Quotations','quoteFeas','Unique quote to feasibility','sent to feasibility / quoted leads',qFeasA===null?'No data':pF(qFeasA)+' of quoted leads sent to feasibility ('+Math.round(ac)+' of '+Math.round(aa)+')','30%',CHW.quotations.quoteFeas,sc.quoteFeas);
-  push('Quotations','pass','Feasibility pass','passed / total sent to feasibility',passA===null?'No data':pF(passA)+' passed ('+Math.round(ae)+' of '+Math.round(ad)+')','95%',CHW.quotations.pass,sc.pass);
-  push('Quotations','quoteConv','Quote to conversion','converted / unique sent to feasibility',quoteConvA===null?'No data':pF(quoteConvA)+' of unique quotes sent to feasibility converted ('+Math.round(adjustedConv2)+' of '+Math.round(ac)+')','90%',CHW.quotations.quoteConv,sc.quoteConv, { wonWithoutFeasibility });
-  push('Quotations','rework','Rework rate','total reworks / total sent to feasibility',reworkA===null?'No data':reworkA.toFixed(1)+' reworks per feasibility ('+Math.round(ag)+' reworks, '+Math.round(ad)+' sent to feasibility)','2 or fewer',CHW.quotations.rework,sc.rework);
-  push('Output metrics','bottomline','Bottomline (profit)','actual profit / target profit',botT>0?mF(botA)+' of '+mF(botT)+' target ('+pF(botAch)+')':'No data','100% of goal',CHW.output.bottomline,sc.bottomline);
-  push('Output metrics','topline','Topline (booking value)','actual booking / target booking',topT>0?mF(topA)+' of '+mF(topT)+' target ('+pF(topAch)+')':'No data','100% of goal',CHW.output.topline,sc.topline);
-  push('Output metrics','conversionPct','Conversion %','',(convPA!==null&&convPT!==null)?pF(convPA)+' actual vs '+pF(convPT)+' target  -  '+iF(convA)+' of '+iF(convT)+' conversions':'No data','100% of goal',CHW.output.conversionPct,sc.conversionPct);
-  push('Output metrics','margin','Margin %','actual margin vs target margin',(mAct!==null&&mTgt!==null)?pF(mAct)+' actual vs '+pF(mTgt)+' target':'No data','meet guardrail',CHW.output.margin,sc.margin, {actual: mAct!==null?mAct*100:0, target: mTgt!==null?mTgt*100:0});
-  if(includeFlag) push('Output metrics','flag','Seller flags','(red + white sellers) / total sellers',flagAct===null?'No data':pF(flagAct)+' red + white sellers ('+rw+' of '+sellers+')','below 12%',CHW.output.flag,sc.flag, {red:redCount, white:whiteCount});
-  const input=wAvg([[sc.mishandled,CHW.input.mishandled],[sc.called15,CHW.input.called15],[sc.talk,CHW.input.talk],[sc.priority,CHW.input.priority]]);
-  const quotations=wAvg([[sc.quoted,CHW.quotations.quoted],[sc.quoteFeas,CHW.quotations.quoteFeas],[sc.pass,CHW.quotations.pass],[sc.rework,CHW.quotations.rework],[sc.quoteConv,CHW.quotations.quoteConv]]);
+  // Mishandled: hidden from UI from cutoff date onwards
+  if (!usePostCutoff) push('Input metrics','mishandled','Mishandled leads','mishandled / open leads',mishAct===null?'No data':pF(mishAct)+' mishandled ('+Math.round(mish)+' of '+Math.round(mishD)+')','below 15%',CHW.input.mishandled,sc.mishandled);
+  push('Input metrics','called15','Call within 15 min','called in 15 min / total leads',c15Act===null?'No data':pF(c15Act)+' of leads called within 15 min ('+Math.round(c15)+' of '+Math.round(c15D)+')','90%',usePostCutoff?CHW_POST_CUTOFF.input.called15:CHW.input.called15,sc.called15);
+  // Priority: hidden from UI from cutoff date onwards
+  if (!usePostCutoff) push('Input metrics','priority','Priority leads created','priority leads / total leads',prioA===null?'No data':pF(prioA)+' of leads are priority ('+Math.round(prio)+' of '+Math.round(c15D)+')','20%',CHW.input.priority,sc.priority);
+  push('Input metrics','talk','First call talk time','call-weighted median / 8 min',talkAct===null?'No data':talkAct.toFixed(1)+' min median','8 min or more',usePostCutoff?CHW_POST_CUTOFF.input.talk:CHW.input.talk,sc.talk);
+  push('Quotations','quoted','Unique leads quoted','unique quoted / unique leads',quotedA===null?'No data':pF(quotedA)+' of leads quoted ('+Math.round(aa)+' of '+Math.round(z)+')','50%',hw.quotations.quoted,sc.quoted);
+  push('Quotations','quoteFeas','Unique quote to feasibility','sent to feasibility / quoted leads',qFeasA===null?'No data':pF(qFeasA)+' of quoted leads sent to feasibility ('+Math.round(ac)+' of '+Math.round(aa)+')','30%',hw.quotations.quoteFeas,sc.quoteFeas);
+  push('Quotations','pass','Feasibility pass','passed / total sent to feasibility',passA===null?'No data':pF(passA)+' passed ('+Math.round(ae)+' of '+Math.round(ad)+')','95%',hw.quotations.pass,sc.pass);
+  push('Quotations','quoteConv','Quote to conversion','converted / unique sent to feasibility',quoteConvA===null?'No data':pF(quoteConvA)+' of unique quotes sent to feasibility converted ('+Math.round(adjustedConv2)+' of '+Math.round(ac)+')','90%',hw.quotations.quoteConv,sc.quoteConv, { wonWithoutFeasibility });
+  push('Quotations','rework','Rework rate','total reworks / total sent to feasibility',reworkA===null?'No data':reworkA.toFixed(1)+' reworks per feasibility ('+Math.round(ag)+' reworks, '+Math.round(ad)+' sent to feasibility)','2 or fewer',hw.quotations.rework,sc.rework);
+  push('Output metrics','bottomline','Bottomline (profit)','actual profit / target profit',botT>0?mF(botA)+' of '+mF(botT)+' target ('+pF(botAch)+')':'No data','100% of goal',hw.output.bottomline,sc.bottomline);
+  push('Output metrics','topline','Topline (booking value)','actual booking / target booking',topT>0?mF(topA)+' of '+mF(topT)+' target ('+pF(topAch)+')':'No data','100% of goal',hw.output.topline,sc.topline);
+  push('Output metrics','conversionPct','Conversion %','',(convPA!==null&&convPT!==null)?pF(convPA)+' actual vs '+pF(convPT)+' target  -  '+iF(convA)+' of '+iF(convT)+' conversions':'No data','100% of goal',hw.output.conversionPct,sc.conversionPct);
+  push('Output metrics','margin','Margin %','actual margin vs target margin',(mAct!==null&&mTgt!==null)?pF(mAct)+' actual vs '+pF(mTgt)+' target':'No data','meet guardrail',hw.output.margin,sc.margin, {actual: mAct!==null?mAct*100:0, target: mTgt!==null?mTgt*100:0});
+  if(includeFlag) push('Output metrics','flag','Seller flags','(red + white sellers) / total sellers',flagAct===null?'No data':pF(flagAct)+' red + white sellers ('+rw+' of '+sellers+')','below 12%',hw.output.flag,sc.flag, {red:redCount, white:whiteCount});
+  const input = usePostCutoff
+    ? wAvg([[sc.called15,CHW_POST_CUTOFF.input.called15],[sc.talk,CHW_POST_CUTOFF.input.talk]])
+    : wAvg([[sc.mishandled,CHW.input.mishandled],[sc.called15,CHW.input.called15],[sc.talk,CHW.input.talk],[sc.priority,CHW.input.priority]]);
+  const quotations=wAvg([[sc.quoted,hw.quotations.quoted],[sc.quoteFeas,hw.quotations.quoteFeas],[sc.pass,hw.quotations.pass],[sc.rework,hw.quotations.rework],[sc.quoteConv,hw.quotations.quoteConv]]);
   const outputPairs: [number|null, number][] = [
-    [sc.bottomline, CHW.output.bottomline],
-    [sc.topline, CHW.output.topline],
-    [sc.conversionPct, CHW.output.conversionPct],
-    [sc.margin, CHW.output.margin]
+    [sc.bottomline, hw.output.bottomline],
+    [sc.topline, hw.output.topline],
+    [sc.conversionPct, hw.output.conversionPct],
+    [sc.margin, hw.output.margin]
   ];
-  if(includeFlag) outputPairs.push([sc.flag!, CHW.output.flag]);
+  if(includeFlag) outputPairs.push([sc.flag!, hw.output.flag]);
   const output=wAvg(outputPairs);
   const agg=wAvg([[output,SW.output],[input,SW.input],[quotations,SW.quotations]]);
   return {subjects:{input:r1(input),quotations:r1(quotations),output:r1(output)},aggregate:r1(agg),grade:grd(agg),chapters:ch};
@@ -422,8 +436,9 @@ async function handleReportCard(req: NextRequest) {
       const l1k=(l1n||l1e).toLowerCase().trim(); if(l1k){ if(!l1M[l1k]) l1M[l1k]={key:l1k,name:l1n||l1e,l2:l2n,regions:new Set(),rows:[]}; l1M[l1k].regions.add(reg); l1M[l1k].rows.push(r); }
       const l2k=(l2n||l2e).toLowerCase().trim(); if(l2k){ if(!l2M[l2k]) l2M[l2k]={key:l2k,name:l2n||l2e,regions:new Set(),rows:[]}; l2M[l2k].regions.add(reg); l2M[l2k].rows.push(r); }
     });
-    function sellerDetail(r:any){ const d=rcAggregate([r],false); const f=nN(r.flag); return {name:r.name||r.email||'',email:r.email||'',region:r.region||'',l1:r.l1_manager_name||'',flag:f,flagLabel:f?FL[f]||String(f):'',subjects:d.subjects,aggregate:d.aggregate,grade:d.grade,chapters:d.chapters}; }
-    function build(g:any,isL1:boolean){ const agg=rcAggregate(g.rows,true); return {key:g.key,name:g.name,l2:isL1?g.l2:'',regions:[...g.regions].filter(Boolean) as string[],sellers:g.rows.length,subjects:agg.subjects,aggregate:agg.aggregate,grade:agg.grade,chapters:agg.chapters,sellerList:g.rows.map(sellerDetail).sort((a:any,b:any)=>(b.aggregate||0)-(a.aggregate||0))}; }
+    const refDate = date || new Date().toISOString().split('T')[0];
+    function sellerDetail(r:any){ const d=rcAggregate([r],false,refDate); const f=nN(r.flag); return {name:r.name||r.email||'',email:r.email||'',region:r.region||'',l1:r.l1_manager_name||'',flag:f,flagLabel:f?FL[f]||String(f):'',subjects:d.subjects,aggregate:d.aggregate,grade:d.grade,chapters:d.chapters}; }
+    function build(g:any,isL1:boolean){ const agg=rcAggregate(g.rows,true,refDate); return {key:g.key,name:g.name,l2:isL1?g.l2:'',regions:[...g.regions].filter(Boolean) as string[],sellers:g.rows.length,subjects:agg.subjects,aggregate:agg.aggregate,grade:agg.grade,chapters:agg.chapters,sellerList:g.rows.map(sellerDetail).sort((a:any,b:any)=>(b.aggregate||0)-(a.aggregate||0))}; }
     const l1Cards = Object.values(l1M).map((g:any)=>build(g,true)).sort((a:any,b:any)=>(b.aggregate||0)-(a.aggregate||0));
     const l2Cards = Object.values(l2M).map((g:any)=>build(g,false)).sort((a:any,b:any)=>(b.aggregate||0)-(a.aggregate||0));
     return NextResponse.json({generated:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),subjectWeights:SW,hasConviq:false,regions:[...regs].sort(),cycles,selectedCycle:activeCycle,views:{'':{l1:l1Cards,l2:l2Cards}}});
@@ -480,7 +495,7 @@ async function handleCompareReport(req: NextRequest) {
 
       const regions = [...new Set(sellers.map((s: any) => s.region).filter(Boolean))];
       const latestDate = sellers.reduce((best: string, s: any) => s.log_date > best ? s.log_date : best, slot.date);
-      const agg = rcAggregate(sellers, true);
+      const agg = rcAggregate(sellers, true, slot.date);
       results.push({
         name: slot.name, level, sellers: sellers.length, regions,
         dateRange: { date: slot.date, snapshotDate: latestDate },

@@ -3,33 +3,33 @@
 import { useCachedFetch } from '@/hooks/useCachedFetch'
 
 export function useAdminMHL() {
-  return useCachedFetch('/api/admin/mhl')
+  return useCachedFetch('/api/admin/mhl', { bypassCache: true })
 }
 
 export function useAdminOverview() {
-  return useCachedFetch('/api/admin/overview')
+  return useCachedFetch('/api/admin/overview', { bypassCache: true })
 }
 
 export function useAdminLTA(dateFrom: string, category: string) {
   const params = new URLSearchParams({ date: dateFrom })
   if (category !== 'All Categories') params.set('category', category)
-  return useCachedFetch(`/api/admin/lta?${params}`)
+  return useCachedFetch(`/api/admin/lta?${params}`, { bypassCache: true })
 }
 
 export function useAdminHygiene() {
-  return useCachedFetch('/api/admin/hygiene')
+  return useCachedFetch('/api/admin/hygiene', { bypassCache: true })
 }
 
 export function useAdminPipeline() {
-  return useCachedFetch('/api/admin/pipeline')
+  return useCachedFetch('/api/admin/pipeline', { bypassCache: true })
 }
 
 export function useAdoption(fromDate: string, toDate: string, email: string, role: string) {
-  return useCachedFetch(`/api/admin/adoption?from=${fromDate}&to=${toDate}&email=${encodeURIComponent(email)}&role=${role}`)
+  return useCachedFetch(`/api/admin/adoption?from=${fromDate}&to=${toDate}&email=${encodeURIComponent(email)}&role=${role}`, { bypassCache: true })
 }
 
 export function useAdminPerformance() {
-  return useCachedFetch('/api/admin/performance')
+  return useCachedFetch('/api/admin/performance', { bypassCache: true })
 }
 
 export function useMHL(email: string, role: string, selectedTl: string, view: string, teamId: string | null) {

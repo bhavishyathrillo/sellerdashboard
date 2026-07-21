@@ -42,14 +42,16 @@ export function primeCache(url: string, data: any) {
   saveToLocalCache(url, entry)
 }
 
-export function useCachedFetch(url: string | null) {
+export function useCachedFetch(url: string | null, options?: { bypassCache?: boolean }) {
+  const bypassCache = options?.bypassCache ?? false
   const [data, setData] = useState<any>(() => {
     if (!url) return null
+    // Always check in-memory cache (cleared on hard refresh)
     if (globalCache.has(url)) {
       return globalCache.get(url)!.data
     }
-    // Check local storage for persistent cache on hard refresh
-    if (typeof window !== 'undefined') {
+    // For admin (bypassCache): skip localStorage so hard refresh always fetches fresh
+    if (!bypassCache && typeof window !== 'undefined') {
       const local = getFromLocalCache(url)
       if (local) {
         globalCache.set(url, local)
@@ -100,8 +102,10 @@ export function useCachedFetch(url: string | null) {
 
     // If we already have cached data, show it instantly and skip loading state
     let isFresh = false
+    // Always check in-memory globalCache (cleared on hard refresh, persists during SPA navigation)
     let cached = globalCache.get(url)
-    if (!cached && typeof window !== 'undefined') {
+    // For non-admin: also check localStorage (survives hard refresh)
+    if (!cached && !bypassCache && typeof window !== 'undefined') {
       cached = getFromLocalCache(url)
       if (cached) globalCache.set(url, cached)
     }
@@ -114,7 +118,7 @@ export function useCachedFetch(url: string | null) {
         isFresh = true
       }
     } else {
-      setLoading(true) // Ensure loader shows immediately for new URLs without cache
+      setLoading(true)
     }
 
     // Always fetch fresh data in background unless it is already fresh
