@@ -122,6 +122,22 @@ export default function L1HomePage({ session }: { session: UserSession }) {
 
   let totalGoal = 0, totalAch = 0, totalShb = 0, totalSellers = 0
   filteredL2Groups.forEach((group: any) => {
+    // Include L1 Manager's own data in team totals
+    if (group.l2_kpi) {
+      const gType = (group.l2_kpi.defined_goal || group.l2_kpi.flag || '').toLowerCase()
+      let includeL1 = false
+      if (toggleState === 'all') includeL1 = true
+      else if (toggleState === 'topline' && gType.includes('topline')) includeL1 = true
+      else if (toggleState === 'bottomline' && !gType.includes('topline')) includeL1 = true
+
+      if (includeL1) {
+        totalGoal += group.l2_kpi.goal || 0
+        totalAch += group.l2_kpi.achieved || 0
+        totalShb += group.l2_kpi.shb || 0
+        if (group.l2_kpi.goal !== undefined) totalSellers++
+      }
+    }
+
     group.sellers.forEach((s: any) => {
       totalGoal += s.goal || 0
       totalAch += s.achieved || 0
@@ -267,9 +283,25 @@ export default function L1HomePage({ session }: { session: UserSession }) {
             const isOwnGroup = group.l2_email?.toLowerCase() === l1Email
             const isExpanded = expandedL2[group.l2_email] === true
             
-            const sellerGoal = group.sellers.reduce((s: number, r: any) => s + (r.goal || 0), 0)
-            const sellerAch = group.sellers.reduce((s: number, r: any) => s + (r.achieved || 0), 0)
-            const sellerShb = group.sellers.reduce((s: number, r: any) => s + (r.shb || 0), 0)
+            let sellerGoal = group.sellers.reduce((s: number, r: any) => s + (r.goal || 0), 0)
+            let sellerAch = group.sellers.reduce((s: number, r: any) => s + (r.achieved || 0), 0)
+            let sellerShb = group.sellers.reduce((s: number, r: any) => s + (r.shb || 0), 0)
+            
+            // Include TL's personal KPI in their Team accordion summary
+            if (group.l2_kpi) {
+              const gType = (group.l2_kpi.defined_goal || group.l2_kpi.flag || '').toLowerCase()
+              let includeL1 = false
+              if (toggleState === 'all') includeL1 = true
+              else if (toggleState === 'topline' && gType.includes('topline')) includeL1 = true
+              else if (toggleState === 'bottomline' && !gType.includes('topline')) includeL1 = true
+        
+              if (includeL1) {
+                sellerGoal += group.l2_kpi.goal || 0
+                sellerAch += group.l2_kpi.achieved || 0
+                sellerShb += group.l2_kpi.shb || 0
+              }
+            }
+
             const sellerPct = sellerGoal > 0 ? (sellerAch / sellerGoal) * 100 : 0
 
             const displayGoal = isExpanded ? group.l2_kpi.goal : sellerGoal
