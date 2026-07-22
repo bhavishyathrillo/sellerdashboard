@@ -14,9 +14,10 @@ export function calculateHygieneStats(sellerData: any[], dateList: string[]) {
   const processedSellers = sellerData.map((seller: any) => {
     const filteredEffRows = seller.effRows || []
     
-    const calls = filteredEffRows.reduce((sum: number, e: any) => sum + (e.call_dials || 0), 0)
-    const duration = filteredEffRows.reduce((sum: number, e: any) => sum + Math.round(parseFloat(e.call_duration || '0') || 0), 0)
-    const daysWithCalls = filteredEffRows.filter((e: any) => e.call_dials > 0).length
+    const calls = filteredEffRows.reduce((sum: number, e: any) => sum + (e.total_dials || 0), 0)
+    const duration = filteredEffRows.reduce((sum: number, e: any) => sum + Math.round(parseFloat(e.total_answered_mins || '0') || 0), 0)
+    const uniqueDials = filteredEffRows.reduce((sum: number, e: any) => sum + (e.unique_enquiries_called || 0), 0)
+    const daysWithCalls = filteredEffRows.filter((e: any) => e.total_dials > 0).length
 
     if (calls > 0 || duration > 0) {
       totalCalls += calls
@@ -26,13 +27,14 @@ export function calculateHygieneStats(sellerData: any[], dateList: string[]) {
     }
 
     const dailyData = dateList.map((dateStr: string) => {
-      const found = filteredEffRows.find((e: any) => (e.date || '').split('T')[0] === dateStr)
+      const found = filteredEffRows.find((e: any) => (e.call_date || '').split('T')[0] === dateStr)
       const d = new Date(dateStr + 'T00:00:00')
       return {
         date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
         dateRaw: dateStr,
-        call_dials: found ? (found.call_dials || 0) : 0,
-        call_duration: found ? Math.round(parseFloat(found.call_duration || '0')) || 0 : 0
+        call_dials: found ? (found.total_dials || 0) : 0,
+        call_duration: found ? Math.round(parseFloat(found.total_answered_mins || '0')) || 0 : 0,
+        unique_dials: found ? (found.unique_enquiries_called || 0) : 0
       }
     })
 
@@ -41,6 +43,7 @@ export function calculateHygieneStats(sellerData: any[], dateList: string[]) {
       seller_email: seller.seller_email,
       total_calls: calls,
       total_duration: duration,
+      total_unique_dials: uniqueDials,
       days_with_calls: daysWithCalls,
       dailyData
     }
@@ -58,19 +61,22 @@ export function calculateHygieneStats(sellerData: any[], dateList: string[]) {
   const teamDailyData = dateList.map((dateStr: string, idx: number) => {
     let totalDials = 0
     let totalDur = 0
+    let totalUniqueD = 0
     let count = 0
     processedSellers.forEach((s: any) => {
       const dd = s.dailyData[idx]
       if (dd && dd.call_dials > 0) {
         totalDials += dd.call_dials
         totalDur += dd.call_duration
+        totalUniqueD += dd.unique_dials
         count++
       }
     })
     return {
       date: new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
       call_dials: count > 0 ? Math.round(totalDials / count) : 0,
-      call_duration: count > 0 ? Math.round(totalDur / count) : 0
+      call_duration: count > 0 ? Math.round(totalDur / count) : 0,
+      unique_dials: count > 0 ? Math.round(totalUniqueD / count) : 0
     }
   })
 

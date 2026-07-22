@@ -17,12 +17,12 @@ export async function GET(req: Request) {
     const dateTo = fmt(today)
 
     const { data, error } = await supabase
-      .from('efficiency')
+      .from('efficiency_2')
       .select('*')
       .eq('seller_email', email.toLowerCase().trim())
-      .gte('date', dateFrom)
-      .lte('date', dateTo)
-      .order('date', { ascending: true })
+      .gte('call_date', dateFrom)
+      .lte('call_date', dateTo)
+      .order('call_date', { ascending: true })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data || [], {

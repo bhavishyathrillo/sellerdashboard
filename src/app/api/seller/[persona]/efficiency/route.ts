@@ -18,12 +18,12 @@ export async function handleSeller(req: Request) {
     const dateTo = fmt(today)
 
     const { data, error } = await supabase
-      .from('efficiency')
+      .from('efficiency_2')
       .select('*')
       .eq('seller_email', email.toLowerCase().trim())
-      .gte('date', dateFrom)
-      .lte('date', dateTo)
-      .order('date', { ascending: true })
+      .gte('call_date', dateFrom)
+      .lte('call_date', dateTo)
+      .order('call_date', { ascending: true })
       
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -85,11 +85,11 @@ export async function handleTl(req: Request) {
 
     while (hasMore) {
       let query = supabase
-        .from('efficiency')
-        .select('id, seller_email, date, call_dials, call_duration')
+        .from('efficiency_2')
+        .select('id, seller_email, call_date, total_dials, total_answered_mins, unique_enquiries_called')
         .in('seller_email', sellerEmails)
-        .gte('date', dateFrom)
-        .lte('date', dateTo)
+        .gte('call_date', dateFrom)
+        .lte('call_date', dateTo)
         .order('id', { ascending: true })
         .limit(pageSize)
 
@@ -117,16 +117,18 @@ export async function handleTl(req: Request) {
       const sellerInfo = sellers.find((s: any) => cleanEmail(s.seller_email) === email)
       
       const dailyData = dateList.map((dateStr: string) => {
-        const found = effRows.find((e: any) => (e.date || '').split('T')[0] === dateStr)
+        const found = effRows.find((e: any) => (e.call_date || '').split('T')[0] === dateStr)
         return {
           date: new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-          call_dials: found ? (found.call_dials || 0) : 0,
-          call_duration: found ? Math.round(parseFloat(found.call_duration || '0')) || 0 : 0
+          call_dials: found ? (found.total_dials || 0) : 0,
+          call_duration: found ? Math.round(parseFloat(found.total_answered_mins || '0')) || 0 : 0,
+          unique_dials: found ? (found.unique_enquiries_called || 0) : 0
         }
       })
 
       const totalCalls = dailyData.reduce((s: number, d: any) => s + d.call_dials, 0)
       const totalDuration = dailyData.reduce((s: number, d: any) => s + d.call_duration, 0)
+      const totalUniqueDials = dailyData.reduce((s: number, d: any) => s + d.unique_dials, 0)
       const daysWithCalls = dailyData.filter((d: any) => d.call_dials > 0).length
 
       return {
@@ -134,6 +136,7 @@ export async function handleTl(req: Request) {
         seller_email: email,
         total_calls: totalCalls,
         total_duration: totalDuration,
+        total_unique_dials: totalUniqueDials,
         days_with_calls: daysWithCalls,
         // Option A: avg per working day
         avg_calls_per_day: daysWithCalls > 0 ? Math.round(totalCalls / daysWithCalls) : 0,
@@ -145,6 +148,7 @@ export async function handleTl(req: Request) {
     const totalSellers = sellerData.filter(s => s.total_calls > 0 || s.total_duration > 0).length
     const teamTotalCalls = sellerData.reduce((s, d) => s + d.total_calls, 0)
     const teamTotalDuration = sellerData.reduce((s, d) => s + d.total_duration, 0)
+    const teamTotalUniqueDials = sellerData.reduce((s, d) => s + d.total_unique_dials, 0)
 
     // Option A: divide by total working days across all sellers (not calendar days)
     const totalWorkingDays = sellerData.filter(s => s.total_calls > 0 || s.total_duration > 0).reduce((s, d) => s + d.days_with_calls, 0)
@@ -153,15 +157,16 @@ export async function handleTl(req: Request) {
 
     // Team daily data (average per day across sellers)
     const teamDailyData = dateList.map((dateStr: string, idx: number) => {
-      let totalDials = 0, totalDur = 0, count = 0
+      let totalDials = 0, totalDur = 0, totalUniqueD = 0, count = 0
       sellerData.forEach((s: any) => {
         const dd = s.dailyData[idx]
-        if (dd && dd.call_dials > 0) { totalDials += dd.call_dials; totalDur += dd.call_duration; count++ }
+        if (dd && dd.call_dials > 0) { totalDials += dd.call_dials; totalDur += dd.call_duration; totalUniqueD += dd.unique_dials; count++ }
       })
       return {
         date: new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
         call_dials: count > 0 ? Math.round(totalDials / count) : 0,
-        call_duration: count > 0 ? Math.round(totalDur / count) : 0
+        call_duration: count > 0 ? Math.round(totalDur / count) : 0,
+        unique_dials: count > 0 ? Math.round(totalUniqueD / count) : 0
       }
     })
 
@@ -169,6 +174,7 @@ export async function handleTl(req: Request) {
       teamAverage: {
         total_calls: teamTotalCalls,
         total_duration: teamTotalDuration,
+        total_unique_dials: teamTotalUniqueDials,
         avg_calls_per_day: avgCallsPerDay,
         avg_duration_per_day: avgDurationPerDay,
         total_sellers: totalSellers,
@@ -220,11 +226,11 @@ export async function handleCm(req: Request) {
 
   while (hasMore) {
     let query = supabase
-      .from('efficiency')
-      .select('id, seller_email, date, call_dials, call_duration')
+      .from('efficiency_2')
+      .select('id, seller_email, call_date, total_dials, total_answered_mins, unique_enquiries_called')
       .in('seller_email', sellerEmails)
-      .gte('date', dateFrom)
-      .lte('date', dateTo)
+      .gte('call_date', dateFrom)
+      .lte('call_date', dateTo)
       .order('id', { ascending: true })
       .limit(pageSize)
 
@@ -251,19 +257,21 @@ export async function handleCm(req: Request) {
     .map((s: any) => {
       const sellerEff = effByEmail[s.seller_email.toLowerCase().trim()] || []
       const dailyData = dateList.map(dateStr => {
-        const found = sellerEff.find((e: any) => (e.date || '').split('T')[0] === dateStr)
+        const found = sellerEff.find((e: any) => (e.call_date || '').split('T')[0] === dateStr)
         const d = new Date(dateStr + 'T00:00:00')
-        return { date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }), call_dials: found ? (found.call_dials || 0) : 0, call_duration: found ? Math.round(parseFloat(found.call_duration || '0')) || 0 : 0 }
+        return { date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }), call_dials: found ? (found.total_dials || 0) : 0, call_duration: found ? Math.round(parseFloat(found.total_answered_mins || '0')) || 0 : 0, unique_dials: found ? (found.unique_enquiries_called || 0) : 0 }
       })
       const totalCalls = dailyData.reduce((sum, d) => sum + d.call_dials, 0)
       const totalDuration = dailyData.reduce((sum, d) => sum + d.call_duration, 0)
+      const totalUniqueDials = dailyData.reduce((sum, d) => sum + d.unique_dials, 0)
       const daysWithCalls = dailyData.filter(d => d.call_dials > 0).length
-      return { seller_name: s.seller_name, seller_email: s.seller_email, total_calls: totalCalls, total_duration: totalDuration, days_with_calls: daysWithCalls, avg_calls_per_day: daysWithCalls > 0 ? Math.round(totalCalls / daysWithCalls) : 0, dailyData }
+      return { seller_name: s.seller_name, seller_email: s.seller_email, total_calls: totalCalls, total_duration: totalDuration, total_unique_dials: totalUniqueDials, days_with_calls: daysWithCalls, avg_calls_per_day: daysWithCalls > 0 ? Math.round(totalCalls / daysWithCalls) : 0, dailyData }
     })
 
   const totalSellers = sellerData.filter(s => s.total_calls > 0 || s.total_duration > 0).length
   const teamTotalCalls = sellerData.reduce((s, d) => s + d.total_calls, 0)
   const teamTotalDuration = sellerData.reduce((s, d) => s + d.total_duration, 0)
+  const teamTotalUniqueDials = sellerData.reduce((s, d) => s + d.total_unique_dials, 0)
 
   // Option A: divide by total working days across all sellers (not calendar days)
   const totalWorkingDays = sellerData.filter(s => s.total_calls > 0 || s.total_duration > 0).reduce((s, d) => s + d.days_with_calls, 0)
@@ -273,13 +281,14 @@ export async function handleCm(req: Request) {
   const teamDailyData = dateList.map((dateStr, idx) => {
     const dayData = sellerData.map(s => s.dailyData[idx])
     const sellersWithData = dayData.filter(d => d.call_dials > 0).length
-    return { date: dayData[0]?.date || '', call_dials: sellersWithData > 0 ? Math.round(dayData.reduce((s, d) => s + d.call_dials, 0) / sellersWithData) : 0, call_duration: sellersWithData > 0 ? Math.round(dayData.reduce((s, d) => s + d.call_duration, 0) / sellersWithData) : 0 }
+    return { date: dayData[0]?.date || '', call_dials: sellersWithData > 0 ? Math.round(dayData.reduce((s, d) => s + d.call_dials, 0) / sellersWithData) : 0, call_duration: sellersWithData > 0 ? Math.round(dayData.reduce((s, d) => s + d.call_duration, 0) / sellersWithData) : 0, unique_dials: sellersWithData > 0 ? Math.round(dayData.reduce((s, d) => s + d.unique_dials, 0) / sellersWithData) : 0 }
   })
 
   return NextResponse.json({
     teamAverage: {
       total_calls: teamTotalCalls,
       total_duration: teamTotalDuration,
+      total_unique_dials: teamTotalUniqueDials,
       avg_calls_per_day: avgCallsPerDay,
       avg_duration_per_day: avgDurationPerDay,
       total_sellers: totalSellers,

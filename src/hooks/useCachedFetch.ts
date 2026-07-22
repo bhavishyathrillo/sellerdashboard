@@ -8,7 +8,7 @@ interface CacheEntry {
 }
 
 const globalCache = new Map<string, CacheEntry>()
-const LOCAL_STORAGE_PREFIX = 'thrillo_cache_v2_'
+const LOCAL_STORAGE_PREFIX = 'thrillo_cache_v3_'
 const CACHE_DURATION = 20 * 60 * 1000
 
 function getFromLocalCache(url: string): CacheEntry | null {
