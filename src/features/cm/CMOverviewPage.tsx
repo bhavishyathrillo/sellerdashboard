@@ -768,7 +768,7 @@ export default function CMOverviewPage({ session }: { session?: any }) {
   const [bucketView, setBucketView] = useState<'flag' | 'tenure'>('flag')
   const [bucketModal, setBucketModal] = useState<{ bucketName: string, sellers: any[], bucketShortfall?: number, shortfallType?: 'BL'|'TL' } | null>(null)
   const [termsModal, setTermsModal] = useState(false)
-  const [modalCmFilter, setModalCmFilter] = useState<string>('All')
+
   const [modalRegionFilter, setModalRegionFilter] = useState<string>('All')
   const adminName = session?.name || 'Admin'
 
@@ -1011,7 +1011,7 @@ export default function CMOverviewPage({ session }: { session?: any }) {
                   Sellers in Bucket: <span style={{ color: '#F4631E' }}>{bucketModal.bucketName}</span>
                 </h2>
                 {bucketModal.shortfallType && bucketModal.bucketShortfall !== undefined && (() => {
-                  const modalSellersFiltered = bucketModal.sellers.filter((s: any) => (modalCmFilter === 'All' || s.cmName === modalCmFilter) && (modalRegionFilter === 'All' || s.region === modalRegionFilter));
+                  const modalSellersFiltered = bucketModal.sellers.filter((s: any) => (modalRegionFilter === 'All' || s.region === modalRegionFilter));
                   
                   const currentShortfall = (() => {
                      let shb = 0; let ach = 0;
@@ -1055,16 +1055,7 @@ export default function CMOverviewPage({ session }: { session?: any }) {
                 })()}
               </div>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <select 
-                  value={modalCmFilter} 
-                  onChange={e => setModalCmFilter(e.target.value)}
-                  style={{ background: 'rgba(30,28,24,0.9)', color: '#E8E4DD', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '8px 14px', fontSize: '0.8rem', outline: 'none', transition: 'all 0.2s', cursor: 'pointer' }}
-                >
-                  <option value="All">All CMs</option>
-                  {Array.from(new Set(bucketModal.sellers.filter((s: any) => modalRegionFilter === 'All' || s.region === modalRegionFilter).map((s: any) => s.cmName))).filter(Boolean).sort().map((cm: any) => (
-                    <option key={cm} value={cm}>{cm}</option>
-                  ))}
-                </select>
+
                 <select 
                   value={modalRegionFilter} 
                   onChange={e => setModalRegionFilter(e.target.value)}
@@ -1075,7 +1066,7 @@ export default function CMOverviewPage({ session }: { session?: any }) {
                     <option key={reg} value={reg}>{reg}</option>
                   ))}
                 </select>
-                <button onClick={() => { setBucketModal(null); setModalCmFilter('All'); setModalRegionFilter('All'); }} style={{ background: 'none', border: 'none', color: '#E8E4DD', cursor: 'pointer', fontSize: '1.2rem', marginLeft: '8px' }}>✕</button>
+                <button onClick={() => { setBucketModal(null); setModalRegionFilter('All'); }} style={{ background: 'none', border: 'none', color: '#E8E4DD', cursor: 'pointer', fontSize: '1.2rem', marginLeft: '8px' }}>✕</button>
               </div>
            </div>
            <div style={{ overflowX: 'auto' }}>
@@ -1084,7 +1075,6 @@ export default function CMOverviewPage({ session }: { session?: any }) {
                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                    <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Seller</th>
                    <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Region</th>
-                   <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>CM</th>
                    <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>BL Goal</th>
                    <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>BL Achieved</th>
                    <th style={{ padding: '8px', color: '#8A8278', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>BL %</th>
@@ -1097,7 +1087,6 @@ export default function CMOverviewPage({ session }: { session?: any }) {
                </thead>
                <tbody>
                  {bucketModal.sellers
-                   .filter((s: any) => modalCmFilter === 'All' || s.cmName === modalCmFilter)
                    .filter((s: any) => modalRegionFilter === 'All' || s.region === modalRegionFilter)
                    .map((s: any, i: number) => {
                    const blGoal = s.blGoal || 0;
@@ -1123,7 +1112,6 @@ export default function CMOverviewPage({ session }: { session?: any }) {
                      <tr key={i} style={{ borderBottom: i < bucketModal.sellers.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', background: 'transparent' }} className="ov-tr-hover">
                        <td style={{ padding: '8px', color: '#FFF', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{s.seller_name}</td>
                        <td style={{ padding: '8px', color: '#B0A898', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{s.region}</td>
-                       <td style={{ padding: '8px', color: '#D4AF37', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{s.cmName}</td>
                        <td style={{ padding: '8px', color: '#B0A898', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(blGoal)}</td>
                        <td style={{ padding: '8px', color: '#E8E4DD', fontSize: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{formatCurrency(blAch)}</td>
                        <td style={{ padding: '8px', color: blPct >= 100 ? '#22C55E' : blPct >= 50 ? '#EAB308' : '#EF4444', fontSize: '0.75rem', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>{blPct.toFixed(1)}%</td>
@@ -1136,7 +1124,7 @@ export default function CMOverviewPage({ session }: { session?: any }) {
                      </tr>
                    )
                  })}
-                 {bucketModal.sellers.filter((s: any) => (modalCmFilter === 'All' || s.cmName === modalCmFilter) && (modalRegionFilter === 'All' || s.region === modalRegionFilter)).length === 0 && (
+                 {bucketModal.sellers.filter((s: any) => (modalRegionFilter === 'All' || s.region === modalRegionFilter)).length === 0 && (
                    <tr><td colSpan={11} style={{ padding: '16px', textAlign: 'center', color: '#8A8278', fontSize: '0.8rem' }}>No sellers found for selected filters</td></tr>
                  )}
                </tbody>
