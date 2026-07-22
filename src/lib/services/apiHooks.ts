@@ -10,6 +10,10 @@ export function useAdminOverview() {
   return useCachedFetch('/api/admin/overview', { bypassCache: true })
 }
 
+export function useCMOverview(name: string) {
+  return useCachedFetch(`/api/seller/cm/overview?name=${encodeURIComponent(name)}`, { bypassCache: true })
+}
+
 export function useAdminLTA(dateFrom: string, category: string) {
   const params = new URLSearchParams({ date: dateFrom })
   if (category !== 'All Categories') params.set('category', category)

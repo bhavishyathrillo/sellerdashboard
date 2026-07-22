@@ -12,7 +12,7 @@ import { getSession, saveSession, clearSession, UserSession } from '@/lib/sessio
 import { SessionTracker } from '@/hooks/useSessionTracker'
 
 const HomePage = dynamic(() => import('@/features/shared/HomePage'))
-const L1HomePage = dynamic(() => import('@/features/tl/L1HomePage'))
+const CMOverviewPage = dynamic(() => import('@/features/cm/CMOverviewPage'))
 const AdminOverviewPage = dynamic(() => import('@/features/admin/AdminOverviewPage'))
 const AdminLTAPage = dynamic(() => import('@/features/admin/AdminLTAPage'))
 const AdminPerformancePage = dynamic(() => import('@/features/admin/AdminPerformancePage'))
@@ -193,7 +193,7 @@ export default function Home() {
             <AdminLTAPage session={session} />
           )}
           {activePage === 'home' && !isAdmin && session.role === 'L1' && (
-            <L1HomePage session={session} />
+            <CMOverviewPage session={session} />
           )}
           {activePage === 'home' && !isAdmin && session.role !== 'L1' && (
             <HomePage session={session} />
