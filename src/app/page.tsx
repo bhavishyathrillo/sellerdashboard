@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import IntroScreen from '@/components/ui/IntroScreen'
-import FarewellMessage from '@/components/ui/FarewellMessage'
+
 import LoginForm from '@/features/auth/LoginForm'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import PipelineGate from '@/components/ui/PipelineGate'
@@ -49,7 +49,7 @@ export default function Home() {
   const [state, setState] = useState<AppState>('intro')
   const [session, setSession] = useState<UserSession | null>(null)
   const [checked, setChecked] = useState(false)
-  const [farewellDismissed, setFarewellDismissed] = useState(false)
+
   const [activePage, setActivePage] = useState('home')
 
   useEffect(() => {
@@ -58,9 +58,7 @@ export default function Home() {
       setSession(existing)
       const savedTab = localStorage.getItem('activeTab')
       if (savedTab) setActivePage(savedTab)
-      if (localStorage.getItem('farewell_dismissed_today') === 'true') {
-        setFarewellDismissed(true)
-      }
+
       if (GATED_ROLES.includes(existing.role) && !['ADMIN', 'SUPERADMIN'].includes(existing.role)) {
         checkPipelineAndRoute(existing)
       } else {
@@ -132,14 +130,7 @@ export default function Home() {
 
   const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(session?.role || '')
 
-  const todayDate = new Date(Date.now() + 19800000).toISOString().split('T')[0]
-  const isPranshu = session?.email?.toLowerCase().includes('pranshuj@thrillophilia')
-  if (state === 'dashboard' && isPranshu && todayDate === '2026-07-24' && !farewellDismissed) {
-    return <FarewellMessage onProceed={() => {
-      setFarewellDismissed(true)
-      localStorage.setItem('farewell_dismissed_today', 'true')
-    }} />
-  }
+
 
   return (
     <>
