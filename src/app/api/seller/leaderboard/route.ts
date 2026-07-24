@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     query = query.order(table === 'srs_june' ? '"% of Goal Achieved"' : 'goal_achieved_percent', { ascending: false })
 
     const { data: rawData, error } = await query
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: (error as any).message }, { status: 500 })
 
     const data = (rawData || []).map((s: any) => {
       if (table === 'srs_raw') return s
@@ -45,6 +45,6 @@ export async function GET(req: Request) {
     }
   })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: (error as any).message }, { status: 500 })
   }
 }
