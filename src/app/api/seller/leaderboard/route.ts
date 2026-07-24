@@ -1,10 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -23,7 +18,6 @@ export async function GET(req: Request) {
       .from(table)
       .select(selectColumns)
       .gt(table === 'srs_june' ? '"Actual Achieved (Monthly)"' : 'actual_achieved_monthly', 0)
-      
 
     if (haul) query = query.eq(table === 'srs_june' ? '"Haul"' : 'haul', haul)
     if (region) query = query.eq(table === 'srs_june' ? '"Region"' : 'region', region)

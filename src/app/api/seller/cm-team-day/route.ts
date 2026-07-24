@@ -1,10 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -21,7 +16,7 @@ export async function GET(req: Request) {
   // Step 1: Get all sellers under this CM (L1)
     const { data: _me } = await supabase.from('srs_raw').select('l1_name').eq('l1_email', trimmedEmail).limit(1).maybeSingle()
   const _myName = _me?.l1_name || ''
-  
+
   let _query = supabase.from('srs_raw').select('*')
   if (_myName) {
     _query = _query.eq('l1_name', _myName)
@@ -44,7 +39,7 @@ export async function GET(req: Request) {
 
   // Ensure CM is included in his own team list (optional, but good for completeness)
   const cmSelf = allSellers.find(s => (s.seller_email || '').toLowerCase().trim() === trimmedEmail)
-  
+
   const emails = allSellers.map(s => s.seller_email)
 
   // Compute month bounds for monthly data
@@ -96,7 +91,7 @@ export async function GET(req: Request) {
 
   // Step 3: Group by L2 Email
   const l2Map: Record<string, any[]> = {}
-  
+
   populatedSellers.forEach(seller => {
     const l2 = (seller.l2_email || trimmedEmail).toLowerCase().trim()
     if (!l2Map[l2]) {

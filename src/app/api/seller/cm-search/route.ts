@@ -1,10 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -21,11 +16,11 @@ export async function GET(req: Request) {
   try {
     const { data: _me } = await supabase.from('srs_raw').select('l1_name').eq('l1_email', trimmedL1).limit(1).maybeSingle()
   const _myName = _me?.l1_name || ''
-    
+
     let srsQuery = supabase
       .from('srs_raw')
       .select('seller_email, seller_name, l2_email')
-      
+
     if (_myName) {
       srsQuery = srsQuery.eq('l1_name', _myName)
     } else {

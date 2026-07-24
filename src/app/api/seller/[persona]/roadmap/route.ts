@@ -1,8 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
-
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export async function handleSeller(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -43,7 +40,7 @@ export async function handleTl(req: Request) {
   let _q = supabase.from('srs_raw').select('seller_email, seller_name, l2_email, l2_name')
   if (_myName) _q = _q.eq('l1_name', _myName)
   else _q = _q.eq('l1_email', trimmedEmail)
-  
+
   const { data: allSellers, error } = await _q
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -53,7 +50,7 @@ export async function handleTl(req: Request) {
 
   // Get unique L2 emails
   const l2Emails = [...new Set(allSellers.map((s: any) => s.l2_email).filter(Boolean))]
-  
+
   // Get roadmap data in parallel
   const sellerEmails = allSellers.map((s: any) => s.seller_email)
   const [
@@ -68,7 +65,7 @@ export async function handleTl(req: Request) {
     const sellersUnderL2 = allSellers.filter(
       (s: any) => s.l2_email?.toLowerCase() === l2Email.toLowerCase()
     )
-    
+
     const l2Roadmap = (l2Roadmaps || []).find(
       (r: any) => r.seller_email?.toLowerCase() === l2Email.toLowerCase()
     )
@@ -92,7 +89,6 @@ export async function handleTl(req: Request) {
 
   return NextResponse.json({ l2Groups })
 }
-  
 
 export async function POST(req: Request) {
   try {

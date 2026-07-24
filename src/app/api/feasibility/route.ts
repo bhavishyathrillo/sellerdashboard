@@ -1,7 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 function cleanEmail(e: string): string { return (e || '').toLowerCase().trim() }
 
@@ -177,7 +175,7 @@ function buildSellerMetrics(seller: any, m: any) {
   const lost = m.passed_and_lost || 0
   const open = m.passed_and_open || 0
   const stuck = m.not_passed_and_open || 0
-  
+
   const passedOpenCodes = (m.passed_open_enq_codes || '').split(',').map((c: string) => c.trim()).filter(Boolean)
   const notPassedOpenCodes = (m.not_passed_open_enq_codes || '').split(',').map((c: string) => c.trim()).filter(Boolean)
   const passedLostCodes = (m.passed_lost_enq_codes || '').split(',').map((c: string) => c.trim()).filter(Boolean)

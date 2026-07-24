@@ -1,19 +1,8 @@
 // app/api/seller/seller-view/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { db: { schema: 'seller_day_to_day' } }
-)
-
-const supabasePublic = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-// Safe string handling if needed
+const supabasePublic = supabase;// Safe string handling if needed
 function asString(val: any): string | null {
   return val ? String(val) : null
 }
@@ -145,7 +134,7 @@ export async function GET(request: NextRequest) {
         .eq('work_date', date)
         .maybeSingle(),
       supabasePublic.from('kalpit_2').select('*').eq('date', date),
-      
+
       // Planned LTA for the month
       supabasePublic.from('planned_lta')
         .select('*')
@@ -153,7 +142,7 @@ export async function GET(request: NextRequest) {
         .gte('log_date', monthStart)
         .lte('log_date', monthEnd)
     ])
-    
+
     console.log('--- DEBUG GOAL VS SHB ---')
     console.log('Query for:', email, date)
     console.log('Result:', goalVsShbData)
@@ -281,7 +270,7 @@ export async function GET(request: NextRequest) {
       dot_distribution: dotCurrentTotal > 0
         ? { total_leads_allotted: dotCurrentTotal, dot_month: currentMonth }
         : null,
-      
+
       daily_lta: ltaLogData ? { ...ltaLogData, planned_lta_override: plannedLtaData?.find((p: any) => p.log_date === date)?.lta } : null,
       lta_trend: (ltaMonthData || []).map((r: any) => ({ ...r, planned_lta_override: plannedLtaData?.find((p: any) => p.log_date === r.log_date)?.lta })),
       goal_vs_shb: goalVsShbData || null,

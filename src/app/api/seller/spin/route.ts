@@ -1,11 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 import { cleanEmail } from '@/lib/hygiene-utils'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 const PREMIUM_PRIZES = ['WFH Tomorrow','₹1000 Voucher','1 Day Off','2 Regularisation','2 WFH','Movie Tickets','Spin Again','Lunch with Manager']
 const STANDARD_PRIZES = ['WFH Tomorrow','₹500 Voucher','1 Day Off','1 Regularisation','Movie Tickets','₹1000 Voucher','Better Luck','Upgrade to Premium']
@@ -13,7 +8,7 @@ const STANDARD_PRIZES = ['WFH Tomorrow','₹500 Voucher','1 Day Off','1 Regulari
 export async function POST(req: Request) {
   try {
     const { email, spinType } = await req.json()
-    
+
     if (!email || !spinType) {
       return NextResponse.json({ success: false, message: 'Email and spinType required' }, { status: 400 })
     }

@@ -1,8 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 import { cleanEmail } from '@/lib/hygiene-utils'
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -15,7 +13,7 @@ export async function GET(req: Request) {
   try {
       const { data: _me } = await supabase.from('srs_raw').select('l1_name').eq('l1_email', trimmedEmail).limit(1).maybeSingle()
   const _myName = _me?.l1_name || ''
-  
+
   let _query = supabase.from('srs_raw').select('seller_email, seller_name')
   if (_myName) {
     _query = _query.eq('l1_name', _myName)
@@ -81,7 +79,7 @@ export async function GET(req: Request) {
     const sellerData = sellerEmails.map((email) => {
       const effRows = effByEmail[email] || []
       const sellerInfo = sellers.find((s: any) => cleanEmail(s.seller_email) === email)
-      
+
       const dailyData = dateList.map((dateStr: string) => {
         const found = effRows.find((e: any) => (e.call_date || '').split('T')[0] === dateStr)
         return {

@@ -1,10 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -19,7 +14,7 @@ export async function GET(req: Request) {
   // Step 1: Get all sellers under this L1 manager
     const { data: _me } = await supabase.from('srs_raw').select('l1_name').eq('l1_email', trimmedEmail).limit(1).maybeSingle()
   const _myName = _me?.l1_name || ''
-  
+
   let _query = supabase.from('srs_raw').select('*')
   if (_myName) {
     _query = _query.eq('l1_name', _myName)
