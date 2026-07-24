@@ -103,7 +103,7 @@ export function useCachedFetch(url: string | null, options?: { bypassCache?: boo
     // If we already have cached data, show it instantly and skip loading state
     let isFresh = false
     // Always check in-memory globalCache (cleared on hard refresh, persists during SPA navigation)
-    let cached = globalCache.get(url)
+    let cached: CacheEntry | null | undefined = globalCache.get(url)
     // For non-admin: also check localStorage (survives hard refresh)
     if (!cached && !bypassCache && typeof window !== 'undefined') {
       cached = getFromLocalCache(url)
@@ -130,7 +130,7 @@ export function useCachedFetch(url: string | null, options?: { bypassCache?: boo
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         let shouldFetch = true
-        let currentCached = globalCache.get(url)
+        let currentCached: CacheEntry | null | undefined = globalCache.get(url)
         if (!currentCached && typeof window !== 'undefined') currentCached = getFromLocalCache(url)
         
         if (currentCached) {
