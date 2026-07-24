@@ -3,8 +3,9 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import React from 'react'
 import { useStickyState } from '@/hooks/useStickyState'
-import { useCMOverview } from '@/lib/services/apiHooks'
+import { useTLOverview } from '@/lib/services/apiHooks'
 import Loader from '@/components/ui/Loader'
+import { RoadmapCard } from '@/features/shared/RoadmapCard'
 
 /* ─── helpers ─── */
 function fmt(n: number) {
@@ -753,7 +754,7 @@ const CSS = `
 `
 
 
-export default function CMOverviewPage({ session }: { session?: any }) {
+export default function TLOverviewPage({ session }: { session?: any }) {
   const [apiData, setApiData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [expandedCms, setExpandedCms] = useState<Record<string, boolean>>({})
@@ -770,9 +771,13 @@ export default function CMOverviewPage({ session }: { session?: any }) {
   const [termsModal, setTermsModal] = useState(false)
 
   const [modalRegionFilter, setModalRegionFilter] = useState<string>('All')
+  const [viewMode, setViewMode] = useState<'overview' | 'roadmaps'>('overview')
+  const [roadmapData, setRoadmapData] = useState<any[]>([])
+  const [roadmapLoading, setRoadmapLoading] = useState(false)
+  const [roadmapModal, setRoadmapModal] = useState<any | null>(null)
   const adminName = session?.name || 'Admin'
 
-  const { data: fetchedData, loading: fetchLoading } = useCMOverview(session?.name || "")
+  const { data: fetchedData, loading: fetchLoading } = useTLOverview(session?.name || "")
 
   useEffect(() => {
     if (fetchLoading) {
@@ -784,6 +789,36 @@ export default function CMOverviewPage({ session }: { session?: any }) {
       setLoading(false)
     }
   }, [fetchedData, fetchLoading])
+
+  useEffect(() => {
+    if (viewMode === 'roadmaps' && roadmapData.length === 0) {
+      const fetchRoadmaps = async () => {
+        setRoadmapLoading(true)
+        try {
+          const emails = new Set<string>()
+          const localL1Data = apiData?.l1_data || []
+          localL1Data.forEach((l1: any) => {
+            l1.l2_groups?.forEach((l2: any) => {
+              l2.sellers?.forEach((s: any) => emails.add(s.seller_email))
+            })
+          })
+          const emailArr = Array.from(emails)
+          const rRes = await fetch('/api/seller/cm/roadmap', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emails: emailArr })
+          })
+          if (rRes.ok) {
+            const json = await rRes.json()
+            setRoadmapData(json.roadmaps || [])
+          }
+        } catch (err) {
+          console.error(err)
+        }
+        setRoadmapLoading(false)
+      }
+      fetchRoadmaps()
+    }
+  }, [viewMode, apiData?.l1_data, roadmapData.length])
 
   if (loading) return <Loader text="Loading overview..." />
 
@@ -1148,7 +1183,20 @@ export default function CMOverviewPage({ session }: { session?: any }) {
           
           <div style={{ display: 'flex', gap: '12px' }}>
 
-
+            <div style={{display:'flex',gap:'3px',background:'#141414',border:'1px solid #232323',borderRadius:'12px',padding:'4px'}}>
+              <button onClick={() => setViewMode('overview')} style={{
+                padding:'8px 16px',border:'none',borderRadius:'8px',
+                background: viewMode==='overview'?'rgba(244,99,30,0.15)':'transparent',
+                color: viewMode==='overview'?'#F4631E':'#8A8278',
+                cursor:'pointer',fontSize:'0.75rem',fontWeight:600,transition:'all 0.2s'
+              }}>Overview</button>
+              <button onClick={() => setViewMode('roadmaps')} style={{
+                padding:'8px 16px',border:'none',borderRadius:'8px',
+                background: viewMode==='roadmaps'?'rgba(244,99,30,0.15)':'transparent',
+                color: viewMode==='roadmaps'?'#F4631E':'#8A8278',
+                cursor:'pointer',fontSize:'0.75rem',fontWeight:600,transition:'all 0.2s'
+              }}>Team Roadmaps</button>
+            </div>
             <div className="ov-region-select">
               <button className="ov-region-btn" onClick={() => setRegionOpen(!regionOpen)}>
                 <span style={{color: '#8A8278'}}>Region:</span> {formatRegionName(selectedRegion)}
@@ -1204,7 +1252,9 @@ export default function CMOverviewPage({ session }: { session?: any }) {
         </div>
       </div>
 
-      {/* ── KPIs ── */}
+      {viewMode === 'overview' ? (
+        <>
+          {/* ── KPIs ── */}
       <div className="ov-kpi-sec">
 
         {/* BOTTOM LINE PANEL */}
@@ -1667,7 +1717,40 @@ export default function CMOverviewPage({ session }: { session?: any }) {
         </table>
         )}
       </div>
+        </>
+      ) : (
+        <div style={{ padding: '20px 0' }}>
+      {roadmapLoading ? <div style={{ color: '#8A8278' }}>Loading roadmaps...</div> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {roadmapData.map(r => (
+            <div key={r.seller_email} onClick={() => setRoadmapModal(r)} style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="ov-tr-hover">
+              <div>
+                <div style={{ fontWeight: 600, color: '#E8E4DD' }}>{r.seller_name}</div>
+                <div style={{ fontSize: '0.8rem', color: '#8A8278' }}>{r.region}</div>
+              </div>
+              <div style={{ color: '#D4AF37', fontSize: '0.8rem' }}>View Roadmap &rarr;</div>
+            </div>
+          ))}
+          {roadmapData.length === 0 && <div style={{ color: '#8A8278', padding: '20px' }}>No roadmap data found.</div>}
+        </div>
+      )}
     </div>
+  )}
+  
+  {roadmapModal && (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setRoadmapModal(null)}>
+      <div style={{ background: '#121212', padding: '20px', borderRadius: '20px', width: '90%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center' }}>
+          <h2 style={{ fontSize: '1.2rem', color: '#E8E4DD', fontWeight: 600 }}>
+            {roadmapModal.seller_name}'s Roadmap
+          </h2>
+          <button onClick={() => setRoadmapModal(null)} style={{ background: 'none', border: 'none', color: '#8A8278', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+        </div>
+        <RoadmapCard roadmap={roadmapModal} name={roadmapModal.seller_name} compact={true} />
+      </div>
+    </div>
+  )}
+      </div>
     </>
   )
 }
