@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { UserSession } from '@/lib/session'
 import HomePage from '@/features/shared/HomePage'
-import L1HomePage from '@/features/tl/L1HomePage'
+import CMOverviewPage from '@/features/cm/CMOverviewPage'
 import L1SellerViewPage from '@/features/tl/L1SellerViewPage'
 import L2SellerViewPage from '@/features/cm/L2SellerViewPage'
 import SellerViewPage from '@/features/seller/SellerViewPage'
@@ -300,7 +300,7 @@ export default function CMSelectPersonaPage({ session }: Props) {
 
             {/* Dashboard Content */}
             <div style={{ flex: 1, overflow: 'auto', background: '#080808' }}>
-              {activePersonaTab === 'home' && personaSession.role === 'L1' && <L1HomePage session={personaSession} />}
+              {activePersonaTab === 'home' && personaSession.role === 'L1' && <CMOverviewPage session={personaSession} />}
               {activePersonaTab === 'home' && personaSession.role !== 'L1' && <HomePage session={personaSession} />}
               {activePersonaTab === 'pipeline' && <PipelinePage session={personaSession} />}
               {activePersonaTab === 'priority' && <PriorityPage session={personaSession} />}

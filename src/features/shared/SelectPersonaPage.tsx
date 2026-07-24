@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { UserSession } from '@/lib/session'
 import HomePage from '@/features/shared/HomePage'
-import L1HomePage from '@/features/tl/L1HomePage'
+import CMOverviewPage from '@/features/cm/CMOverviewPage'
+import TLOverviewPage from '@/features/tl/TLOverviewPage'
 import PipelinePage from '@/features/shared/PipelinePage'
 import PriorityPage from '@/features/shared/PriorityPage'
 import MHLPage from '@/features/shared/MHLPage'
@@ -292,8 +293,9 @@ export default function SelectPersonaPage({ session }: Props) {
 
             {/* Dashboard Content */}
             <div style={{ flex: 1, overflow: 'auto', background: '#080808' }}>
-              {activePersonaTab === 'home' && personaSession.role === 'L1' && <L1HomePage session={personaSession} />}
-              {activePersonaTab === 'home' && personaSession.role !== 'L1' && <HomePage session={personaSession} />}
+              {activePersonaTab === 'home' && personaSession.role === 'L1' && <CMOverviewPage session={personaSession} />}
+              {activePersonaTab === 'home' && personaSession.role === 'L2' && <TLOverviewPage session={personaSession} />}
+              {activePersonaTab === 'home' && personaSession.role !== 'L1' && personaSession.role !== 'L2' && <HomePage session={personaSession} />}
               {activePersonaTab === 'pipeline' && <PipelinePage session={personaSession} />}
               {activePersonaTab === 'priority' && <PriorityPage session={personaSession} />}
               {activePersonaTab === 'leaderboard' && <LeaderboardPage session={personaSession} />}

@@ -19,7 +19,25 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Seller not found' }, { status: 404 })
   }
 
-  return NextResponse.json(data, {
+  const { data: julyData } = await supabase
+    .from('srs_july')
+    .select('*')
+    .eq('seller_email', email.toLowerCase().trim())
+    .maybeSingle()
+
+  const mappedJulyData = julyData ? {
+    bl_goal: Number(julyData.bottomline_goal) || 0,
+    bl_ach: Number(julyData.bl_actual_splits) || 0,
+    bl_shb: Number(julyData.bottomline_should_have_been) || 0,
+    tl_goal: Number(julyData.topline_goal_this_month) || 0,
+    tl_ach: Number(julyData.tl_actual_splits) || 0,
+    tl_shb: Number(julyData.topline_should_have_been) || 0,
+    cancellation_impact: Number(julyData.cancellation_impacts) || 0,
+    escalation_impacts: Number(julyData.escalation_impacts) || 0,
+    old_bookings_earnings: Number(julyData.old_bookings_earnings) || 0,
+  } : {}
+
+  return NextResponse.json({ ...data, july_data: mappedJulyData }, {
     headers: {
       'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59'
     }
